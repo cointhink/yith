@@ -1,8 +1,7 @@
 use std::fs;
-use std::process;
 
 use redis::{Commands, RedisError};
-use yaml_rust::{Yaml, YamlLoader};
+use serde::{Serialize, Deserialize};
 
 fn main() {
     println!("Yith");
@@ -10,33 +9,34 @@ fn main() {
     app(config).unwrap();
 }
 
-fn app(config: Vec<Yaml>) -> Result<u32, RedisError> {
-    let redis_url = "redis://127.0.0.1/";
-    let mut pubclient = rdsetup(redis_url)?;
+fn app(config: Config) -> Result<u32, RedisError> {
+    let mut pubclient = rdsetup(&config.redis)?;
     let mut ps = rdsub(&mut pubclient);
 
     let msg = ps.get_message()?;
     let arb_id: String = msg.get_payload()?;
     println!("redis {}", arb_id);
 
-    let mut client = rdsetup(redis_url)?;
+    let mut client = rdsetup(&config.redis)?;
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
-    let data = json::parse(&json).unwrap();
-    println!("{} json {} bytes", hkey, data.len());
+    // let data = json::parse(&json).unwrap();
+    // println!("{} json {} bytes", hkey, data.len());
     Ok(0)
 }
 
-fn configload() -> Vec<Yaml> {
+#[derive(Debug, Serialize, Deserialize)]
+struct Config {
+    redis: String
+}
+
+fn configload() -> Config {
     let filename = "config.yaml";
-    let yamlOk = fs::read_to_string(filename);
-    let yaml = match yamlOk {
-        Ok(str) => str,
-        Err(error) => {
-            panic!("{:?}", error)
-        },
-    };
-    YamlLoader::load_from_str(&yaml).unwrap()
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let config: Config = serde_yaml::from_str(&yaml).unwrap();
+    println!("{:#?}", config);
+    config
 }
 
 fn rdsetup(url: &str) -> Result<redis::Connection, redis::RedisError> {
