@@ -3,6 +3,9 @@ use std::fs;
 use redis::{Commands, RedisError};
 use serde::{Serialize, Deserialize};
 
+mod order;
+use crate::order::Order;
+
 fn main() {
     println!("Yith");
     let config = configload();
@@ -20,8 +23,8 @@ fn app(config: Config) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis)?;
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
-    // let data = json::parse(&json).unwrap();
-    // println!("{} json {} bytes", hkey, data.len());
+    let order: Order = serde_yaml::from_str(&json).unwrap();
+    println!("{} {:#?}", hkey, order);
     Ok(0)
 }
 
