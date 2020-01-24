@@ -1,0 +1,15 @@
+---
+#Exchanges
+-
+  name: radarrelay
+  protocol: 0x
+  style: open
+
+-
+  name: ddex-v3
+  #Hydro-Authentication: {Address}#{Message}#{Signature}
+  protocol: hydro
+  style: closed
+  build: https://api.ddex.io/v4/orders/build
+  place: https://api.ddex.io/v4/orders
+  status:
