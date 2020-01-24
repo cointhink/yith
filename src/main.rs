@@ -1,4 +1,5 @@
 use std::fs;
+use std::process;
 
 use redis::{Commands, RedisError};
 use yaml_rust::{Yaml, YamlLoader};
@@ -6,7 +7,7 @@ use yaml_rust::{Yaml, YamlLoader};
 fn main() {
     println!("Yith");
     let config = configload();
-    app(config);
+    app(config).unwrap();
 }
 
 fn app(config: Vec<Yaml>) -> Result<u32, RedisError> {
@@ -14,16 +15,16 @@ fn app(config: Vec<Yaml>) -> Result<u32, RedisError> {
     let mut pubclient = rdsetup(redis_url)?;
     let mut ps = rdsub(&mut pubclient);
 
-    let msg = ps.get_message().unwrap();
-    let arb_id: String = msg.get_payload().unwrap();
+    let msg = ps.get_message()?;
+    let arb_id: String = msg.get_payload()?;
     println!("redis {}", arb_id);
 
-    let mut client = rdsetup(redis_url).unwrap();
+    let mut client = rdsetup(redis_url)?;
     let hkey = [String::from("arb:"), arb_id].concat();
-    let json: String = client.hget(&hkey, "json").unwrap();
+    let json: String = client.hget(&hkey, "json")?;
     let data = json::parse(&json).unwrap();
     println!("{} json {} bytes", hkey, data.len());
-    Ok(1)
+    Ok(0)
 }
 
 fn configload() -> Vec<Yaml> {
