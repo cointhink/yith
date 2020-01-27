@@ -1,7 +1,7 @@
 use redis::{Commands, RedisError};
 
 mod config;
-mod order;
+mod types;
 
 fn main() {
     let filename = "config.yaml";
@@ -24,15 +24,15 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
         }
     }?;
 
-    let order: order::Order = rd_order(&mut client, arb_id)?;
+    let order: types::Order = rd_order(&mut client, arb_id)?;
     println!("{:#?}", order);
     Ok(0)
 }
 
-fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<order::Order, RedisError> {
+fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Order, RedisError> {
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
-    let order: order::Order = serde_yaml::from_str(&json).unwrap();
+    let order: types::Order = serde_yaml::from_str(&json).unwrap();
     Ok(order)
 }
 
