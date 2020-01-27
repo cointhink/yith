@@ -2,12 +2,12 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
-    id: String,
-    pair: Pair,
-    cost: f64,
-    profit: f64,
-    ask_books: Books,
-    bid_books: Books,
+    pub id: String,
+    pub pair: Pair,
+    pub cost: f64,
+    pub profit: f64,
+    pub ask_books: Books,
+    pub bid_books: Books,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,36 +18,36 @@ pub struct Pair {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Books {
-    askbid: String,
-    books: Vec<Book>,
+    pub askbid: String,
+    pub books: Vec<Book>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Book {
-    market: Market,
-    offers: Vec<Offer>
+    pub market: Market,
+    pub offers: Vec<Offer>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Market {
-    source: Source,
-    base: Ticker,
-    quote: Ticker,
+    pub source: Source,
+    pub base: Ticker,
+    pub quote: Ticker,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
-    name: String,
-    url: String,
+    pub name: String,
+    pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ticker {
-    symbol: String
+    pub symbol: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Offer {
-    base_qty: f64,
-    quote: f64,
+    pub base_qty: f64,
+    pub quote: f64,
 }

@@ -26,8 +26,18 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
 
     let order: types::Order = rd_order(&mut client, arb_id)?;
     println!("{:#?}", order);
+    run_order(order);
     Ok(0)
 }
+
+fn run_order(order: types::Order) {
+    for book in order.ask_books.books {
+        for offer in book.offers {
+            println!("ASK {} {:#?}", book.market.source.name, offer);
+        }
+    }
+}
+
 
 fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Order, RedisError> {
     let hkey = [String::from("arb:"), arb_id].concat();
