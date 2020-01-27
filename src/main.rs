@@ -1,12 +1,12 @@
-
 use redis::{Commands, RedisError};
 
-mod order;
 mod config;
+mod order;
 
 fn main() {
-    println!("Yith");
-    let config = config::load();
+    let filename = "config.yaml";
+    let config = config::load(filename);
+    println!("Yith. {} loaded.", filename);
     app(config).unwrap();
 }
 
@@ -14,8 +14,14 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis)?;
     let inplay_exists = client.exists("inplay")?;
     let arb_id = match inplay_exists {
-        true => rd_inplay(&mut client),
-        false => rd_next_order(config),
+        true => {
+            println!("active order found!");
+            rd_inplay(&mut client)
+        }
+        false => {
+            println!("no active order. waiting for order.");
+            rd_next_order(config)
+        }
     }?;
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
@@ -40,7 +46,6 @@ fn rd_next_order(config: config::Config) -> Result<String, redis::RedisError> {
     let mut pubclient = rdsetup(&config.redis)?;
     let mut ps = rdsub(&mut pubclient);
 
-    println!("nothing active. waiting for order.");
     let msg = ps.get_message()?;
     let new_id: String = msg.get_payload()?;
     println!("new Order {:#?}", new_id);
@@ -49,6 +54,5 @@ fn rd_next_order(config: config::Config) -> Result<String, redis::RedisError> {
 
 fn rd_inplay(client: &mut redis::Connection) -> Result<String, redis::RedisError> {
     let inplay: String = client.get("inplay")?;
-    println!("arb_id inplay {:#?}", inplay);
     Ok(inplay)
 }
