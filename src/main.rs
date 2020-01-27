@@ -15,21 +15,24 @@ fn main() {
 fn app(config: Config) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis)?;
     let inplay_exists = client.exists("inplay")?;
-    if (inplay_exists) {
-        let inplay: String = client.get("inplay")?;
+    let arb_id: String;
+    if inplay_exists {
+        arb_id = client.get("inplay")?;
+        println!("arb_id inplay {:#?}", arb_id);
     } else {
         let mut pubclient = rdsetup(&config.redis)?;
         let mut ps = rdsub(&mut pubclient);
 
+        println!("nothing active. waiting for order.");
         let msg = ps.get_message()?;
-        let arb_id: String = msg.get_payload()?;
+        arb_id = msg.get_payload()?;
         println!("new Order {}", arb_id);
 
-        let hkey = [String::from("arb:"), arb_id].concat();
-        let json: String = client.hget(&hkey, "json")?;
-        let order: Order = serde_yaml::from_str(&json).unwrap();
-        println!("{} {:#?}", hkey, order);
     }
+    let hkey = [String::from("arb:"), arb_id].concat();
+    let json: String = client.hget(&hkey, "json")?;
+    let order: Order = serde_yaml::from_str(&json).unwrap();
+    println!("{} {:#?}", hkey, order);
     Ok(0)
 }
 
