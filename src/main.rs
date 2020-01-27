@@ -11,7 +11,7 @@ fn main() {
 }
 
 fn app(config: config::Config) -> Result<u32, RedisError> {
-    let mut client = rdsetup(&config.redis)?;
+    let mut client = rdsetup(&config.redis_url)?;
     let inplay_exists = client.exists("inplay")?;
     let arb_id = match inplay_exists {
         true => {
@@ -43,7 +43,7 @@ fn rdsub<'a>(con: &'a mut redis::Connection) -> redis::PubSub<'a> {
 }
 
 fn rd_next_order(config: config::Config) -> Result<String, redis::RedisError> {
-    let mut pubclient = rdsetup(&config.redis)?;
+    let mut pubclient = rdsetup(&config.redis_url)?;
     let mut ps = rdsub(&mut pubclient);
 
     let msg = ps.get_message()?;

@@ -3,7 +3,7 @@ use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub redis: String,
+    pub redis_url: String,
 }
 
 pub fn load(filename: &str) -> Config {
