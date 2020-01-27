@@ -2,12 +2,11 @@
 use redis::{Commands, RedisError};
 
 mod order;
-use crate::order::Order;
 mod config;
 
 fn main() {
     println!("Yith");
-    let config = config::configload();
+    let config = config::load();
     app(config).unwrap();
 }
 
@@ -20,7 +19,7 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
     }?;
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
-    let order: Order = serde_yaml::from_str(&json).unwrap();
+    let order: order::Order = serde_yaml::from_str(&json).unwrap();
     println!("{} {:#?}", hkey, order);
     Ok(0)
 }
