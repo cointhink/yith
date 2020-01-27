@@ -1,53 +1,28 @@
-use std::fs;
 
 use redis::{Commands, RedisError};
-use serde::{Deserialize, Serialize};
 
 mod order;
 use crate::order::Order;
+mod config;
 
 fn main() {
     println!("Yith");
-    let config = configload();
+    let config = config::configload();
     app(config).unwrap();
 }
 
-fn app(config: Config) -> Result<u32, RedisError> {
+fn app(config: config::Config) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis)?;
     let inplay_exists = client.exists("inplay")?;
-    let arb_id: String;
-    if inplay_exists {
-        arb_id = client.get("inplay")?;
-        println!("arb_id inplay {:#?}", arb_id);
-    } else {
-        let mut pubclient = rdsetup(&config.redis)?;
-        let mut ps = rdsub(&mut pubclient);
-
-        println!("nothing active. waiting for order.");
-        let msg = ps.get_message()?;
-        arb_id = msg.get_payload()?;
-        println!("new Order {}", arb_id);
-
-    }
+    let arb_id = match inplay_exists {
+        true => rd_inplay(&mut client),
+        false => rd_next_order(config),
+    }?;
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
     let order: Order = serde_yaml::from_str(&json).unwrap();
     println!("{} {:#?}", hkey, order);
     Ok(0)
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Config {
-    redis: String,
-}
-
-fn configload() -> Config {
-    let filename = "config.yaml";
-    let file_ok = fs::read_to_string(filename);
-    let yaml = file_ok.unwrap();
-    let config: Config = serde_yaml::from_str(&yaml).unwrap();
-    println!("{:#?}", config);
-    config
 }
 
 fn rdsetup(url: &str) -> Result<redis::Connection, redis::RedisError> {
@@ -60,4 +35,21 @@ fn rdsub<'a>(con: &'a mut redis::Connection) -> redis::PubSub<'a> {
     let mut ps = con.as_pubsub();
     let _ = ps.subscribe("orders");
     ps
+}
+
+fn rd_next_order(config: config::Config) -> Result<String, redis::RedisError> {
+    let mut pubclient = rdsetup(&config.redis)?;
+    let mut ps = rdsub(&mut pubclient);
+
+    println!("nothing active. waiting for order.");
+    let msg = ps.get_message()?;
+    let new_id: String = msg.get_payload()?;
+    println!("new Order {:#?}", new_id);
+    Ok(new_id)
+}
+
+fn rd_inplay(client: &mut redis::Connection) -> Result<String, redis::RedisError> {
+    let inplay: String = client.get("inplay")?;
+    println!("arb_id inplay {:#?}", inplay);
+    Ok(inplay)
 }
