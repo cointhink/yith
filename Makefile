@@ -3,7 +3,7 @@
 all:
 	cargo build
 
-run:
+run: all
 	./target/debug/yith $*
 
 fmt:
