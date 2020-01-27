@@ -23,11 +23,17 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
             rd_next_order(config)
         }
     }?;
+
+    let order: order::Order = rd_order(&mut client, arb_id)?;
+    println!("{:#?}", order);
+    Ok(0)
+}
+
+fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<order::Order, RedisError> {
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
     let order: order::Order = serde_yaml::from_str(&json).unwrap();
-    println!("{} {:#?}", hkey, order);
-    Ok(0)
+    Ok(order)
 }
 
 fn rdsetup(url: &str) -> Result<redis::Connection, redis::RedisError> {

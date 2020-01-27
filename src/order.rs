@@ -25,15 +25,29 @@ pub struct Books {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Book {
     market: Market,
+    offers: Vec<Offer>
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Market {
     source: Source,
+    base: Ticker,
+    quote: Ticker,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
     name: String,
     url: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Ticker {
+    symbol: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Offer {
+    base_qty: f64,
+    quote: f64,
 }
