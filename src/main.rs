@@ -41,14 +41,17 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
     for book in &books.books {
         for offer in &book.offers {
             println!("{} {} {:#?}", books.askbid, book.market, offer);
-            let exchange_ok = exchanges.find(&book.market.source.name);
-            println!("exchange lookup: {:#?}", exchange_ok);
-            eth_create_order(&book.market, &offer);
+            let exchange_name = &book.market.source.name;
+            let exchange_ok = exchanges.find(exchange_name);
+            match exchange_ok {
+                Some(exg) => eth_create_order(exg, &book.market, &offer),
+                None => println!("exchange not found for: {:#?}", exchange_name),
+            }
         }
     }
 }
 
-fn eth_create_order(market: &types::Market, offer: &types::Offer) {
+fn eth_create_order(exchange: &config::ExchangeApi, market: &types::Market, offer: &types::Offer) {
 }
 
 fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Order, RedisError> {
