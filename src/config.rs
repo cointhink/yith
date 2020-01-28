@@ -5,6 +5,7 @@ use std::fs;
 pub struct Config {
     pub redis_url: String,
     pub geth_url: String,
+    pub wallet_private_key: String,
 }
 
 pub fn read_config(filename: &str) -> Config {
@@ -18,13 +19,13 @@ pub fn read_config(filename: &str) -> Config {
 pub struct ExchangeApi {
     name: String,
     enabled: bool,
-    protocol: ExchangeProtocol,
+    pub protocol: ExchangeProtocol,
     build_url: String,
     order_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum ExchangeProtocol { zeroex_open, hydro, ddex3 }
+pub enum ExchangeProtocol { zeroex_open, hydro }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeList {
