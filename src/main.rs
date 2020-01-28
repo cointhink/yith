@@ -25,7 +25,7 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
     }?;
 
     let order: types::Order = rd_order(&mut client, arb_id)?;
-    println!("Order {} loaded", order.id);
+    println!("Order {} loaded. Cost {} Profit {}", order.id, order.cost, order.profit);
     run_order(&order);
     Ok(0)
 }
