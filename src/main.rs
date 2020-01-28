@@ -2,6 +2,7 @@ use redis::{Commands, RedisError};
 
 mod config;
 mod types;
+mod geth;
 
 fn main() {
     let config_filename = "config.yaml";
@@ -9,6 +10,7 @@ fn main() {
     let config = config::read_config(config_filename);
     let exchanges = config::read_exchanges(exchanges_filename);
     println!("Yith. {:#?} ", config_filename);
+    geth::rpc(&config, &config.geth_url, "eth_gasPrice");
     app(config, exchanges).unwrap();
 }
 

@@ -10,3 +10,5 @@ edition = "2018"
 redis = "*"
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
+serde_json = "*"
+reqwest = { version = "0.10", features = ["blocking", "json"] }

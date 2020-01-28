@@ -4,7 +4,7 @@ exchanges:
   -
     name: radarrelay
     enabled: true
-    protocol: zeroex_open
+    protocol: 0x
     build_url:
     order_url:
 
