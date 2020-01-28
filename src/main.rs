@@ -4,9 +4,12 @@ mod config;
 mod types;
 
 fn main() {
-    let filename = "config.yaml";
-    let config = config::load(filename);
-    println!("Yith. {} loaded.", filename);
+    let config_filename = "config.yaml";
+    let exchanges_filename = "exchanges.yaml";
+    let config = config::read_config(config_filename);
+    let exchanges = config::read_exchanges(exchanges_filename);
+    println!("Yith. {:#?} ", exchanges);
+    println!("Yith. {} loaded.", config_filename);
     app(config).unwrap();
 }
 
