@@ -1,18 +1,17 @@
 ---
 #Exchanges
--
-  name: radarrelay
-  enabled: true
-  protocol: zeroex
-  style: open
-  build_url:
-  order_url:
+exchanges:
+  -
+    name: radarrelay
+    enabled: true
+    protocol: zeroex_open
+    build_url:
+    order_url:
 
--
-  name: ddex-v3
-  enabled: true
-  #Hydro-Authentication: {Address}#{Message}#{Signature}
-  protocol: hydro
-  style: closed
-  build_url: https://api.ddex.io/v4/orders/build
-  order_url: https://api.ddex.io/v4/orders
+  -
+    name: ddex-v3
+    enabled: true
+    #Hydro-Authentication: {Address}#{Message}#{Signature}
+    protocol: hydro
+    build_url: https://api.ddex.io/v4/orders/build
+    order_url: https://api.ddex.io/v4/orders

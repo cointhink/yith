@@ -8,12 +8,11 @@ fn main() {
     let exchanges_filename = "exchanges.yaml";
     let config = config::read_config(config_filename);
     let exchanges = config::read_exchanges(exchanges_filename);
-    println!("Yith. {:#?} ", exchanges);
-    println!("Yith. {} loaded.", config_filename);
-    app(config).unwrap();
+    println!("Yith. {:#?} ", config_filename);
+    app(config, exchanges).unwrap();
 }
 
-fn app(config: config::Config) -> Result<u32, RedisError> {
+fn app(config: config::Config, exchanges: config::ExchangeList) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis_url)?;
     let inplay_exists = client.exists("inplay")?;
     let arb_id = match inplay_exists {
@@ -29,19 +28,21 @@ fn app(config: config::Config) -> Result<u32, RedisError> {
 
     let order: types::Order = rd_order(&mut client, arb_id)?;
     println!("Order {} loaded. Cost {} Profit {}", order.id, order.cost, order.profit);
-    run_order(&order);
+    run_order(&order, &exchanges);
     Ok(0)
 }
 
-fn run_order(order: &types::Order) {
-    run_books(&order.ask_books);
-    run_books(&order.bid_books);
+fn run_order(order: &types::Order, exchanges: &config::ExchangeList) {
+    run_books(&order.ask_books, exchanges);
+    run_books(&order.bid_books, exchanges);
 }
 
-fn run_books(books: &types::Books) {
+fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
     for book in &books.books {
         for offer in &book.offers {
             println!("{} {} {:#?}", books.askbid, book.market, offer);
+            let exchange_ok = exchanges.find(&book.market.source.name);
+            println!("exchange lookup: {:#?}", exchange_ok);
             eth_create_order(&book.market, &offer);
         }
     }

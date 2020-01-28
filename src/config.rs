@@ -4,6 +4,7 @@ use std::fs;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     pub redis_url: String,
+    pub geth_url: String,
 }
 
 pub fn read_config(filename: &str) -> Config {
@@ -23,11 +24,27 @@ pub struct ExchangeApi {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum ExchangeProtocol { zeroex, hydro, ddex3 }
+pub enum ExchangeProtocol { zeroex_open, hydro, ddex3 }
 
-pub fn read_exchanges(filename: &str) -> Vec<ExchangeApi> {
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ExchangeList {
+  exchanges: Vec<ExchangeApi>,
+}
+
+impl ExchangeList {
+    pub fn find(&self, name: &str) -> Option<&ExchangeApi> {
+        for api in &self.exchanges {
+            if api.name == name {
+                return Some(api)
+            }
+        }
+        None
+    }
+}
+
+pub fn read_exchanges(filename: &str) -> ExchangeList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
-    let config: Vec<ExchangeApi> = serde_yaml::from_str(&yaml).unwrap();
+    let config: ExchangeList = serde_yaml::from_str(&yaml).unwrap();
     config
 }
