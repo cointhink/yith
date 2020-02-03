@@ -51,8 +51,8 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
                       config::ExchangeProtocol::Hydro => exchanges::hydro::build(&books.askbid, exg, &book.market, &offer)
                   }
                 },
-                None => println!("exchange not found for: {:#?}", exchange_name),
-            }
+                None => {println!("exchange not found for: {:#?}", exchange_name); Ok(())},
+            };
         }
     }
 }

@@ -7,13 +7,13 @@ exchanges:
     build_url:
     order_url:
   -
-    name: ddex3 # https://legacy-docs.ddex.io/
+    name: ddex-v3 # https://legacy-docs.ddex.io/
     enabled: true
     protocol: hydro
     build_url: https://api.ddex.io/v3/orders/build
     order_url: https://api.ddex.io/v3/orders
   -
-    name: ddex4  # https://docs.ddex.io/
+    name: ddex-v4  # https://docs.ddex.io/
     enabled: true
     protocol: hydro
     build_url: https://api.ddex.io/v4/orders/build
