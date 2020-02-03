@@ -43,14 +43,13 @@ fn run_order(order: &types::Order, exchanges: &config::ExchangeList) {
 fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
     for book in &books.books {
         for offer in &book.offers {
-            println!("{} {} {:#?}", books.askbid, book.market, offer);
             let exchange_name = &book.market.source.name;
             let exchange_ok = exchanges.find(exchange_name);
             match exchange_ok {
                 Some(exg) => {
                     match exg.protocol {
-                      config::ExchangeProtocol::zeroex_open => exchanges::zeroex::order(exg, &book.market, &offer),
-                      config::ExchangeProtocol::hydro => exchanges::hydro::order(exg, &book.market, &offer)
+                      config::ExchangeProtocol::zeroex_open => exchanges::zeroex::order(&books.askbid, exg, &book.market, &offer),
+                      config::ExchangeProtocol::hydro => exchanges::hydro::order(&books.askbid, exg, &book.market, &offer)
                   }
                 },
                 None => println!("exchange not found for: {:#?}", exchange_name),

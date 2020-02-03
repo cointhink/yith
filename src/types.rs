@@ -18,8 +18,16 @@ pub struct Pair {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub enum AskBid {
+    #[serde(rename = "ask")]
+    Ask,
+    #[serde(rename = "bid")]
+    Bid
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Books {
-    pub askbid: String,
+    pub askbid: AskBid,
     pub books: Vec<Book>,
 }
 
