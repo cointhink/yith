@@ -27,8 +27,9 @@ pub struct ExchangeApi {
 #[derive(Debug, Serialize, Deserialize)]
 pub enum ExchangeProtocol {
     #[serde(rename = "0x")]
-    zeroex_open,
-    hydro }
+    Zeroex_open,
+    #[serde(rename = "hydro")]
+    Hydro }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeList {
