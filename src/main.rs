@@ -44,8 +44,7 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
     for book in &books.books {
         for offer in &book.offers {
             let exchange_name = &book.market.source.name;
-            let exchange_ok = exchanges.find(exchange_name);
-            match exchange_ok {
+            match exchanges.find_by_name(exchange_name) {
                 Some(exg) => {
                     match exg.protocol {
                       config::ExchangeProtocol::zeroex_open => exchanges::zeroex::order(&books.askbid, exg, &book.market, &offer),

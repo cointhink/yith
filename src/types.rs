@@ -13,8 +13,10 @@ pub struct Order {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
-    Field0: String, //base
-    Field1: String, //quote
+    #[serde(rename = "Field0")]
+    field0: String, //base
+    #[serde(rename = "Field1")]
+    field1: String, //quote
 }
 
 #[derive(Debug, Serialize, Deserialize)]

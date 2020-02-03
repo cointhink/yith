@@ -36,7 +36,7 @@ pub struct ExchangeList {
 }
 
 impl ExchangeList {
-    pub fn find(&self, name: &str) -> Option<&ExchangeApi> {
+    pub fn find_by_name(&self, name: &str) -> Option<&ExchangeApi> {
         for api in &self.exchanges {
             if api.name == name {
                 return Some(api)
