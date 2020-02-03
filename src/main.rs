@@ -3,6 +3,7 @@ use redis::{Commands, RedisError};
 mod config;
 mod types;
 mod geth;
+mod exchanges;
 
 fn main() {
     let config_filename = "config.yaml";
@@ -48,20 +49,14 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
             match exchange_ok {
                 Some(exg) => {
                     match exg.protocol {
-                      config::ExchangeProtocol::zeroex_open => eth_create_order(exg, &book.market, &offer),
-                      config::ExchangeProtocol::hydro => hydro_create_order(exg, &book.market, &offer)
+                      config::ExchangeProtocol::zeroex_open => exchanges::zeroex::order(exg, &book.market, &offer),
+                      config::ExchangeProtocol::hydro => exchanges::hydro::order(exg, &book.market, &offer)
                   }
                 },
                 None => println!("exchange not found for: {:#?}", exchange_name),
             }
         }
     }
-}
-
-fn eth_create_order(exchange: &config::ExchangeApi, market: &types::Market, offer: &types::Offer) {
-}
-
-fn hydro_create_order(exchange: &config::ExchangeApi, market: &types::Market, offer: &types::Offer) {
 }
 
 fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Order, RedisError> {
