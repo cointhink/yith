@@ -47,8 +47,8 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
             match exchanges.find_by_name(exchange_name) {
                 Some(exg) => {
                     match exg.protocol {
-                      config::ExchangeProtocol::Zeroex_open => exchanges::zeroex::order(&books.askbid, exg, &book.market, &offer),
-                      config::ExchangeProtocol::Hydro => exchanges::hydro::order(&books.askbid, exg, &book.market, &offer)
+                      config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(&books.askbid, exg, &book.market, &offer),
+                      config::ExchangeProtocol::Hydro => exchanges::hydro::build(&books.askbid, exg, &book.market, &offer)
                   }
                 },
                 None => println!("exchange not found for: {:#?}", exchange_name),

@@ -1,7 +1,18 @@
 use crate::types;
 use crate::config;
+use serde::{Deserialize, Serialize};
 
-pub fn order(askbid: &types::AskBid, exchange: &config::ExchangeApi, market: &types::Market, offer: &types::Offer) {
-  println!("0x order! {:#?} {:#?} {}@{}", askbid, market.source.name, offer.base_qty, offer.quote);
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrderSheet {
+    chain_id: u32,
+    exchange_address: String,
+}
+
+pub fn build(askbid: &types::AskBid, exchange: &config::ExchangeApi, market: &types::Market, offer: &types::Offer) {
+  println!("0x build {:#?} {:#?} {}@{}", askbid, market.source.name, offer.base_qty, offer.quote);
+}
+
+pub fn order(os: OrderSheet) {
+  println!("0x order! {:#?}", os);
 }
 
