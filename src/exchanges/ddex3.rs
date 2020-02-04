@@ -37,17 +37,19 @@ pub fn build(
     let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
     let mut qty = offer.base_qty;
     let mut price = offer.quote;
+    let mut askbid_align = askbid;
+    let askbid_other = askbid.otherside();
     if market.swapped {
-        let ab = askbid.otherside();
+        askbid_align = &askbid_other;
         let (s_qty, s_price) = offer.swap();
         println!(
             "unswapped {:#?} {} {}-{} {}@{}",
-            ab, market.source.name, market.quote, market.base, s_qty, s_price
+            askbid_align, market.source.name, market.quote, market.base, s_qty, s_price
         );
         qty = s_qty;
         price = s_price;
     }
-    let side = match askbid {
+    let side = match askbid_align {
         types::AskBid::Ask => BuySell::Buy,
         types::AskBid::Bid => BuySell::Sell,
     };
