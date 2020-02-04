@@ -53,8 +53,8 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
                     config::ExchangeProtocol::ZeroexOpen => {
                         exchanges::zeroex::build(&books.askbid, exg, &book.market, &offer)
                     }
-                    config::ExchangeProtocol::Hydro => {
-                        exchanges::hydro::build(&books.askbid, exg, &book.market, &offer)
+                    config::ExchangeProtocol::Ddex3 => {
+                        exchanges::ddex3::build(&books.askbid, exg, &book.market, &offer)
                     }
                 },
                 None => {
