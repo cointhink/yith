@@ -1,9 +1,9 @@
 use redis::{Commands, RedisError};
 
 mod config;
-mod types;
-mod geth;
 mod exchanges;
+mod geth;
+mod types;
 
 fn main() {
     let config_filename = "config.yaml";
@@ -30,12 +30,16 @@ fn app(config: config::Config, exchanges: config::ExchangeList) -> Result<u32, R
     }?;
 
     let order: types::Order = rd_order(&mut client, arb_id)?;
-    println!("Order {} loaded. Cost {} Profit {}", order.id, order.cost, order.profit);
+    println!(
+        "Order {} loaded. Cost {} Profit {}",
+        order.id, order.cost, order.profit
+    );
     run_order(&order, &exchanges);
     Ok(0)
 }
 
 fn run_order(order: &types::Order, exchanges: &config::ExchangeList) {
+    println!("{}/{}:", &order.pair.base, &order.pair.quote);
     run_books(&order.ask_books, exchanges);
     run_books(&order.bid_books, exchanges);
 }
@@ -45,13 +49,18 @@ fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
         for offer in &book.offers {
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
-                Some(exg) => {
-                    match exg.protocol {
-                      config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(&books.askbid, exg, &book.market, &offer),
-                      config::ExchangeProtocol::Hydro => exchanges::hydro::build(&books.askbid, exg, &book.market, &offer)
-                  }
+                Some(exg) => match exg.protocol {
+                    config::ExchangeProtocol::ZeroexOpen => {
+                        exchanges::zeroex::build(&books.askbid, exg, &book.market, &offer)
+                    }
+                    config::ExchangeProtocol::Hydro => {
+                        exchanges::hydro::build(&books.askbid, exg, &book.market, &offer)
+                    }
                 },
-                None => {println!("exchange not found for: {:#?}", exchange_name); Ok(())},
+                None => {
+                    println!("exchange not found for: {:#?}", exchange_name);
+                    Ok(())
+                }
             };
         }
     }

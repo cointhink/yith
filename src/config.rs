@@ -17,11 +17,11 @@ pub fn read_config(filename: &str) -> Config {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeApi {
-    name: String,
-    enabled: bool,
+    pub name: String,
+    pub enabled: bool,
     pub protocol: ExchangeProtocol,
-    build_url: String,
-    order_url: String,
+    pub build_url: String,
+    pub order_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,18 +29,19 @@ pub enum ExchangeProtocol {
     #[serde(rename = "0x")]
     ZeroexOpen,
     #[serde(rename = "hydro")]
-    Hydro }
+    Hydro,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeList {
-  exchanges: Vec<ExchangeApi>,
+    exchanges: Vec<ExchangeApi>,
 }
 
 impl ExchangeList {
     pub fn find_by_name(&self, name: &str) -> Option<&ExchangeApi> {
         for api in &self.exchanges {
             if api.name == name {
-                return Some(api)
+                return Some(api);
             }
         }
         None

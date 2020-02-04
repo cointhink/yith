@@ -1,5 +1,5 @@
-use std::fmt;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
@@ -14,9 +14,9 @@ pub struct Order {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
     #[serde(rename = "Field0")]
-    field0: String, //base
+    pub base: String, //base
     #[serde(rename = "Field1")]
-    field1: String, //quote
+    pub quote: String, //quote
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,7 +24,15 @@ pub enum AskBid {
     #[serde(rename = "ask")]
     Ask,
     #[serde(rename = "bid")]
-    Bid
+    Bid,
+}
+impl AskBid {
+    pub fn swap(&self) -> AskBid {
+        match self {
+            AskBid::Ask => AskBid::Bid,
+            AskBid::Bid => AskBid::Ask,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,7 +44,7 @@ pub struct Books {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Book {
     pub market: Market,
-    pub offers: Vec<Offer>
+    pub offers: Vec<Offer>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -44,11 +52,19 @@ pub struct Market {
     pub source: Source,
     pub base: Ticker,
     pub quote: Ticker,
+    pub swapped: bool,
 }
 
 impl fmt::Display for Market {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:{}-{}", self.source.name, self.base, self.quote)
+        write!(
+            f,
+            "{}:{}{}{}",
+            self.source.name,
+            self.base,
+            if self.swapped { "<>" } else { "-" },
+            self.quote
+        )
     }
 }
 
@@ -60,7 +76,7 @@ pub struct Source {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Ticker {
-    pub symbol: String
+    pub symbol: String,
 }
 
 impl fmt::Display for Ticker {
@@ -78,5 +94,13 @@ pub struct Offer {
 impl fmt::Display for Offer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}@{}", self.base_qty, self.quote)
+    }
+}
+
+impl Offer {
+    pub fn swap(&self) -> (f64, f64) {
+        let s_qty = self.base_qty * self.quote;
+        let s_quote = 1.0 / self.quote;
+        (s_qty, s_quote)
     }
 }
