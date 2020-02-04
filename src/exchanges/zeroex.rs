@@ -28,6 +28,11 @@ pub fn build(
             ab, market.source.name, market.quote, market.base, s_qty, s_price
         );
     }
+    let sheet = OrderSheet {
+        chain_id: 1,
+        exchange_address: "0xa".to_string(),
+    };
+    println!("0x order {:#?}", sheet);
     Ok(())
 }
 
