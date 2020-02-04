@@ -27,7 +27,7 @@ pub enum AskBid {
     Bid,
 }
 impl AskBid {
-    pub fn swap(&self) -> AskBid {
+    pub fn otherside(&self) -> AskBid {
         match self {
             AskBid::Ask => AskBid::Bid,
             AskBid::Bid => AskBid::Ask,

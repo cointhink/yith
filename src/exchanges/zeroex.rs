@@ -21,7 +21,7 @@ pub fn build(
     let mut qty = offer.base_qty;
     let mut price = offer.quote;
     if market.swapped {
-        let ab = askbid.swap();
+        let ab = askbid.otherside();
         let (s_qty, s_price) = offer.swap();
         println!(
             "unswapped {:#?} {} {}-{} {}@{}",
