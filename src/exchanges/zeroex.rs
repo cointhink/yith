@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
-    chain_id: u32,
-    exchange_address: String,
+    r#type: String,
+    quantity: f64,
+    price: f64,
+    expiration: f64,
 }
 
 pub fn build(
@@ -18,6 +20,7 @@ pub fn build(
         "HYDRO build {:#?} {} {}@{}",
         askbid, market, offer.base_qty, offer.quote
     );
+    let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
     let mut qty = offer.base_qty;
     let mut price = offer.quote;
     if market.swapped {
@@ -29,13 +32,31 @@ pub fn build(
         );
     }
     let sheet = OrderSheet {
-        chain_id: 1,
-        exchange_address: "0xa".to_string(),
+        r#type: "UserOrderType".to_string(),
+        quantity: qty,
+        price: price,
+        expiration: 500.0,
     };
-    println!("0x order {:#?}", sheet);
+    let mut url = exchange.build_url.clone();
+    url.push_str(format!("markets/{}/order/limit", market_id).as_str());
+    println!("0x order {}", url);
+    println!("{:#?}", sheet);
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post(exchange.build_url.as_str())
+        .json(&sheet);
+        //.send()?;
+    //let body = resp.json::<HashMap<String, String>>()?;
     Ok(())
 }
 
 pub fn order(os: OrderSheet) {
     println!("0x order! {:#?}", os);
+}
+
+pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
+    match swapped {
+        true => format!("{}-{}", quote.symbol, base.symbol),
+        false => format!("{}-{}", base.symbol, quote.symbol),
+    }
 }

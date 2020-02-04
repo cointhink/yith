@@ -20,6 +20,8 @@ pub struct OrderSheet {
     market_id: String,
     side: BuySell,
     order_type: LimitMarket,
+    price: f64,
+    amount: f64,
 }
 
 pub fn build(
@@ -45,15 +47,24 @@ pub fn build(
         qty = s_qty;
         price = s_price;
     }
+    let side = match askbid {
+        types::AskBid::Ask => BuySell::Buy,
+        types::AskBid::Bid => BuySell::Sell,
+    };
     let sheet = OrderSheet {
         market_id: market_id,
-        side: BuySell::Buy,
+        side: side,
         order_type: LimitMarket::Limit,
+        //wallet_type: "trading",
+        price: price,
+        amount: qty,
     };
-    println!("Hydro order {:#?}", sheet);
+    let url = exchange.build_url.as_str();
+    println!("Ddex3 order {}", url);
+    println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
     let resp = client
-        .post(exchange.build_url.as_str())
+        .post(url)
         .json(&sheet);
         //.send()?;
     //let body = resp.json::<HashMap<String, String>>()?;

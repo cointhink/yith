@@ -4,7 +4,7 @@ exchanges:
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
     enabled: true
     protocol: 0x
-    build_url:
+    build_url: https://api.radarrelay.com/v3
     order_url:
   -
     name: ddex-v3 # https://legacy-docs.ddex.io/
