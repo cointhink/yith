@@ -123,10 +123,7 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     hasher.update(&public_key.serialize());
     hasher.finalize(&mut output);
     let addr = &output[12..];  //.slice(-20)
-    token.push_str(format!("output {:x?}", output).as_str());
-    token.push_str(format!("{:x?}", addr).as_str());
-    token.push_str("#");
-    token.push_str(msg);
+    token.push_str(format!("{}#{}", hex::encode(addr), msg).as_str());
 }
 
 pub fn order(os: OrderSheet) {
