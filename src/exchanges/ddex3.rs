@@ -115,12 +115,12 @@ pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Cl
 fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let secp = Secp256k1::new();
     let privbytes = &hex::decode(privkey).unwrap();
-    println!("privbytes: {:x?}", privbytes);
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
     let public_key = PublicKey::from_secret_key(&secp, &secret_key);
+    let pubkey_bytes = &public_key.serialize_uncompressed();
     let mut output = [0u8; 32];
     let mut hasher = Keccak::v256();
-    hasher.update(&public_key.serialize());
+    hasher.update(&pubkey_bytes[1..]);
     hasher.finalize(&mut output);
     let addr = &output[12..];  //.slice(-20)
     token.push_str(format!("{}#{}", hex::encode(addr), msg).as_str());
