@@ -3,6 +3,10 @@ use crate::types;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
+use secp256k1::{Secp256k1, SecretKey, PublicKey};
+use hex::decode;
+use tiny_keccak::{Keccak, Hasher};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -69,7 +73,8 @@ pub fn build(
         amount: qty,
     };
 
-    let client = build_auth_client("0xab")?;
+    let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+    let client = build_auth_client(privkey)?;
 
     let url = exchange.build_url.as_str();
     println!("Ddex3 order {}", url);
@@ -82,9 +87,18 @@ pub fn build(
     Ok(())
 }
 
-pub fn build_auth_client(ethaddr: &str) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Client> {
     let mut secret = String::from("");
-    build_token(&mut secret, ethaddr, "fixed");
+    let fixedtime = format!(
+        "{}{}",
+        "fixed",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+    );
+    build_token(&mut secret, privkey, fixedtime.as_str());
+    println!("token: {}", secret);
     let ddex_auth = "Hydro-Authentication";
     let mut headers = header::HeaderMap::new();
     headers.insert(
@@ -98,9 +112,21 @@ pub fn build_auth_client(ethaddr: &str) -> reqwest::Result<reqwest::blocking::Cl
         .build()
 }
 
-fn build_token(token: &mut String, addr: &str, msg: &str) {
-  token.push_str(addr);
-  token.push_str(msg);
+fn build_token(token: &mut String, privkey: &str, msg: &str) {
+    let secp = Secp256k1::new();
+    let privbytes = &hex::decode(privkey).unwrap();
+    println!("privbytes: {:x?}", privbytes);
+    let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
+    let public_key = PublicKey::from_secret_key(&secp, &secret_key);
+    let mut output = [0u8; 32];
+    let mut hasher = Keccak::v256();
+    hasher.update(&public_key.serialize());
+    hasher.finalize(&mut output);
+    let addr = &output[12..];  //.slice(-20)
+    token.push_str(format!("output {:x?}", output).as_str());
+    token.push_str(format!("{:x?}", addr).as_str());
+    token.push_str("#");
+    token.push_str(msg);
 }
 
 pub fn order(os: OrderSheet) {
