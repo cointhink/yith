@@ -4,7 +4,7 @@ use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use secp256k1::{Secp256k1, SecretKey, PublicKey};
+use secp256k1::{Secp256k1, Message, SecretKey, PublicKey};
 use hex::decode;
 use tiny_keccak::{Keccak, Hasher};
 
@@ -112,7 +112,8 @@ pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Cl
         .build()
 }
 
-fn build_token(token: &mut String, privkey: &str, msg: &str) {
+fn build_token(token: &mut String, privkey: &str, msg2: &str) {
+    let msg = "HYDRO-AUTHENTICATION@1566380397473";
     let secp = Secp256k1::new();
     let privbytes = &hex::decode(privkey).unwrap();
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
@@ -123,7 +124,16 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     hasher.update(&pubkey_bytes[1..]);
     hasher.finalize(&mut output);
     let addr = &output[12..];  //.slice(-20)
-    token.push_str(format!("{}#{}", hex::encode(addr), msg).as_str());
+    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
+    let mut msg_hash = [0u8;32];
+    let mut hasher2 = Keccak::v256();
+    hasher2.update(&pubkey_bytes[1..]);
+    hasher2.finalize(&mut msg_hash);
+    let scmsg = Message::from_slice(&msg_hash).unwrap();
+    let sig = secp.sign(&scmsg, &secret_key);
+    println!("sig: {}", sig);
+    let signed_hash = msg_hash;
+    token.push_str(format!("0x{}#{}#0x{}", hex::encode(addr), msg, hex::encode(signed_hash)).as_str());
 }
 
 pub fn order(os: OrderSheet) {
