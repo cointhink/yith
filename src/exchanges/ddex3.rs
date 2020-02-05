@@ -1,7 +1,8 @@
 use crate::config;
 use crate::types;
+use reqwest::header;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -22,6 +23,12 @@ pub struct OrderSheet {
     order_type: LimitMarket,
     price: f64,
     amount: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuildResponse {
+    status: i64,
+    desc: String,
 }
 
 pub fn build(
@@ -61,16 +68,34 @@ pub fn build(
         price: price,
         amount: qty,
     };
+
+    let client = build_auth_client("0xab")?;
+
     let url = exchange.build_url.as_str();
     println!("Ddex3 order {}", url);
     println!("{:#?}", sheet);
-    let client = reqwest::blocking::Client::new();
-    let resp = client
-        .post(url)
-        .json(&sheet);
-        //.send()?;
-    //let body = resp.json::<HashMap<String, String>>()?;
+
+    let resp = client.post(url).json(&sheet).send()?;
+    println!("{:#?}", resp);
+    let body = resp.json::<BuildResponse>().unwrap();
+    println!("{:#?}", body);
     Ok(())
+}
+
+pub fn build_auth_client(ethaddr: &str) -> reqwest::Result<reqwest::blocking::Client> {
+    let mut secret = String::from("");
+    secret.push_str(ethaddr);
+    let ddex_auth = "Hydro-Authentication";
+    let mut headers = header::HeaderMap::new();
+    headers.insert(
+        header::AUTHORIZATION,
+        header::HeaderValue::from_str(secret.as_str()).unwrap(), //boom
+    );
+
+    reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .default_headers(headers)
+        .build()
 }
 
 pub fn order(os: OrderSheet) {

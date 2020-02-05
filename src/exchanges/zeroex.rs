@@ -42,10 +42,8 @@ pub fn build(
     println!("0x order {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
-    let resp = client
-        .post(exchange.build_url.as_str())
-        .json(&sheet);
-        //.send()?;
+    let resp = client.post(exchange.build_url.as_str()).json(&sheet);
+    //.send()?;
     //let body = resp.json::<HashMap<String, String>>()?;
     Ok(())
 }
