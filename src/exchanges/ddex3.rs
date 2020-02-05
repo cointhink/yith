@@ -84,7 +84,7 @@ pub fn build(
 
 pub fn build_auth_client(ethaddr: &str) -> reqwest::Result<reqwest::blocking::Client> {
     let mut secret = String::from("");
-    secret.push_str(ethaddr);
+    build_token(&mut secret, ethaddr, "fixed");
     let ddex_auth = "Hydro-Authentication";
     let mut headers = header::HeaderMap::new();
     headers.insert(
@@ -96,6 +96,11 @@ pub fn build_auth_client(ethaddr: &str) -> reqwest::Result<reqwest::blocking::Cl
         .timeout(Duration::from_secs(10))
         .default_headers(headers)
         .build()
+}
+
+fn build_token(token: &mut String, addr: &str, msg: &str) {
+  token.push_str(addr);
+  token.push_str(msg);
 }
 
 pub fn order(os: OrderSheet) {
