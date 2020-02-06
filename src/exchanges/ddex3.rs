@@ -121,14 +121,12 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let mut msg_hash = [0u8; 32];
     hash_msg(&mut msg_hash, msg);
     let sig_bytes = sign_bytes(&msg_hash, secret_key);
-    println!("sig: {:?}", hex::encode(&sig_bytes[..]));
-    let signed_hash = msg_hash;
     token.push_str(
         format!(
             "0x{}#{}#0x{}",
             hex::encode(addr),
             msg,
-            hex::encode(signed_hash)
+            hex::encode(&sig_bytes[..])
         )
         .as_str(),
     );
@@ -139,7 +137,7 @@ pub fn pubkey_to_addr(pubkey_bytes: &[u8; 65]) -> [u8; 20] {
     let mut hasher = Keccak::v256();
     hasher.update(&pubkey_bytes[1..]);
     hasher.finalize(&mut output);
-    let mut sized_output = [0u8;20];
+    let mut sized_output = [0u8; 20];
     sized_output.copy_from_slice(&output[12..32]);
     sized_output
 }
@@ -151,12 +149,18 @@ pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
     hasher.finalize(&mut msg_hash);
 }
 
-pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8;64] {
+pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8; 65] {
     let secp2 = Secp256k1::new();
     let scmsg = Message::from_slice(&msg_hash).unwrap();
     let sig = secp2.sign(&scmsg, &secret_key);
     //let (recovery_id, serialize_sig) = sig.serialize_compact();
-    sig.serialize_compact()
+    let mut vec = Vec::with_capacity(65);
+    vec.extend_from_slice(&sig.serialize_compact());
+    // chainId 0 = + 27
+    vec.push(0x1b);
+    let mut sig_sized_bytes = [0u8; 65];
+    sig_sized_bytes.copy_from_slice(vec.as_slice());
+    sig_sized_bytes
 }
 
 pub fn order(os: OrderSheet) {
@@ -199,12 +203,28 @@ mod tests {
     }
 
     #[test]
+    fn test_sign_bytes() {
+        let hash: &[u8] = b"68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
+        let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
+        let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+        let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
+        let private_key =
+            SecretKey::from_slice(&privkey_bytes).expect("32 bytes, within curve order");
+        let sig_bytes = sign_bytes(&hash_bytes, private_key);
+        let good_sig = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+        let good_sig_bytes: Vec<u8> = hex::decode(good_sig).unwrap();
+        let mut good_sig_sized_bytes = [0u8; 65];
+        good_sig_sized_bytes.copy_from_slice(&good_sig_bytes);
+        assert_eq!(&sig_bytes[..], &good_sig_sized_bytes[..]);
+    }
+
+    #[test]
     fn test_build_token() {
         let mut token = String::from("");
         let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
         let msg = "HYDRO-AUTHENTICATION@1566380397473";
         build_token(&mut token, privkey, msg);
-        let good_auth = "0xed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
-        assert_eq!(token, good_auth);
+        let good_token = "0xed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+        assert_eq!(token, good_token);
     }
 }
