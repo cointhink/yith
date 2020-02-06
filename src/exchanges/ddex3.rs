@@ -1,12 +1,12 @@
 use crate::config;
 use crate::types;
+use hex::decode;
 use reqwest::header;
+use secp256k1::{Message, PublicKey, Secp256k1, SecretKey, Signing};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use secp256k1::{Secp256k1, Message, SecretKey, PublicKey};
-use hex::decode;
-use tiny_keccak::{Keccak, Hasher};
+use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -112,8 +112,7 @@ pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Cl
         .build()
 }
 
-fn build_token(token: &mut String, privkey: &str, msg2: &str) {
-    let msg = "HYDRO-AUTHENTICATION@1566380397473";
+fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let secp = Secp256k1::new();
     let privbytes = &hex::decode(privkey).unwrap();
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
@@ -123,17 +122,28 @@ fn build_token(token: &mut String, privkey: &str, msg2: &str) {
     let mut hasher = Keccak::v256();
     hasher.update(&pubkey_bytes[1..]);
     hasher.finalize(&mut output);
-    let addr = &output[12..];  //.slice(-20)
+    let addr = &output[12..]; //.slice(-20)
     let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
-    let mut msg_hash = [0u8;32];
+    let mut msg_hash = [0u8; 32];
     let mut hasher2 = Keccak::v256();
     hasher2.update(&pubkey_bytes[1..]);
     hasher2.finalize(&mut msg_hash);
+    let secp2 = Secp256k1::new();
     let scmsg = Message::from_slice(&msg_hash).unwrap();
-    let sig = secp.sign(&scmsg, &secret_key);
-    println!("sig: {}", sig);
+    let sig = secp2.sign(&scmsg, &secret_key);
+    //let (recovery_id, serialize_sig) = sig.serialize_compact();
+    let sig_bytes = sig.serialize_compact();
+    println!("sig: {:?}", hex::encode(&sig_bytes[..]));
     let signed_hash = msg_hash;
-    token.push_str(format!("0x{}#{}#0x{}", hex::encode(addr), msg, hex::encode(signed_hash)).as_str());
+    token.push_str(
+        format!(
+            "0x{}#{}#0x{}",
+            hex::encode(addr),
+            msg,
+            hex::encode(signed_hash)
+        )
+        .as_str(),
+    );
 }
 
 pub fn order(os: OrderSheet) {
@@ -144,5 +154,20 @@ pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker
     match swapped {
         true => format!("{}-{}", quote.symbol, base.symbol),
         false => format!("{}-{}", base.symbol, quote.symbol),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_token;
+
+    #[test]
+    fn test_bad_add() {
+        let mut token = String::from("");
+        let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+        let msg = "HYDRO-AUTHENTICATION@1566380397473";
+        build_token(&mut token, privkey, msg);
+        let good_auth = "ed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+        assert_eq!(token, good_auth);
     }
 }
