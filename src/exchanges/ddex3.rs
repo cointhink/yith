@@ -1,6 +1,7 @@
 use crate::config;
 use crate::types;
 use reqwest::header;
+use secp256k1::recovery::{RecoverableSignature, RecoveryId};
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -150,14 +151,15 @@ pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
 }
 
 pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8; 65] {
-    let secp2 = Secp256k1::new();
-    let scmsg = Message::from_slice(&msg_hash).unwrap();
-    let sig = secp2.sign(&scmsg, &secret_key);
-    //let (recovery_id, serialize_sig) = sig.serialize_compact();
+    let secp = Secp256k1::new();
+    let secp_msg = Message::from_slice(&msg_hash).unwrap();
+    let signature = secp.sign_recoverable(&secp_msg, &secret_key);
+    let (recovery_id, sig) = signature.serialize_compact();
     let mut vec = Vec::with_capacity(65);
-    vec.extend_from_slice(&sig.serialize_compact());
+    vec.extend_from_slice(&sig);
     // chainId 0 = + 27
-    vec.push(0x1b);
+    let r = recovery_id.to_i32() + 27;
+    vec.push(r as u8);
     let mut sig_sized_bytes = [0u8; 65];
     sig_sized_bytes.copy_from_slice(vec.as_slice());
     sig_sized_bytes
