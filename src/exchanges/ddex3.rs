@@ -117,10 +117,9 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
     let public_key = PublicKey::from_secret_key(&secp, &secret_key);
     let pubkey_bytes = &public_key.serialize_uncompressed();
-    println!("pubkey: {:?}", hex::encode(&pubkey_bytes[..]));
     let addr = pubkey_to_addr(pubkey_bytes);
     let mut msg_hash = [0u8; 32];
-    hash_msg(&mut msg_hash, msg, pubkey_bytes);
+    hash_msg(&mut msg_hash, msg);
     let sig_bytes = sign_bytes(&msg_hash, secret_key);
     println!("sig: {:?}", hex::encode(&sig_bytes[..]));
     let signed_hash = msg_hash;
@@ -145,10 +144,10 @@ pub fn pubkey_to_addr(pubkey_bytes: &[u8; 65]) -> [u8; 20] {
     sized_output
 }
 
-pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str, pubkey_bytes: &[u8; 65]) {
+pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
     let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
     let mut hasher = Keccak::v256();
-    hasher.update(&pubkey_bytes[1..]);
+    hasher.update(hash_full.as_bytes());
     hasher.finalize(&mut msg_hash);
 }
 
@@ -188,12 +187,24 @@ mod tests {
     }
 
     #[test]
+    fn test_hash_msg() {
+        let good_hash = "68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
+        let good_hash_bytes = hex::decode(good_hash).unwrap();
+        let mut good_hash_sized_bytes = [0u8; 32];
+        good_hash_sized_bytes.copy_from_slice(&good_hash_bytes);
+        let mut hash_bytes = [0u8; 32];
+        let msg = "HYDRO-AUTHENTICATION@1566380397473";
+        hash_msg(&mut hash_bytes, msg);
+        assert_eq!(hash_bytes, good_hash_sized_bytes);
+    }
+
+    #[test]
     fn test_build_token() {
         let mut token = String::from("");
         let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
         let msg = "HYDRO-AUTHENTICATION@1566380397473";
         build_token(&mut token, privkey, msg);
-        let good_auth = "ed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+        let good_auth = "0xed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
         assert_eq!(token, good_auth);
     }
 }
