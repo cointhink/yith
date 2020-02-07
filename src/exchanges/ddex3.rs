@@ -1,7 +1,6 @@
 use crate::config;
 use crate::types;
 use reqwest::header;
-use secp256k1::recovery::{RecoverableSignature, RecoveryId};
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -36,6 +35,7 @@ pub struct BuildResponse {
 }
 
 pub fn build(
+    privkey: &str,
     askbid: &types::AskBid,
     exchange: &config::ExchangeApi,
     market: &types::Market,
@@ -73,7 +73,6 @@ pub fn build(
         amount: qty,
     };
 
-    let privkey = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
     let client = build_auth_client(privkey)?;
 
     let url = exchange.build_url.as_str();
@@ -91,7 +90,7 @@ pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Cl
     let mut secret = String::from("");
     let fixedtime = format!(
         "{}{}",
-        "fixed",
+        "yith@",
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -230,3 +229,4 @@ mod tests {
         assert_eq!(token, good_token);
     }
 }
+

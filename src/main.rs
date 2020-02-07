@@ -12,10 +12,10 @@ fn main() {
     let exchanges = config::read_exchanges(exchanges_filename);
     println!("Yith. {:#?} ", config_filename);
     geth::rpc(&config, &config.geth_url, "eth_gasPrice");
-    app(config, exchanges).unwrap();
+    app(&config, exchanges).unwrap();
 }
 
-fn app(config: config::Config, exchanges: config::ExchangeList) -> Result<u32, RedisError> {
+fn app(config: &config::Config, exchanges: config::ExchangeList) -> Result<u32, RedisError> {
     let mut client = rdsetup(&config.redis_url)?;
     let inplay_exists = client.exists("inplay")?;
     let arb_id = match inplay_exists {
@@ -34,27 +34,27 @@ fn app(config: config::Config, exchanges: config::ExchangeList) -> Result<u32, R
         "Order {} loaded. Cost {} Profit {}",
         order.id, order.cost, order.profit
     );
-    run_order(&order, &exchanges);
+    run_order(config, &order, &exchanges);
     Ok(0)
 }
 
-fn run_order(order: &types::Order, exchanges: &config::ExchangeList) {
+fn run_order(config: &config::Config, order: &types::Order, exchanges: &config::ExchangeList) {
     println!("{}/{}:", &order.pair.base, &order.pair.quote);
-    run_books(&order.ask_books, exchanges);
-    run_books(&order.bid_books, exchanges);
+    run_books(config, &order.ask_books, exchanges);
+    run_books(config, &order.bid_books, exchanges);
 }
 
-fn run_books(books: &types::Books, exchanges: &config::ExchangeList) {
+fn run_books(config: &config::Config, books: &types::Books, exchanges: &config::ExchangeList) {
     for book in &books.books {
         for offer in &book.offers {
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exg) => match exg.protocol {
                     config::ExchangeProtocol::ZeroexOpen => {
-                        exchanges::zeroex::build(&books.askbid, exg, &book.market, &offer)
+                        exchanges::zeroex::build(&config.wallet_private_key, &books.askbid, exg, &book.market, &offer)
                     }
                     config::ExchangeProtocol::Ddex3 => {
-                        exchanges::ddex3::build(&books.askbid, exg, &book.market, &offer)
+                        exchanges::ddex3::build(&config.wallet_private_key, &books.askbid, exg, &book.market, &offer)
                     }
                 },
                 None => {
@@ -85,7 +85,7 @@ fn rdsub<'a>(con: &'a mut redis::Connection) -> redis::PubSub<'a> {
     ps
 }
 
-fn rd_next_order(config: config::Config) -> Result<String, redis::RedisError> {
+fn rd_next_order(config: &config::Config) -> Result<String, redis::RedisError> {
     let mut pubclient = rdsetup(&config.redis_url)?;
     let mut ps = rdsub(&mut pubclient);
 

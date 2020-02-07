@@ -11,6 +11,7 @@ pub struct OrderSheet {
 }
 
 pub fn build(
+    privkey: &str,
     askbid: &types::AskBid,
     exchange: &config::ExchangeApi,
     market: &types::Market,
