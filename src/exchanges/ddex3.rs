@@ -156,7 +156,7 @@ pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8; 65] {
     let (recovery_id, sig) = signature.serialize_compact();
     let mut vec = Vec::with_capacity(65);
     vec.extend_from_slice(&sig);
-    // chainId 0 = + 27
+    // chainId + 27
     let r = recovery_id.to_i32() + 27;
     vec.push(r as u8);
     let mut sig_sized_bytes = [0u8; 65];
@@ -180,8 +180,11 @@ mod tests {
     use super::*;
     static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
     static pubkey: &str = "041ea3510efdb57c6cf0dc77a454b4f5b95775f9606b0f7d7a294b47aae57b21882e6c4888d050992b58a0640066ab72adff7575c07d201716c40b9146624eedb4";
+    static good_addr: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
     static msg_v4: &str = "HYDRO-AUTHENTICATION@1566380397473";
     static msg_v3: &str = "HYDRO-AUTHENTICATION@1524088776656";
+    static good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+    static good_sig_v3: &str = "603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f93500";
 
     #[test]
     fn test_pubkey_to_addr() {
@@ -190,7 +193,6 @@ mod tests {
         pubkey_sized_bytes.copy_from_slice(&pubkey_bytes);
         let addr_bytes = pubkey_to_addr(&pubkey_sized_bytes);
         let addr = hex::encode(addr_bytes);
-        let good_addr = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
         assert_eq!(addr, good_addr);
     }
 
@@ -208,16 +210,14 @@ mod tests {
 
     #[test]
     fn test_sign_bytes() {
-        //let hash_v4: &[u8] = b"68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
+        let hash_v4: &[u8] = b"68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
         let hash_v3: &[u8] = b"14d10d289a1662f15e85ddc809acf1f89a888dda71ddaacb1deb60113f6d310f";
-        let hash_bytes: Vec<u8> = hex::decode(hash_v3).unwrap();
+        let hash_bytes: Vec<u8> = hex::decode(hash_v4).unwrap();
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
         let private_key =
             SecretKey::from_slice(&privkey_bytes).expect("32 bytes, within curve order");
         let sig_bytes = sign_bytes(&hash_bytes, private_key);
-        //let good_sig_v4 = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
-        let good_sig_v3 = "603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f93500";
-        let good_sig_bytes: Vec<u8> = hex::decode(good_sig_v3).unwrap();
+        let good_sig_bytes: Vec<u8> = hex::decode(good_sig_v4).unwrap();
         let mut good_sig_sized_bytes = [0u8; 65];
         good_sig_sized_bytes.copy_from_slice(&good_sig_bytes);
         assert_eq!(&sig_bytes[..], &good_sig_sized_bytes[..]);
@@ -226,10 +226,9 @@ mod tests {
     #[test]
     fn test_build_token() {
         let mut token = String::from("");
-        build_token(&mut token, privkey, msg_v3);
-        //let good_token_v4 = "0xed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1566380397473#0x2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
-        let good_token_v3 = "0xed6d484f5c289ec8c6b6f934ef6419230169f534#HYDRO-AUTHENTICATION@1524088776656#0x603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f93500";
-        assert_eq!(token, good_token_v3);
+        build_token(&mut token, privkey, msg_v4);
+        let good_token = format!("0x{}#{}#0x{}", good_addr, msg_v4, good_sig_v4);
+        assert_eq!(token, good_token);
     }
 }
 
