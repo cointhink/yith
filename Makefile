@@ -6,6 +6,6 @@ all:
 run: all
 	./target/debug/yith $*
 
-fmt:
+format:
 	find src -name '*\.rs' -exec rustfmt {} \;
 

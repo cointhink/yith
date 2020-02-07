@@ -113,11 +113,16 @@ pub fn build(
 
 pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
     let mut headers = header::HeaderMap::new();
-    let client = reqwest::blocking::Client::builder()
-         .timeout(Duration::from_secs(10))
-        .default_headers(headers)
-        .build();
-    client
+    let bldr = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .default_headers(headers);
+    let bldr = if proxy_url.len() > 0 {
+        let proxy = reqwest::Proxy::http(proxy_url)?;
+        bldr.proxy(proxy)
+    } else {
+        bldr
+    };
+    bldr.build()
 }
 
 fn build_token(token: &mut String, privkey: &str, msg: &str) {
