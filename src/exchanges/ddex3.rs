@@ -9,20 +9,26 @@ use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
+    #[serde(rename = "buy")]
     Buy,
+    #[serde(rename = "sell")]
     Sell,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum LimitMarket {
+    #[serde(rename = "limit")]
     Limit,
+    #[serde(rename = "market")]
     Market,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
+    #[serde(rename = "marketId")]
     market_id: String,
     side: BuySell,
+    #[serde(rename = "orderType")]
     order_type: LimitMarket,
     price: f64,
     amount: f64,
