@@ -50,12 +50,22 @@ fn run_books(config: &config::Config, books: &types::Books, exchanges: &config::
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exg) => match exg.protocol {
-                    config::ExchangeProtocol::ZeroexOpen => {
-                        exchanges::zeroex::build(&config.wallet_private_key, &books.askbid, exg, &book.market, &offer)
-                    }
-                    config::ExchangeProtocol::Ddex3 => {
-                        exchanges::ddex3::build(&config.wallet_private_key, &books.askbid, exg, &book.market, &offer)
-                    }
+                    config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(
+                        &config.wallet_private_key,
+                        &books.askbid,
+                        exg,
+                        &book.market,
+                        &offer,
+                        &config.proxy,
+                    ),
+                    config::ExchangeProtocol::Ddex3 => exchanges::ddex3::build(
+                        &config.wallet_private_key,
+                        &books.askbid,
+                        exg,
+                        &book.market,
+                        &offer,
+                        &config.proxy,
+                    ),
                 },
                 None => {
                     println!("exchange not found for: {:#?}", exchange_name);

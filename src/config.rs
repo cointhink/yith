@@ -6,6 +6,7 @@ pub struct Config {
     pub redis_url: String,
     pub geth_url: String,
     pub wallet_private_key: String,
+    pub proxy: String,
 }
 
 pub fn read_config(filename: &str) -> Config {

@@ -16,6 +16,7 @@ pub fn build(
     exchange: &config::ExchangeApi,
     market: &types::Market,
     offer: &types::Offer,
+    proxy: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "HYDRO build {:#?} {} {}@{}",

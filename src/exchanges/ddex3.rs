@@ -1,6 +1,7 @@
 use crate::config;
 use crate::types;
 use reqwest::header;
+use reqwest::Proxy;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -46,6 +47,7 @@ pub fn build(
     exchange: &config::ExchangeApi,
     market: &types::Market,
     offer: &types::Offer,
+    proxy: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!(
         "HYDRO build {:#?} {} {}@{}",
@@ -79,7 +81,7 @@ pub fn build(
         amount: qty,
     };
 
-    let client = build_auth_client(privkey)?;
+    let client = build_auth_client(proxy)?;
 
     let url = exchange.build_url.as_str();
     println!("Ddex3 order {}", url);
@@ -109,12 +111,13 @@ pub fn build(
     Ok(())
 }
 
-pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
     let mut headers = header::HeaderMap::new();
-    reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(10))
+    let client = reqwest::blocking::Client::builder()
+         .timeout(Duration::from_secs(10))
         .default_headers(headers)
-        .build()
+        .build();
+    client
 }
 
 fn build_token(token: &mut String, privkey: &str, msg: &str) {
@@ -237,4 +240,3 @@ mod tests {
         assert_eq!(token, good_token);
     }
 }
-
