@@ -79,7 +79,24 @@ pub fn build(
     println!("Ddex3 order {}", url);
     println!("{:#?}", sheet);
 
-    let resp = client.post(url).json(&sheet).send()?;
+    let mut token = String::from("");
+    let fixedtime = format!(
+        "{}{}",
+        "HYDRO-AUTHENTICATION@",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+    );
+    build_token(&mut token, privkey, fixedtime.as_str());
+    println!("token: {}", token);
+    let ddex_auth_headername = "Hydro-Authentication";
+    let mut headers = header::HeaderMap::new();
+    headers.insert(
+        ddex_auth_headername,
+        header::HeaderValue::from_str(&token).unwrap(), //boom
+    );
+    let resp = client.post(url).headers(headers).json(&sheet).send()?;
     println!("{:#?}", resp);
     let body = resp.json::<BuildResponse>().unwrap();
     println!("{:#?}", body);
@@ -87,24 +104,7 @@ pub fn build(
 }
 
 pub fn build_auth_client(privkey: &str) -> reqwest::Result<reqwest::blocking::Client> {
-    let mut secret = String::from("");
-    let fixedtime = format!(
-        "{}{}",
-        "yith@",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-    );
-    build_token(&mut secret, privkey, fixedtime.as_str());
-    println!("token: {}", secret);
-    let ddex_auth = "Hydro-Authentication";
     let mut headers = header::HeaderMap::new();
-    headers.insert(
-        header::AUTHORIZATION,
-        header::HeaderValue::from_str(secret.as_str()).unwrap(), //boom
-    );
-
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .default_headers(headers)
