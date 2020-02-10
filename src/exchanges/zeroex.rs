@@ -12,6 +12,28 @@ pub struct OrderSheet {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderForm {
+  chain_id: i64,
+  maker_address: String,
+  signature: String,
+  sender_address: String,
+  exchange_address: String,
+  taker_address: String,
+  maker_fee: String,
+  taker_fee: String,
+  maker_fee_asset_data: String,
+  taker_fee_asset_data: String,
+  maker_asset_amount: String,
+  taker_asset_amount: String,
+  maker_asset_data: String,
+  taker_asset_data: String,
+  salt: String,
+  fee_recipient_address: String,
+  expiration_time_seconds: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BuildResponse {
     status: i64,
     error: String,
@@ -54,10 +76,10 @@ pub fn build(
         types::AskBid::Ask => BuySell::Buy,
         types::AskBid::Bid => BuySell::Sell,
     };
-    let expire_time =  SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+    let expire_time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
     let sheet = OrderSheet {
         r#type: side,
         quantity: format!("{}", qty),
@@ -71,9 +93,12 @@ pub fn build(
     let client = reqwest::blocking::Client::new();
     let resp = client.post(url.as_str()).json(&sheet).send()?;
     println!("{:#?} {}", resp.status(), resp.url());
-//    let body = resp.json::<BuildResponse>().unwrap();
-//    println!("{:#?}", body);
-    println!("{:#?}", resp.text()?);
+    if resp.status().is_success() {
+        let form = resp.json::<OrderForm>().unwrap();
+        println!("{:#?}", form); } else {
+        let body = resp.json::<BuildResponse>().unwrap();
+        println!("{:#?}", body); 
+    }
     Ok(())
 }
 
