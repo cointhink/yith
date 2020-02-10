@@ -97,7 +97,6 @@ pub fn build(
             .as_millis()
     );
     build_token(&mut token, privkey, fixedtime.as_str());
-    println!("token: {}", token);
     let ddex_auth_headername = "Hydro-Authentication";
     let mut headers = header::HeaderMap::new();
     headers.insert(
@@ -105,7 +104,7 @@ pub fn build(
         header::HeaderValue::from_str(&token).unwrap(), //boom
     );
     let resp = client.post(url).headers(headers).json(&sheet).send()?;
-    println!("{:#?}", resp);
+    println!("{:#?} {}", resp.status(), resp.url());
     let body = resp.json::<BuildResponse>().unwrap();
     println!("{:#?}", body);
     Ok(())
@@ -117,7 +116,8 @@ pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::
         .timeout(Duration::from_secs(10))
         .default_headers(headers);
     let bldr = if proxy_url.len() > 0 {
-        let proxy = reqwest::Proxy::http(proxy_url)?;
+        println!("PROXY {}", proxy_url);
+        let proxy = reqwest::Proxy::all(proxy_url)?;
         bldr.proxy(proxy)
     } else {
         bldr
