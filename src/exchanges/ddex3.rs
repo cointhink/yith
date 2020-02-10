@@ -79,7 +79,7 @@ pub fn build(
         order_type: LimitMarket::Limit,
         //wallet_type: "trading",
         price: format!("{:.width$}", price, width = market.price_decimals as usize),
-        amount: format!("{:.width$}", price, width = market.quantity_decimals as usize),
+        amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
     };
 
     let client = build_auth_client(proxy)?;
