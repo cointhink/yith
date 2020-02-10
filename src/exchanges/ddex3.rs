@@ -31,8 +31,8 @@ pub struct OrderSheet {
     side: BuySell,
     #[serde(rename = "orderType")]
     order_type: LimitMarket,
-    price: f64,
-    amount: f64,
+    price: String,
+    amount: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -77,15 +77,15 @@ pub fn build(
         side: side,
         order_type: LimitMarket::Limit,
         //wallet_type: "trading",
-        price: price,
-        amount: qty,
+        price: format!("{:.5}", price),
+        amount: format!("{:.2}", qty),
     };
 
     let client = build_auth_client(proxy)?;
 
     let url = exchange.build_url.as_str();
     println!("Ddex3 order {}", url);
-    println!("{:#?}", sheet);
+    println!("{:#?}", &sheet);
 
     let mut token = String::from("");
     let fixedtime = format!(

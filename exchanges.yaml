@@ -10,6 +10,7 @@ exchanges:
     name: ddex-v3 # https://legacy-docs.ddex.io/
     enabled: true
     protocol: ddex3
+    #build_url: http://localhost:1550/v3/orders/build
     build_url: https://api.ddex.io/v3/orders/build
     order_url: https://api.ddex.io/v3/orders
   -
