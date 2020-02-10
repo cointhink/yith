@@ -72,13 +72,14 @@ pub fn build(
         types::AskBid::Ask => BuySell::Buy,
         types::AskBid::Bid => BuySell::Sell,
     };
+
     let sheet = OrderSheet {
         market_id: market_id,
         side: side,
         order_type: LimitMarket::Limit,
         //wallet_type: "trading",
-        price: format!("{:.5}", price),
-        amount: format!("{:.2}", qty),
+        price: format!("{:.width$}", price, width = market.price_decimals as usize),
+        amount: format!("{:.width$}", price, width = market.quantity_decimals as usize),
     };
 
     let client = build_auth_client(proxy)?;

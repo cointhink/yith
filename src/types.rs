@@ -7,6 +7,7 @@ pub struct Order {
     pub pair: Pair,
     pub cost: f64,
     pub profit: f64,
+    pub avg_price: f64,
     pub ask_books: Books,
     pub bid_books: Books,
 }
@@ -53,6 +54,8 @@ pub struct Market {
     pub base: Ticker,
     pub quote: Ticker,
     pub swapped: bool,
+    pub quantity_decimals: f64,
+    pub price_decimals: f64,
 }
 
 impl fmt::Display for Market {
