@@ -1,6 +1,12 @@
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use tiny_keccak::{Hasher, Keccak};
 
+//pub fn privkey_to_privkeybytes(privkey: &str) -> [u8; 32] {
+//    let secp = Secp256k1::new();
+//    let privbytes = &hex::decode(privkey).unwrap();
+//    let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
+//}
+
 pub fn privkey_to_pubkeybytes(privkey: &str) -> [u8; 65] {
     let secp = Secp256k1::new();
     let privbytes = &hex::decode(privkey).unwrap();
@@ -30,6 +36,15 @@ pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
     let mut hasher = Keccak::v256();
     hasher.update(hash_full.as_bytes());
     hasher.finalize(&mut msg_hash);
+}
+
+pub fn hash_msg_inplace(msg: &str) -> [u8; 32] {
+    let mut hash = [0u8; 32];
+    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
+    let mut hasher = Keccak::v256();
+    hasher.update(hash_full.as_bytes());
+    hasher.finalize(&mut hash);
+    hash
 }
 
 pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8; 65] {

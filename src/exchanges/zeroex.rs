@@ -101,9 +101,23 @@ pub fn build(
 	form.maker_address = eth::privkey_to_addr(privkey).to_string();
 	let privbytes = &hex::decode(privkey).unwrap();
 	let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
+	let tokens = &[
+	    ethabi::Token::FixedBytes(vec![0x19u8, 0x1]),
+	    ethabi::Token::FixedBytes(hex::encode(&form.maker_address).as_bytes().to_vec()),
+	    ethabi::Token::FixedBytes(hex::encode(&form.taker_address).as_bytes().to_vec()),
+	    ethabi::Token::FixedBytes(hex::encode(&form.fee_recipient_address).as_bytes().to_vec()),
+	    ethabi::Token::FixedBytes(hex::encode(&form.sender_address).as_bytes().to_vec()),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.maker_asset_amount.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.taker_asset_amount.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.maker_fee.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.taker_fee.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.expiration_time_seconds.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(form.salt.parse::<u64>()?)),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.maker_asset_data))),
+	];
+	let msg = ethabi::encode(tokens);
 	let mut msg_hash = [0u8; 32];
-	let msg = json!(form).to_string();
-	eth::hash_msg(&mut msg_hash, &msg);
+	eth::hash_msg(&mut msg_hash, "msg");
 	let sig_bytes = eth::sign_bytes(&msg_hash, secret_key);
 	form.signature = hex::encode(&sig_bytes[..]);
         println!("filled in {:#?}", form);
@@ -112,18 +126,18 @@ pub fn build(
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
 
-	const ETH_CHAIN_ID: u32 = 1;
-	let tx = ethereum_tx_sign::RawTransaction {
-	    nonce: primitive_types::U256::from(0),
-	    to: Some(primitive_types::H160::zero()),
-	    value: primitive_types::U256::zero(),
-	    gas_price: primitive_types::U256::from(10000),
-	    gas: primitive_types::U256::from(21240),
-	    data: hex::decode(
-		"7f7465737432000000000000000000000000000000000000000000000000000000600057"
-	    ).unwrap(),
-	};
-
+	// const ETH_CHAIN_ID: u32 = 1;
+	// let tx = ethereum_tx_sign::RawTransaction {
+	//     nonce: primitive_types::U256::from(0),
+	//     to: Some(primitive_types::H160::zero()),
+	//     value: primitive_types::U256::zero(),
+	//     gas_price: primitive_types::U256::from(10000),
+	//     gas: primitive_types::U256::from(21240),
+	//     data: serde_rlp::ser::to_bytes(&form)?,
+	// };
+	// let mut sized_privbytes = [0u8; 32];
+	// sized_privbytes.copy_from_slice(&privbytes[0..32]);
+        // let sig_bytes = tx.sign(primitive_types::H256::from(sized_privbytes), &ETH_CHAIN_ID);
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
