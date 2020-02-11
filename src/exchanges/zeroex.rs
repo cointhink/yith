@@ -14,23 +14,23 @@ pub struct OrderSheet {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderForm {
-  chain_id: i64,
-  maker_address: String,
-  signature: String,
-  sender_address: String,
-  exchange_address: String,
-  taker_address: String,
-  maker_fee: String,
-  taker_fee: String,
-  maker_fee_asset_data: String,
-  taker_fee_asset_data: String,
-  maker_asset_amount: String,
-  taker_asset_amount: String,
-  maker_asset_data: String,
-  taker_asset_data: String,
-  salt: String,
-  fee_recipient_address: String,
-  expiration_time_seconds: String,
+    chain_id: i64,
+    maker_address: String,
+    signature: String,
+    sender_address: String,
+    exchange_address: String,
+    taker_address: String,
+    maker_fee: String,
+    taker_fee: String,
+    maker_fee_asset_data: String,
+    taker_fee_asset_data: String,
+    maker_asset_amount: String,
+    taker_asset_amount: String,
+    maker_asset_data: String,
+    taker_asset_data: String,
+    salt: String,
+    fee_recipient_address: String,
+    expiration_time_seconds: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,10 +95,12 @@ pub fn build(
     println!("{:#?} {}", resp.status(), resp.url());
     if resp.status().is_success() {
         let form = resp.json::<OrderForm>().unwrap();
-        println!("{:#?}", form); } else {
+        println!("{:#?}", form);
+    } else {
         let body = resp.json::<BuildResponse>().unwrap();
-        println!("{:#?}", body); 
+        println!("{:#?}", body);
     }
+    
     Ok(())
 }
 
