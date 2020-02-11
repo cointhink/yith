@@ -3,6 +3,7 @@ use redis::{Commands, RedisError};
 mod config;
 mod exchanges;
 mod geth;
+mod eth;
 mod types;
 
 fn main() {

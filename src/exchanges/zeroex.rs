@@ -1,5 +1,6 @@
 use crate::config;
 use crate::types;
+use crate::eth;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -94,8 +95,10 @@ pub fn build(
     let resp = client.post(url.as_str()).json(&sheet).send()?;
     println!("{:#?} {}", resp.status(), resp.url());
     if resp.status().is_success() {
-        let form = resp.json::<OrderForm>().unwrap();
+        let mut form = resp.json::<OrderForm>().unwrap();
         println!("{:#?}", form);
+	form.maker_address = eth::privkey_to_addr(privkey).to_string();
+        println!("filled in {:#?}", form);
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);

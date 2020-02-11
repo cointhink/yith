@@ -1,12 +1,13 @@
 use crate::config;
 use crate::types;
+use crate::eth;
 use reqwest::header;
 use reqwest::Proxy;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
+use tiny_keccak::{Hasher, Keccak};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -131,8 +132,8 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let privbytes = &hex::decode(privkey).unwrap();
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
     let public_key = PublicKey::from_secret_key(&secp, &secret_key);
-    let pubkey_bytes = &public_key.serialize_uncompressed();
-    let addr = pubkey_to_addr(pubkey_bytes);
+    let pubkey_bytes = public_key.serialize_uncompressed();
+    let addr = eth::pubkey_to_addr(pubkey_bytes);
     let mut msg_hash = [0u8; 32];
     hash_msg(&mut msg_hash, msg);
     let sig_bytes = sign_bytes(&msg_hash, secret_key);
@@ -145,16 +146,6 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
         )
         .as_str(),
     );
-}
-
-pub fn pubkey_to_addr(pubkey_bytes: &[u8; 65]) -> [u8; 20] {
-    let mut output = [0u8; 32];
-    let mut hasher = Keccak::v256();
-    hasher.update(&pubkey_bytes[1..]);
-    hasher.finalize(&mut output);
-    let mut sized_output = [0u8; 20];
-    sized_output.copy_from_slice(&output[12..32]);
-    sized_output
 }
 
 pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
@@ -200,16 +191,6 @@ mod tests {
     static msg_v3: &str = "HYDRO-AUTHENTICATION@1524088776656";
     static good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
     static good_sig_v3: &str = "603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f93500";
-
-    #[test]
-    fn test_pubkey_to_addr() {
-        let pubkey_bytes = hex::decode(pubkey).unwrap();
-        let mut pubkey_sized_bytes = [0u8; 65];
-        pubkey_sized_bytes.copy_from_slice(&pubkey_bytes);
-        let addr_bytes = pubkey_to_addr(&pubkey_sized_bytes);
-        let addr = hex::encode(addr_bytes);
-        assert_eq!(addr, good_addr);
-    }
 
     #[test]
     fn test_hash_msg() {
