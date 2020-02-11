@@ -85,7 +85,7 @@ pub fn build(
 
     let client = build_auth_client(proxy)?;
 
-    let url = exchange.build_url.as_str();
+    let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
     println!("Ddex3 order {}", url);
     println!("{:#?}", &sheet);
 
@@ -105,7 +105,7 @@ pub fn build(
         ddex_auth_headername,
         header::HeaderValue::from_str(&token).unwrap(), //boom
     );
-    let resp = client.post(url).headers(headers).json(&sheet).send()?;
+    let resp = client.post(&url).headers(headers).json(&sheet).send()?;
     println!("{:#?} {}", resp.status(), resp.url());
     let body = resp.json::<BuildResponse>().unwrap();
     println!("{:#?}", body);

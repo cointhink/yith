@@ -21,8 +21,7 @@ pub struct ExchangeApi {
     pub name: String,
     pub enabled: bool,
     pub protocol: ExchangeProtocol,
-    pub build_url: String,
-    pub order_url: String,
+    pub api_url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

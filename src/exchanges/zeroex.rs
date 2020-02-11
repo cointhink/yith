@@ -87,8 +87,7 @@ pub fn build(
         price: format!("{}", price),
         expiration: format!("{}", expire_time),
     };
-    let mut url = exchange.build_url.clone();
-    url.push_str(format!("/{}/order/limit", market_id).as_str());
+    let url = format!("{}/{}/order/limit", exchange.api_url.as_str(), market_id);
     println!("0x order {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
