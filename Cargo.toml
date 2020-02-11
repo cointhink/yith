@@ -15,3 +15,5 @@ reqwest = { version = "0.10", features = ["blocking", "json", "socks"] }
 secp256k1 = { version = "0.17.2", features = ["recovery"] }
 hex = "0.4.0"
 tiny-keccak = { version = "2.0.0", features = ["keccak"] }
+ethereum-tx-sign = "3.0.1"
+primitive-types = "0.3.0"

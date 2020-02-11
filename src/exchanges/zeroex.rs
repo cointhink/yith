@@ -111,6 +111,19 @@ pub fn build(
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
+
+	const ETH_CHAIN_ID: u32 = 1;
+	let tx = ethereum_tx_sign::RawTransaction {
+	    nonce: primitive_types::U256::from(0),
+	    to: Some(primitive_types::H160::zero()),
+	    value: primitive_types::U256::zero(),
+	    gas_price: primitive_types::U256::from(10000),
+	    gas: primitive_types::U256::from(21240),
+	    data: hex::decode(
+		"7f7465737432000000000000000000000000000000000000000000000000000000600057"
+	    ).unwrap(),
+	};
+
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
