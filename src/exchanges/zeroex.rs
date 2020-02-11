@@ -2,7 +2,9 @@ use crate::config;
 use crate::types;
 use crate::eth;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
+use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
@@ -97,7 +99,16 @@ pub fn build(
         let mut form = resp.json::<OrderForm>().unwrap();
         println!("{:#?}", form);
 	form.maker_address = eth::privkey_to_addr(privkey).to_string();
+	let privbytes = &hex::decode(privkey).unwrap();
+	let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
+	let mut msg_hash = [0u8; 32];
+	let msg = json!(form).to_string();
+	eth::hash_msg(&mut msg_hash, &msg);
+	let sig_bytes = eth::sign_bytes(&msg_hash, secret_key);
+	form.signature = hex::encode(&sig_bytes[..]);
         println!("filled in {:#?}", form);
+        let url = format!("{}/orders", exchange.api_url.as_str());
+        let resp = client.post(url.as_str()).json(&form).send()?;
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
