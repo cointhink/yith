@@ -89,7 +89,7 @@ pub fn build(
         price: format!("{}", price),
         expiration: format!("{}", expire_time),
     };
-    let url = format!("{}/{}/order/limit", exchange.api_url.as_str(), market_id);
+    let url = format!("{}/markets/{}/order/limit", exchange.api_url.as_str(), market_id);
     println!("0x order {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
@@ -109,6 +109,8 @@ pub fn build(
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         let resp = client.post(url.as_str()).json(&form).send()?;
+        println!("{:#?} {}", resp.status(), resp.url());
+        println!("{:#?}", resp.text());
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
