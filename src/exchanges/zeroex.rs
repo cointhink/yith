@@ -101,8 +101,9 @@ pub fn build(
 	form.maker_address = eth::privkey_to_addr(privkey).to_string();
 	let privbytes = &hex::decode(privkey).unwrap();
 	let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
+	let EIP712_hash = hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534")?;
 	let tokens = &[
-	    ethabi::Token::FixedBytes(vec![0x19u8, 0x1]),
+	    ethabi::Token::FixedBytes(EIP712_hash),
 	    ethabi::Token::FixedBytes(hex::encode(&form.maker_address).as_bytes().to_vec()),
 	    ethabi::Token::FixedBytes(hex::encode(&form.taker_address).as_bytes().to_vec()),
 	    ethabi::Token::FixedBytes(hex::encode(&form.fee_recipient_address).as_bytes().to_vec()),
@@ -114,8 +115,12 @@ pub fn build(
 	    ethabi::Token::Uint(primitive_types::U256::from(form.expiration_time_seconds.parse::<u64>()?)),
 	    ethabi::Token::Uint(primitive_types::U256::from(form.salt.parse::<u64>()?)),
 	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.maker_asset_data))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.taker_asset_data))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.maker_fee_asset_data))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.taker_fee_asset_data))),
 	];
-	let msg = ethabi::encode(tokens);
+	let EIP191_header = vec![0x19u8, 0x1];
+	let msg: Vec<u8> = ethabi::encode(tokens);
 	let mut msg_hash = [0u8; 32];
 	eth::hash_msg(&mut msg_hash, "msg");
 	let sig_bytes = eth::sign_bytes(&msg_hash, secret_key);
