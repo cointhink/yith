@@ -103,5 +103,4 @@ mod tests {
         good_sig_sized_bytes.copy_from_slice(&good_sig_bytes);
         assert_eq!(&sig_bytes[..], &good_sig_sized_bytes[..]);
     }
-
 }
