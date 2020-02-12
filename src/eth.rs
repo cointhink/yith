@@ -31,26 +31,20 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
     sized_output
 }
 
-pub fn hash_msg(mut msg_hash: &mut [u8], msg: &str) {
-    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
-    let mut hasher = Keccak::v256();
-    hasher.update(hash_full.as_bytes());
-    hasher.finalize(&mut msg_hash);
-}
-
-pub fn hash_msg_inplace(msg: &str) -> [u8; 32] {
+pub fn hash_msg(msg: &Vec<u8>) -> [u8; 32] {
     let mut hash = [0u8; 32];
-    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}{}", msg.len(), msg);
     let mut hasher = Keccak::v256();
+    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len());
     hasher.update(hash_full.as_bytes());
+    hasher.update(msg);
     hasher.finalize(&mut hash);
     hash
 }
 
-pub fn sign_bytes(msg_hash: &[u8], secret_key: SecretKey) -> [u8; 65] {
+pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     let secp = Secp256k1::new();
     let secp_msg = Message::from_slice(&msg_hash).unwrap();
-    let signature = secp.sign_recoverable(&secp_msg, &secret_key);
+    let signature = secp.sign_recoverable(&secp_msg, secret_key);
     let (recovery_id, sig) = signature.serialize_compact();
     let mut vec = Vec::with_capacity(65);
     vec.extend_from_slice(&sig);

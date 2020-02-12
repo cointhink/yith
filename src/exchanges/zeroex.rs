@@ -114,35 +114,20 @@ pub fn build(
 	    ethabi::Token::Uint(primitive_types::U256::from(form.taker_fee.parse::<u64>()?)),
 	    ethabi::Token::Uint(primitive_types::U256::from(form.expiration_time_seconds.parse::<u64>()?)),
 	    ethabi::Token::Uint(primitive_types::U256::from(form.salt.parse::<u64>()?)),
-	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.maker_asset_data))),
-	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.taker_asset_data))),
-	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.maker_fee_asset_data))),
-	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg_inplace(&form.taker_fee_asset_data))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(&form.maker_asset_data.as_bytes().to_vec()))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(&form.taker_asset_data.as_bytes().to_vec()))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(&form.maker_fee_asset_data.as_bytes().to_vec()))),
+	    ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(&form.taker_fee_asset_data.as_bytes().to_vec()))),
 	];
-	let EIP191_header = vec![0x19u8, 0x1];
 	let msg: Vec<u8> = ethabi::encode(tokens);
-	let mut msg_hash = [0u8; 32];
-	eth::hash_msg(&mut msg_hash, "msg");
-	let sig_bytes = eth::sign_bytes(&msg_hash, secret_key);
+	let msg_hash = eth::hash_msg(&msg);
+	let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
 	form.signature = hex::encode(&sig_bytes[..]);
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
-
-	// const ETH_CHAIN_ID: u32 = 1;
-	// let tx = ethereum_tx_sign::RawTransaction {
-	//     nonce: primitive_types::U256::from(0),
-	//     to: Some(primitive_types::H160::zero()),
-	//     value: primitive_types::U256::zero(),
-	//     gas_price: primitive_types::U256::from(10000),
-	//     gas: primitive_types::U256::from(21240),
-	//     data: serde_rlp::ser::to_bytes(&form)?,
-	// };
-	// let mut sized_privbytes = [0u8; 32];
-	// sized_privbytes.copy_from_slice(&privbytes[0..32]);
-        // let sig_bytes = tx.sign(primitive_types::H256::from(sized_privbytes), &ETH_CHAIN_ID);
     } else {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
