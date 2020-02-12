@@ -79,10 +79,11 @@ pub fn build(
         types::AskBid::Ask => BuySell::Buy,
         types::AskBid::Bid => BuySell::Sell,
     };
-    let expire_time = SystemTime::now()
+    let expire_time = (SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
-        .as_millis();
+	+ std::time::Duration::new(120+5,0))  // 2min minimum + transittime
+        .as_secs();
     let sheet = OrderSheet {
         r#type: side,
         quantity: format!("{}", qty),
@@ -102,7 +103,7 @@ pub fn build(
     if resp.status().is_success() {
         let mut form = resp.json::<OrderForm>().unwrap();
         println!("{:#?}", form);
-        form.maker_address = eth::privkey_to_addr(privkey).to_string();
+        form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
         let eip712_hash =
@@ -141,7 +142,7 @@ pub fn build(
         let msg: Vec<u8> = ethabi::encode(tokens);
         let msg_hash = eth::hash_msg(&msg);
         let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
-        form.signature = hex::encode(&sig_bytes[..]);
+        form.signature = format!("0x{}", hex::encode(&sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         let resp = client.post(url.as_str()).json(&form).send()?;
