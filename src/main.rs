@@ -97,7 +97,7 @@ fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Ord
 }
 
 fn fd_order(arb_id: String) -> types::Order {
-    let filename = format!("arbs/{}/order", arb_id); 
+    let filename = format!("arbs/{}/order", arb_id);
     let json = std::fs::read_to_string(filename).expect("order json file bad");
     let order: types::Order = serde_yaml::from_str(&json).unwrap();
     order

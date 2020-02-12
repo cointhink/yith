@@ -79,11 +79,9 @@ pub fn build(
         types::AskBid::Ask => BuySell::Buy,
         types::AskBid::Bid => BuySell::Sell,
     };
-    let expire_time = (SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-	+ std::time::Duration::new(120+5,0))  // 2min minimum + transittime
-        .as_secs();
+    let expire_time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+        + std::time::Duration::new(120 + 5, 0)) // 2min minimum + transittime
+    .as_secs();
     let sheet = OrderSheet {
         r#type: side,
         quantity: format!("{}", qty),
@@ -106,40 +104,8 @@ pub fn build(
         form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
-        let eip712_hash =
-            hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534")?;
-        let tokens = &[
-            ethabi::Token::FixedBytes(eip712_hash),
-            ethabi::Token::FixedBytes(hex::encode(&form.maker_address).as_bytes().to_vec()),
-            ethabi::Token::FixedBytes(hex::encode(&form.taker_address).as_bytes().to_vec()),
-            ethabi::Token::FixedBytes(hex::encode(&form.fee_recipient_address).as_bytes().to_vec()),
-            ethabi::Token::FixedBytes(hex::encode(&form.sender_address).as_bytes().to_vec()),
-            ethabi::Token::Uint(primitive_types::U256::from(
-                form.maker_asset_amount.parse::<u64>()?,
-            )),
-            ethabi::Token::Uint(primitive_types::U256::from(
-                form.taker_asset_amount.parse::<u64>()?,
-            )),
-            ethabi::Token::Uint(primitive_types::U256::from(form.maker_fee.parse::<u64>()?)),
-            ethabi::Token::Uint(primitive_types::U256::from(form.taker_fee.parse::<u64>()?)),
-            ethabi::Token::Uint(primitive_types::U256::from(
-                form.expiration_time_seconds.parse::<u64>()?,
-            )),
-            ethabi::Token::Uint(primitive_types::U256::from(form.salt.parse::<u64>()?)),
-            ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(
-                &form.maker_asset_data.as_bytes().to_vec(),
-            ))),
-            ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(
-                &form.taker_asset_data.as_bytes().to_vec(),
-            ))),
-            ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(
-                &form.maker_fee_asset_data.as_bytes().to_vec(),
-            ))),
-            ethabi::Token::Uint(primitive_types::U256::from(eth::hash_msg(
-                &form.taker_fee_asset_data.as_bytes().to_vec(),
-            ))),
-        ];
-        let msg: Vec<u8> = ethabi::encode(tokens);
+        let tokens = eth_tokens(&form);
+        let msg: Vec<u8> = ethabi::encode(&tokens);
         let msg_hash = eth::hash_msg(&msg);
         let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
         form.signature = format!("0x{}", hex::encode(&sig_bytes[..]));
@@ -165,4 +131,48 @@ pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker
         true => format!("{}-{}", quote.symbol, base.symbol),
         false => format!("{}-{}", base.symbol, quote.symbol),
     }
+}
+
+pub fn eth_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
+    let eip712_hash =
+        hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
+    vec![
+        ethabi::Token::FixedBytes(eip712_hash),
+        ethabi::Token::Address(str_to_H160(&form.maker_address[2..])),
+        ethabi::Token::Address(str_to_H160(&form.taker_address[2..])),
+        ethabi::Token::Address(str_to_H160(&form.fee_recipient_address[2..])),
+        ethabi::Token::Address(str_to_H160(&form.sender_address[2..])),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.maker_asset_amount.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.taker_asset_amount.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.maker_fee.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.taker_fee.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.expiration_time_seconds.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::Uint(primitive_types::U256::from(
+            form.salt.parse::<u64>().unwrap(),
+        )),
+        ethabi::Token::FixedBytes(str_to_hashbytes(&form.maker_asset_data)),
+        ethabi::Token::FixedBytes(str_to_hashbytes(&form.taker_asset_data)),
+        ethabi::Token::FixedBytes(str_to_hashbytes(&form.maker_fee_asset_data)),
+        ethabi::Token::FixedBytes(str_to_hashbytes(&form.taker_fee_asset_data)),
+    ]
+}
+
+pub fn str_to_H160(addr_str: &str) -> primitive_types::H160 {
+    let mut addr = [0u8; 20];
+    addr.copy_from_slice(&hex::decode(addr_str).unwrap());
+    primitive_types::H160::from(addr)
+}
+
+pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
+    eth::hash_msg(&msg_str.as_bytes().to_vec()).to_vec()
 }
