@@ -134,7 +134,7 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
     let public_key = PublicKey::from_secret_key(&secp, &secret_key);
     let pubkey_bytes = public_key.serialize_uncompressed();
     let addr = eth::pubkey_to_addr(pubkey_bytes);
-    let msg_hash = eth::hash_msg(&msg.as_bytes().to_vec());
+    let msg_hash = eth::ethsign_hash_msg(&msg.as_bytes().to_vec());
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
     token.push_str(
         format!(

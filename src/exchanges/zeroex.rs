@@ -105,10 +105,11 @@ pub fn build(
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
         let tokens = eth_tokens(&form);
-        let msg: Vec<u8> = ethabi::encode(&tokens);
-        let msg_hash = eth::hash_msg(&msg);
-        let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
-        form.signature = format!("0x{}", hex::encode(&sig_bytes[..]));
+        let form_tokens: Vec<u8> = ethabi::encode(&tokens);
+        let form_hash = eth::hash_msg(&form_tokens);
+        let exg_hash = exchange_order_hash(form_hash);
+        let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
+        form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         let resp = client.post(url.as_str()).json(&form).send()?;
@@ -142,22 +143,22 @@ pub fn eth_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
         ethabi::Token::Address(str_to_H160(&form.taker_address[2..])),
         ethabi::Token::Address(str_to_H160(&form.fee_recipient_address[2..])),
         ethabi::Token::Address(str_to_H160(&form.sender_address[2..])),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.maker_asset_amount.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.taker_asset_amount.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.maker_fee.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.taker_fee.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.expiration_time_seconds.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::Uint(primitive_types::U256::from(
+        ethabi::Token::Uint(ethereum_types::U256::from(
             form.salt.parse::<u64>().unwrap(),
         )),
         ethabi::Token::FixedBytes(str_to_hashbytes(&form.maker_asset_data)),
@@ -167,12 +168,16 @@ pub fn eth_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
     ]
 }
 
-pub fn str_to_H160(addr_str: &str) -> primitive_types::H160 {
+pub fn str_to_H160(addr_str: &str) -> ethereum_types::H160 {
     let mut addr = [0u8; 20];
     addr.copy_from_slice(&hex::decode(addr_str).unwrap());
-    primitive_types::H160::from(addr)
+    ethereum_types::H160::from(addr)
 }
 
 pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
     eth::hash_msg(&msg_str.as_bytes().to_vec()).to_vec()
+}
+
+pub fn exchange_order_hash(order: [u8; 32]) -> [u8; 32] {
+    order
 }

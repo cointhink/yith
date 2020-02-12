@@ -31,11 +31,15 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
     sized_output
 }
 
+pub fn ethsign_hash_msg(msg: &Vec<u8>) -> [u8; 32] {
+    let mut full_msg = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len()).as_bytes().to_vec();
+    full_msg.append(&mut msg.clone()); // why
+    hash_msg(&full_msg)
+}
+
 pub fn hash_msg(msg: &Vec<u8>) -> [u8; 32] {
     let mut hash = [0u8; 32];
     let mut hasher = Keccak::v256();
-    let hash_full = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len());
-    hasher.update(hash_full.as_bytes());
     hasher.update(msg);
     hasher.finalize(&mut hash);
     hash

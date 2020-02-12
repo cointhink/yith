@@ -1615,8 +1615,8 @@ name = "yith"
 version = "0.1.0"
 dependencies = [
  "ethabi",
+ "ethereum-types",
  "hex",
- "primitive-types",
  "redis",
  "reqwest",
  "secp256k1",
