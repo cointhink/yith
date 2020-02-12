@@ -7,30 +7,42 @@ mod geth;
 mod types;
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
     let config_filename = "config.yaml";
     let exchanges_filename = "exchanges.yaml";
     let config = config::read_config(config_filename);
     let exchanges = config::read_exchanges(exchanges_filename);
     println!("Yith. {:#?} ", config_filename);
-    //geth::rpc(&config, &config.geth_url, "eth_gasPrice");
-    app(&config, exchanges).unwrap();
+    app(&config, exchanges, args).unwrap();
 }
 
-fn app(config: &config::Config, exchanges: config::ExchangeList) -> Result<u32, RedisError> {
-    let mut client = rdsetup(&config.redis_url)?;
-    let inplay_exists = client.exists("inplay")?;
-    let arb_id = match inplay_exists {
-        true => {
-            println!("active order found!");
-            rd_inplay(&mut client)
-        }
-        false => {
-            println!("no active order. waiting for order.");
-            rd_next_order(config)
-        }
-    }?;
+fn app(
+    config: &config::Config,
+    exchanges: config::ExchangeList,
+    args: Vec<String>,
+) -> Result<u32, RedisError> {
+    let mut arb_id: String;
+    let mut order: types::Order;
+    if args.len() == 2 {
+        arb_id = args[1].clone();
+        println!("loading {}", arb_id);
+        order = fd_order(arb_id);
+    } else {
+        let mut client = rdsetup(&config.redis_url)?;
+        let inplay_exists = client.exists("inplay")?;
+        arb_id = match inplay_exists {
+            true => {
+                println!("active order found!");
+                rd_inplay(&mut client)
+            }
+            false => {
+                println!("no active order. waiting for order.");
+                rd_next_order(config)
+            }
+        }?;
+        order = rd_order(&mut client, arb_id)?;
+    }
 
-    let order: types::Order = rd_order(&mut client, arb_id)?;
     println!(
         "Order {} loaded. Cost {} Profit {}",
         order.id, order.cost, order.profit
@@ -82,6 +94,13 @@ fn rd_order(client: &mut redis::Connection, arb_id: String) -> Result<types::Ord
     let json: String = client.hget(&hkey, "json")?;
     let order: types::Order = serde_yaml::from_str(&json).unwrap();
     Ok(order)
+}
+
+fn fd_order(arb_id: String) -> types::Order {
+    let filename = format!("arbs/{}/order", arb_id); 
+    let json = std::fs::read_to_string(filename).expect("order json file bad");
+    let order: types::Order = serde_yaml::from_str(&json).unwrap();
+    order
 }
 
 fn rdsetup(url: &str) -> Result<redis::Connection, redis::RedisError> {
