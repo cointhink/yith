@@ -110,7 +110,10 @@ pub fn build(
         let form_hash = eth::hash_msg(&form_tokens_bytes);
         let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
         let exg_tokens_bytes = ethabi::encode(&exg_tokens);
-        let exg_hash = eth::hash_msg(&exg_tokens_bytes);
+	let eip191_header = hex::decode("1901").unwrap();
+	let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
+	println!("exg_with_header {}", hex::encode(&exg_with_header));
+        let exg_hash = eth::hash_msg(&exg_with_header);
         let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
         form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
@@ -183,13 +186,10 @@ pub fn hexstr_to_hashbytes(msg_str: &str) -> Vec<u8> {
 }
 
 pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
-    let eip191_header = hex::decode("1901").unwrap();
     let exchange_hash = eip712_exchange_hash(contract_addr);
-    println!("191 header {}", hex::encode(&eip191_header));
     println!("exg hash {}", hex::encode(&exchange_hash));
     println!("ord hash {}", hex::encode(&order_hash));
     vec![
-        ethabi::Token::FixedBytes(eip191_header),
         ethabi::Token::FixedBytes(exchange_hash.to_vec()),
         ethabi::Token::FixedBytes(order_hash.to_vec()),
     ]
@@ -273,14 +273,16 @@ mod tests {
         let tokens = exchange_order_tokens(form_hash, &format!("0x{}", contract_addr_v2));
 	println!("tokens len {}", tokens.len());
         let exchange_tokens_bytes = ethabi::encode(&tokens);
+	let eip191_header = hex::decode("1901").unwrap();
+	let exg_with_header = [&eip191_header[..], &exchange_tokens_bytes[..]].concat();
         println!(
             "exchange_tokens_bytes {}",
-            hex::encode(&exchange_tokens_bytes)
+            hex::encode(&exg_with_header)
         );
         let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         println!("Gxchange_tokens_bytes {}", good_exchange_tokens_bytes);
         assert_eq!(
-            exchange_tokens_bytes,
+            exg_with_header,
             hex::decode(good_exchange_tokens_bytes).unwrap()
         );
     }
