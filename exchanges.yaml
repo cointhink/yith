@@ -4,20 +4,20 @@ exchanges:
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
     enabled: true
     protocol: 0x
-    contract_address: 8018280076d7fa2caa1147e441352e8a89e1ddbe
+    contract_address: B27F1DB0a7e473304A5a06E54bdf035F671400C0
     #api_url: https://api.radarrelay.com/0x/v3
     api_url: https://api.radarrelay.com/v3
   - 
     name: 0x2.1
     enabled: false
     protocol: 0x
-    contract_address: 0x080bf510FCbF18b91105470639e9561022937712
+    contract_address: 080bf510FCbF18b91105470639e9561022937712
     api_url:
   - 
     name: 0x3
     enabled: false
     protocol: 0x
-    contract_address: 0x0xB27F1DB0a7e473304A5a06E54bdf035F671400C0
+    contract_address: B27F1DB0a7e473304A5a06E54bdf035F671400C0
     api_url: https://api.0x.org/sra
   -
     name: ddex-v3 # https://legacy-docs.ddex.io/

@@ -104,10 +104,10 @@ pub fn build(
         form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
-        let form_tokens = eth_tokens(&form);
+        let form_tokens = order_tokens(&form);
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
         let form_hash = eth::hash_msg(&form_tokens_bytes);
-        let exg_tokens = exchange_order_hash(form_hash, &exchange.contract_address);
+        let exg_tokens = exchange_order_tokens(form_hash, &exchange.contract_address);
         let exg_tokens_bytes = ethabi::encode(&exg_tokens);
         let exg_hash = eth::hash_msg(&exg_tokens_bytes);
         let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
@@ -136,7 +136,7 @@ pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker
     }
 }
 
-pub fn eth_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
+pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
     let eip712_order_schema_hash =
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
     vec![
@@ -180,7 +180,7 @@ pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
     eth::hash_msg(&msg_str.as_bytes().to_vec()).to_vec()
 }
 
-pub fn exchange_order_hash(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
+pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
     let eip191_header = vec![0x19, 0x1];
     vec![
         ethabi::Token::FixedBytes(eip191_header),
@@ -194,7 +194,7 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
         hex::decode("8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f").unwrap();
     let eip712_exchange_domain_name = "0x Protocol";
     let eip712_exchange_domain_version = "3.0.0";
-    let contract_address = "0102";
+    let contract_address = contract_addr;
     let chain_id = 1;
     let tokens = vec![
         ethabi::Token::FixedBytes(eip712_domain_schema_hash),
