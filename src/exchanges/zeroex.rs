@@ -113,9 +113,9 @@ pub fn build(
 	let eip191_header = hex::decode("1901").unwrap();
 	let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
 	println!("exg_with_header {}", hex::encode(&exg_with_header));
-        let exg_hash = eth::hash_msg(&exg_with_header);
+        let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
         let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
-        form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
+        form.signature = format!("0x{}03", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("{}", url);
