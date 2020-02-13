@@ -32,7 +32,9 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
 }
 
 pub fn ethsign_hash_msg(msg: &Vec<u8>) -> [u8; 32] {
-    let mut full_msg = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len()).as_bytes().to_vec();
+    let mut full_msg = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len())
+        .as_bytes()
+        .to_vec();
     full_msg.append(&mut msg.clone()); // why
     hash_msg(&full_msg)
 }

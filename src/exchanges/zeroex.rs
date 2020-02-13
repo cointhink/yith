@@ -107,8 +107,8 @@ pub fn build(
         let form_tokens = eth_tokens(&form);
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
         let form_hash = eth::hash_msg(&form_tokens_bytes);
-        let exg_tokens = exchange_order_hash(form_hash);
-	let exg_tokens_bytes = ethabi::encode(&exg_tokens);
+        let exg_tokens = exchange_order_hash(form_hash, &exchange.contract_address);
+        let exg_tokens_bytes = ethabi::encode(&exg_tokens);
         let exg_hash = eth::hash_msg(&exg_tokens_bytes);
         let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
         form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
@@ -180,26 +180,32 @@ pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
     eth::hash_msg(&msg_str.as_bytes().to_vec()).to_vec()
 }
 
-pub fn exchange_order_hash(order: [u8; 32]) -> Vec<ethabi::Token> {
+pub fn exchange_order_hash(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
     let eip191_header = vec![0x19, 0x1];
-    let eip712_exchange_hash = vec![0];
     vec![
         ethabi::Token::FixedBytes(eip191_header),
-        ethabi::Token::FixedBytes(eip712_exchange_hash),
-        ethabi::Token::FixedBytes(order.to_vec()),
+        ethabi::Token::FixedBytes(eip712_exchange_hash(contract_addr).to_vec()),
+        ethabi::Token::FixedBytes(order_hash.to_vec()),
     ]
 }
 
-pub fn eip712_exchange_hash(addr: [u8; 20]) -> [u8; 32] {
+pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
     let eip712_domain_schema_hash =
         hex::decode("8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f").unwrap();
     let eip712_exchange_domain_name = "0x Protocol";
     let eip712_exchange_domain_version = "3.0.0";
     let contract_address = "0102";
+    let chain_id = 1;
     let tokens = vec![
         ethabi::Token::FixedBytes(eip712_domain_schema_hash),
-        ethabi::Token::FixedBytes(eth::hash_msg(&eip712_exchange_domain_name.as_bytes().to_vec()).to_vec()),
-        ethabi::Token::FixedBytes(eth::hash_msg(&eip712_exchange_domain_version.as_bytes().to_vec()).to_vec()),
+        ethabi::Token::FixedBytes(
+            eth::hash_msg(&eip712_exchange_domain_name.as_bytes().to_vec()).to_vec(),
+        ),
+        ethabi::Token::FixedBytes(
+            eth::hash_msg(&eip712_exchange_domain_version.as_bytes().to_vec()).to_vec(),
+        ),
+        ethabi::Token::Uint(ethereum_types::U256::from(chain_id)),
+        ethabi::Token::Address(str_to_H160(contract_addr)),
     ];
     let token_bytes = ethabi::encode(&tokens);
     eth::hash_msg(&token_bytes)

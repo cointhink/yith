@@ -21,6 +21,7 @@ pub struct ExchangeApi {
     pub name: String,
     pub enabled: bool,
     pub protocol: ExchangeProtocol,
+    pub contract_address: String,
     pub api_url: String,
 }
 
