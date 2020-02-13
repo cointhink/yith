@@ -183,14 +183,17 @@ pub fn hexstr_to_hashbytes(msg_str: &str) -> Vec<u8> {
 }
 
 pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
-    let eip191_header = vec![0x19, 0x1];
-    println!("exchange hash {}", hex::encode(eip712_exchange_hash(contract_addr)));
+    let eip191_header = hex::decode("1901").unwrap();
+    let exchange_hash = eip712_exchange_hash(contract_addr);
+    println!("191 header {}", hex::encode(&eip191_header));
+    println!("exg hash {}", hex::encode(&exchange_hash));
+    println!("ord hash {}", hex::encode(&order_hash));
     vec![
         ethabi::Token::FixedBytes(eip191_header),
-        ethabi::Token::FixedBytes(eip712_exchange_hash(contract_addr).to_vec()),
+        ethabi::Token::FixedBytes(exchange_hash.to_vec()),
         ethabi::Token::FixedBytes(order_hash.to_vec()),
-    ]}
-
+    ]
+}
 
 pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
     let eip712_domain_schema_hash =
@@ -218,57 +221,81 @@ mod tests {
     use super::*;
 
     static contract_addr_v2: &str = "080bf510FCbF18b91105470639e9561022937712";
-    static good_exchange_hash_v2: &str = "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
+    static good_exchange_hash_v2: &str =
+        "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
 
     #[test]
     fn test_eip712_domain_sep() {
-	let hash = eip712_exchange_hash(contract_addr_v2);
-         println!("edh hashbytes {}", hex::encode(&hash));
-	assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
+        let hash = eip712_exchange_hash(&format!("0x{}", contract_addr_v2));
+        println!("edh hashbytes {}", hex::encode(&hash));
+        assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
     }
 
     #[test]
     fn test_order_tokens() {
-	let form = OrderForm { chain_id: 1,
-			       maker_address: "0x0000000000000000000000000000000000000000".to_string(),
-			       taker_address: "0x0000000000000000000000000000000000000000".to_string(),
-			       fee_recipient_address: "0x0000000000000000000000000000000000000000".to_string(),
-			       sender_address: "0x0000000000000000000000000000000000000000".to_string(),
-			       maker_asset_amount: "0".to_string(),
-			       taker_asset_amount: "0".to_string(),
-			       maker_fee: "0".to_string(),
-			       taker_fee: "0".to_string(),
-			       expiration_time_seconds: "0".to_string(),
-			       salt: "0".to_string(),
-			       exchange_address:  contract_addr_v2.to_string(),
-			       maker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
-			       taker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
-			       maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
-			       taker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
-			       signature: "SET".to_string(),
-	};
+        let form = OrderForm {
+            chain_id: 1,
+            maker_address: "0x0000000000000000000000000000000000000000".to_string(),
+            taker_address: "0x0000000000000000000000000000000000000000".to_string(),
+            fee_recipient_address: "0x0000000000000000000000000000000000000000".to_string(),
+            sender_address: "0x0000000000000000000000000000000000000000".to_string(),
+            maker_asset_amount: "0".to_string(),
+            taker_asset_amount: "0".to_string(),
+            maker_fee: "0".to_string(),
+            taker_fee: "0".to_string(),
+            expiration_time_seconds: "0".to_string(),
+            salt: "0".to_string(),
+            exchange_address: contract_addr_v2.to_string(),
+            maker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+            taker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+            maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+            taker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+            signature: "SET".to_string(),
+        };
         let form_tokens = order_tokens(&form);
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-	println!("form_tokens_bytes {}", hex::encode(&form_tokens_bytes));
-	let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
-	assert_eq!(form_tokens_bytes, hex::decode(good_form_tokens_bytes).unwrap());
+        println!("form_tokens_bytes {}", hex::encode(&form_tokens_bytes));
+        let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
+        assert_eq!(
+            form_tokens_bytes,
+            hex::decode(good_form_tokens_bytes).unwrap()
+        );
         let form_hash = eth::hash_msg(&form_tokens_bytes);
-	let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
-	assert_eq!(form_hash.to_vec(), hex::decode(good_form_hash).unwrap());
+        let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
+        assert_eq!(form_hash.to_vec(), hex::decode(good_form_hash).unwrap());
     }
-    
+
     #[test]
     fn test_exchange_tokens() {
-	let order_hash = [0u8; 32];
-	let tokens = exchange_order_tokens(order_hash, contract_addr_v2);
-	let exchange_tokens_bytes = ethabi::encode(&tokens);
-	let good_exchange_tokens_bytes = "0102";
-	assert_eq!(exchange_tokens_bytes, hex::decode(good_exchange_tokens_bytes).unwrap());
+        let mut form_hash = [0u8; 32];
+        let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
+        form_hash.copy_from_slice(&hex::decode(good_form_hash).unwrap());
+        let tokens = exchange_order_tokens(form_hash, &format!("0x{}", contract_addr_v2));
+	println!("tokens len {}", tokens.len());
+        let exchange_tokens_bytes = ethabi::encode(&tokens);
+        println!(
+            "exchange_tokens_bytes {}",
+            hex::encode(&exchange_tokens_bytes)
+        );
+        let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
+        println!("Gxchange_tokens_bytes {}", good_exchange_tokens_bytes);
+        assert_eq!(
+            exchange_tokens_bytes,
+            hex::decode(good_exchange_tokens_bytes).unwrap()
+        );
     }
 
     #[test]
     fn test_hexstr_to_hashbytes() {
-	assert_eq!(hexstr_to_hashbytes(&"0x0000000000000000000000000000000000000000"[2..]), hex::decode("5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a").unwrap());
-	assert_eq!(hexstr_to_hashbytes(&"0x"[2..]), hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap())
+        assert_eq!(
+            hexstr_to_hashbytes(&"0x0000000000000000000000000000000000000000"[2..]),
+            hex::decode("5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a")
+                .unwrap()
+        );
+        assert_eq!(
+            hexstr_to_hashbytes(&"0x"[2..]),
+            hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
+                .unwrap()
+        )
     }
 }
