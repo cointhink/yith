@@ -84,13 +84,13 @@ mod tests {
     }
 
     #[test]
-    fn test_hash_msg() {
+    fn test_ethsign_hash_msg() {
         //let good_hash_v4 = "68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
         let good_hash_v3 = "14d10d289a1662f15e85ddc809acf1f89a888dda71ddaacb1deb60113f6d310f";
         let good_hash_bytes = hex::decode(good_hash_v3).unwrap();
         let mut good_hash_sized_bytes = [0u8; 32];
         good_hash_sized_bytes.copy_from_slice(&good_hash_bytes);
-        let mut hash_bytes = hash_msg(&msg_v3.as_bytes().to_vec());
+        let mut hash_bytes = ethsign_hash_msg(&msg_v3.as_bytes().to_vec());
         assert_eq!(hash_bytes, good_hash_sized_bytes);
     }
 

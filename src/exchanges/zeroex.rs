@@ -218,10 +218,20 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
 mod tests {
     use super::*;
 
+    static contract_addr_v2: &str = "080bf510FCbF18b91105470639e9561022937712";
+    static good_exchange_hash_v2: &str = "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
+
     #[test]
     fn test_eip712_domain_sep() {
-	let contract_addr = "080bf510FCbF18b91105470639e9561022937712";
-	let hash = eip712_exchange_hash(contract_addr);
-	assert_eq!(hash.to_vec(), "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0".as_bytes().to_vec())
+	let hash = eip712_exchange_hash(contract_addr_v2);
+         println!("edh hashbytes {}", hex::encode(&hash));
+	assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
+    }
+
+    #[test]
+    fn test_order_tokens() {
+	let order_hash = [0u8; 32];
+	let tokens = exchange_order_tokens(order_hash, contract_addr_v2);
+	assert_eq!(order_hash, [0u8; 32]);
     }
 }
