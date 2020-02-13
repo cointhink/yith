@@ -96,26 +96,26 @@ pub fn build(
     println!("0x order {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
-    println!("{:#?}", url);
+    println!("{}", url);
     let resp = client.post(url.as_str()).json(&sheet).send()?;
     println!("{:#?} {}", resp.status(), resp.url());
     if resp.status().is_success() {
         let mut form = resp.json::<OrderForm>().unwrap();
-        println!("{:#?}", form);
         form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
+        println!("{:#?}", form);
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
         let form_tokens = order_tokens(&form);
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
         let form_hash = eth::hash_msg(&form_tokens_bytes);
-        let exg_tokens = exchange_order_tokens(form_hash, &exchange.contract_address);
+        let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
         let exg_tokens_bytes = ethabi::encode(&exg_tokens);
         let exg_hash = eth::hash_msg(&exg_tokens_bytes);
         let form_sig_bytes = eth::sign_bytes(&exg_hash, &secret_key);
         form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("{:#?}", url);
+        println!("{}", url);
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
@@ -165,10 +165,10 @@ pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
         ethabi::Token::Uint(ethereum_types::U256::from(
             form.salt.parse::<u64>().unwrap(),
         )),
-        ethabi::Token::FixedBytes(str_to_hashbytes(&form.maker_asset_data)),
-        ethabi::Token::FixedBytes(str_to_hashbytes(&form.taker_asset_data)),
-        ethabi::Token::FixedBytes(str_to_hashbytes(&form.maker_fee_asset_data)),
-        ethabi::Token::FixedBytes(str_to_hashbytes(&form.taker_fee_asset_data)),
+        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
+        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
+        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
+        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
     ]
 }
 
@@ -178,8 +178,8 @@ pub fn str_to_H160(addr_str: &str) -> ethereum_types::H160 {
     ethereum_types::H160::from(addr)
 }
 
-pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
-    eth::hash_msg(&msg_str.as_bytes().to_vec()).to_vec()
+pub fn hexstr_to_hashbytes(msg_str: &str) -> Vec<u8> {
+    eth::hash_msg(&hex::decode(&msg_str).unwrap()).to_vec()
 }
 
 pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
@@ -197,7 +197,6 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
         hex::decode("8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f").unwrap();
     let eip712_exchange_domain_name = "0x Protocol";
     let eip712_exchange_domain_version = "3.0.0";
-    let contract_address = contract_addr;
     let chain_id = 1;
     let tokens = vec![
         ethabi::Token::FixedBytes(eip712_domain_schema_hash),
@@ -208,7 +207,7 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
             eth::hash_msg(&eip712_exchange_domain_version.as_bytes().to_vec()).to_vec(),
         ),
         ethabi::Token::Uint(ethereum_types::U256::from(chain_id)),
-        ethabi::Token::Address(str_to_H160(contract_addr)),
+        ethabi::Token::Address(str_to_H160(&contract_addr[2..])),
     ];
     let token_bytes = ethabi::encode(&tokens);
     eth::hash_msg(&token_bytes)
@@ -230,8 +229,46 @@ mod tests {
 
     #[test]
     fn test_order_tokens() {
+	let form = OrderForm { chain_id: 1,
+			       maker_address: "0x0000000000000000000000000000000000000000".to_string(),
+			       taker_address: "0x0000000000000000000000000000000000000000".to_string(),
+			       fee_recipient_address: "0x0000000000000000000000000000000000000000".to_string(),
+			       sender_address: "0x0000000000000000000000000000000000000000".to_string(),
+			       maker_asset_amount: "0".to_string(),
+			       taker_asset_amount: "0".to_string(),
+			       maker_fee: "0".to_string(),
+			       taker_fee: "0".to_string(),
+			       expiration_time_seconds: "0".to_string(),
+			       salt: "0".to_string(),
+			       exchange_address:  contract_addr_v2.to_string(),
+			       maker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+			       taker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+			       maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+			       taker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
+			       signature: "SET".to_string(),
+	};
+        let form_tokens = order_tokens(&form);
+        let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
+	println!("form_tokens_bytes {}", hex::encode(&form_tokens_bytes));
+	let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
+	assert_eq!(form_tokens_bytes, hex::decode(good_form_tokens_bytes).unwrap());
+        let form_hash = eth::hash_msg(&form_tokens_bytes);
+	let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
+	assert_eq!(form_hash.to_vec(), hex::decode(good_form_hash).unwrap());
+    }
+    
+    #[test]
+    fn test_exchange_tokens() {
 	let order_hash = [0u8; 32];
 	let tokens = exchange_order_tokens(order_hash, contract_addr_v2);
-	assert_eq!(order_hash, [0u8; 32]);
+	let exchange_tokens_bytes = ethabi::encode(&tokens);
+	let good_exchange_tokens_bytes = "0102";
+	assert_eq!(exchange_tokens_bytes, hex::decode(good_exchange_tokens_bytes).unwrap());
+    }
+
+    #[test]
+    fn test_hexstr_to_hashbytes() {
+	assert_eq!(hexstr_to_hashbytes(&"0x0000000000000000000000000000000000000000"[2..]), hex::decode("5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a").unwrap());
+	assert_eq!(hexstr_to_hashbytes(&"0x"[2..]), hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap())
     }
 }
