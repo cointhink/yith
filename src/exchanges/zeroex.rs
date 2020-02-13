@@ -288,6 +288,15 @@ mod tests {
     }
 
     #[test]
+    fn test_exchange_hash() {
+        let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
+	let exg_tokens_bytes = hex::decode(good_exchange_tokens_bytes).unwrap();
+	let exg_hash = eth::hash_msg(&exg_tokens_bytes);
+	let good_exg_hash = hex::decode("fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408").unwrap();
+	assert_eq!(exg_hash.to_vec(), good_exg_hash)
+    }
+    
+    #[test]
     fn test_hexstr_to_hashbytes() {
         assert_eq!(
             hexstr_to_hashbytes(&"0x0000000000000000000000000000000000000000"[2..]),

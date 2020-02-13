@@ -4,7 +4,7 @@ exchanges:
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
     enabled: true
     protocol: 0x
-    contract_address: 080bf510FCbF18b91105470639e9561022937712
+    contract_address: 0x080bf510FCbF18b91105470639e9561022937712
     #api_url: https://api.radarrelay.com/0x/v3
     api_url: https://api.radarrelay.com/v3
   - 
