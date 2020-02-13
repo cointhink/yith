@@ -78,7 +78,7 @@ mod tests {
         let pubkey_bytes = hex::decode(pubkey).unwrap();
         let mut pubkey_sized_bytes = [0u8; 65];
         pubkey_sized_bytes.copy_from_slice(&pubkey_bytes);
-        let addr_bytes = pubkey_to_addr(&pubkey_sized_bytes);
+        let addr_bytes = pubkey_to_addr(pubkey_sized_bytes);
         let addr = hex::encode(addr_bytes);
         assert_eq!(addr, good_addr);
     }
@@ -90,8 +90,7 @@ mod tests {
         let good_hash_bytes = hex::decode(good_hash_v3).unwrap();
         let mut good_hash_sized_bytes = [0u8; 32];
         good_hash_sized_bytes.copy_from_slice(&good_hash_bytes);
-        let mut hash_bytes = [0u8; 32];
-        hash_msg(&mut hash_bytes, msg_v3);
+        let mut hash_bytes = hash_msg(&msg_v3.as_bytes().to_vec());
         assert_eq!(hash_bytes, good_hash_sized_bytes);
     }
 
@@ -103,7 +102,7 @@ mod tests {
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
         let private_key =
             SecretKey::from_slice(&privkey_bytes).expect("32 bytes, within curve order");
-        let sig_bytes = sign_bytes(&hash_bytes, private_key);
+        let sig_bytes = sign_bytes(&hash_bytes, &private_key);
         let good_sig_bytes: Vec<u8> = hex::decode(good_sig_v4).unwrap();
         let mut good_sig_sized_bytes = [0u8; 65];
         good_sig_sized_bytes.copy_from_slice(&good_sig_bytes);

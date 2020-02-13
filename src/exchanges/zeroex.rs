@@ -96,6 +96,7 @@ pub fn build(
     println!("0x order {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
+    println!("{:#?}", url);
     let resp = client.post(url.as_str()).json(&sheet).send()?;
     println!("{:#?} {}", resp.status(), resp.url());
     if resp.status().is_success() {
@@ -114,6 +115,7 @@ pub fn build(
         form.signature = format!("0x{}", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
+        println!("{:#?}", url);
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
@@ -182,12 +184,13 @@ pub fn str_to_hashbytes(msg_str: &str) -> Vec<u8> {
 
 pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
     let eip191_header = vec![0x19, 0x1];
+    println!("exchange hash {}", hex::encode(eip712_exchange_hash(contract_addr)));
     vec![
         ethabi::Token::FixedBytes(eip191_header),
         ethabi::Token::FixedBytes(eip712_exchange_hash(contract_addr).to_vec()),
         ethabi::Token::FixedBytes(order_hash.to_vec()),
-    ]
-}
+    ]}
+
 
 pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
     let eip712_domain_schema_hash =
@@ -209,4 +212,16 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
     ];
     let token_bytes = ethabi::encode(&tokens);
     eth::hash_msg(&token_bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_eip712_domain_sep() {
+	let contract_addr = "080bf510FCbF18b91105470639e9561022937712";
+	let hash = eip712_exchange_hash(contract_addr);
+	assert_eq!(hash.to_vec(), "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0".as_bytes().to_vec())
+    }
 }
