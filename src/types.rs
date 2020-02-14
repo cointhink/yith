@@ -56,6 +56,7 @@ pub struct Market {
     pub swapped: bool,
     pub quantity_decimals: f64,
     pub price_decimals: f64,
+    pub min_order_size: String,
 }
 
 impl fmt::Display for Market {
