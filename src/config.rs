@@ -1,3 +1,4 @@
+use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -9,11 +10,29 @@ pub struct Config {
     pub proxy: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Wallet {
+    pub coins: Vec<WalletCoin>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WalletCoin {
+    pub ticker_symbol: String,
+    pub amounts: Vec<types::Offer>,
+}
+
 pub fn read_config(filename: &str) -> Config {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
     let config: Config = serde_yaml::from_str(&yaml).unwrap();
     config
+}
+
+pub fn read_wallet(filename: &str) -> Wallet {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let wallet: Wallet = serde_yaml::from_str(&yaml).unwrap();
+    wallet
 }
 
 #[derive(Debug, Serialize, Deserialize)]

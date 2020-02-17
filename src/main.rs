@@ -9,9 +9,11 @@ mod types;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let config_filename = "config.yaml";
-    let exchanges_filename = "exchanges.yaml";
     let config = config::read_config(config_filename);
+    let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename);
+    let wallet_filename = "wallet.yaml";
+    let wallet = config::read_wallet(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
     app(&config, exchanges, args).unwrap();
 }
