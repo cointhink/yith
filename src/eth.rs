@@ -73,7 +73,7 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     // or 31+recid (for compressed recovered pubkeys). Pieter Wuille
 
     // chainId + 27(1b) = 27(1b) or 28(1c)
-    let v = recovery_id.to_i32() + 27; 
+    let v = recovery_id.to_i32() + 27;
     vec.push(v as u8);
     vec.extend_from_slice(&sig);
     let mut sig_sized_bytes = [0u8; 65];

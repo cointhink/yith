@@ -110,9 +110,9 @@ pub fn build(
         let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
         let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
         let exg_tokens_bytes = ethabi::encode(&exg_tokens);
-	let eip191_header = hex::decode("1901").unwrap();
-	let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
-	println!("exg_with_header {}", hex::encode(&exg_with_header));
+        let eip191_header = hex::decode("1901").unwrap();
+        let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
+        println!("exg_with_header {}", hex::encode(&exg_with_header));
         let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
         let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
         form.signature = format!("0x{}03", hex::encode(&form_sig_bytes[..]));
@@ -271,14 +271,11 @@ mod tests {
         let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         form_hash.copy_from_slice(&hex::decode(good_form_hash).unwrap());
         let tokens = exchange_order_tokens(form_hash, &format!("0x{}", contract_addr_v2));
-	println!("tokens len {}", tokens.len());
+        println!("tokens len {}", tokens.len());
         let exchange_tokens_bytes = ethabi::encode(&tokens);
-	let eip191_header = hex::decode("1901").unwrap();
-	let exg_with_header = [&eip191_header[..], &exchange_tokens_bytes[..]].concat();
-        println!(
-            "exchange_tokens_bytes {}",
-            hex::encode(&exg_with_header)
-        );
+        let eip191_header = hex::decode("1901").unwrap();
+        let exg_with_header = [&eip191_header[..], &exchange_tokens_bytes[..]].concat();
+        println!("exchange_tokens_bytes {}", hex::encode(&exg_with_header));
         let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         println!("Gxchange_tokens_bytes {}", good_exchange_tokens_bytes);
         assert_eq!(
@@ -290,12 +287,14 @@ mod tests {
     #[test]
     fn test_exchange_hash() {
         let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
-	let exg_tokens_bytes = hex::decode(good_exchange_tokens_bytes).unwrap();
-	let exg_hash = eth::hash_msg(&exg_tokens_bytes);
-	let good_exg_hash = hex::decode("fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408").unwrap();
-	assert_eq!(exg_hash.to_vec(), good_exg_hash)
+        let exg_tokens_bytes = hex::decode(good_exchange_tokens_bytes).unwrap();
+        let exg_hash = eth::hash_msg(&exg_tokens_bytes);
+        let good_exg_hash =
+            hex::decode("fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408")
+                .unwrap();
+        assert_eq!(exg_hash.to_vec(), good_exg_hash)
     }
-    
+
     #[test]
     fn test_hexstr_to_hashbytes() {
         assert_eq!(
