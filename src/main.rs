@@ -15,11 +15,13 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let wallet = config::read_wallet(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
-    app(&config, exchanges, args).unwrap();
+    println!("{}", wallet);
+    app(&config, &wallet, exchanges, args).unwrap();
 }
 
 fn app(
     config: &config::Config,
+    wallet: &config::Wallet,
     exchanges: config::ExchangeList,
     args: Vec<String>,
 ) -> Result<u32, RedisError> {
@@ -49,20 +51,32 @@ fn app(
         "Order {} loaded. Cost {} Profit {}",
         order.id, order.cost, order.profit
     );
-    run_order(config, &order, &exchanges);
+    run_order(config, wallet, &order, &exchanges);
     Ok(0)
 }
 
-fn run_order(config: &config::Config, order: &types::Order, exchanges: &config::ExchangeList) {
+fn run_order(
+    config: &config::Config,
+    wallet: &config::Wallet,
+    order: &types::Order,
+    exchanges: &config::ExchangeList,
+) {
     println!("{}/{}:", &order.pair.base, &order.pair.quote);
-    run_books(config, &order.ask_books, exchanges);
-    run_books(config, &order.bid_books, exchanges);
+    run_books(config, wallet, &order.ask_books, exchanges);
+    run_books(config, wallet, &order.bid_books, exchanges);
 }
 
-fn run_books(config: &config::Config, books: &types::Books, exchanges: &config::ExchangeList) {
+fn run_books(
+    config: &config::Config,
+    wallet: &config::Wallet,
+    books: &types::Books,
+    exchanges: &config::ExchangeList,
+) {
     for book in &books.books {
-        for offer in &book.offers {
+        for offer in &book.offers[..1] {
+            // limit to one
             let exchange_name = &book.market.source.name;
+            let wallet_coin = wallet.find_coin("ETH");
             match exchanges.find_by_name(exchange_name) {
                 Some(exg) => match exg.protocol {
                     config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(

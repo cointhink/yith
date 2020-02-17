@@ -1,6 +1,7 @@
 use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -73,4 +74,29 @@ pub fn read_exchanges(filename: &str) -> ExchangeList {
     let yaml = file_ok.unwrap();
     let config: ExchangeList = serde_yaml::from_str(&yaml).unwrap();
     config
+}
+
+impl Wallet {
+    pub fn coin_amount(&self, name: &str) -> f64 {
+        match self.find_coin(name) {
+            Ok(coin) => coin.amounts[0].base_qty,
+            Err(msg) => 0.0,
+        }
+    }
+
+    pub fn find_coin(&self, name: &str) -> Result<&WalletCoin, &'static str> {
+        for coin in &self.coins {
+            if coin.ticker_symbol == name {
+                return Ok(&coin);
+            }
+        }
+        Err("not found")
+    }
+}
+impl fmt::Display for Wallet {
+    // This trait requires `fmt` with this exact signature.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let coin_names: Vec<&String> = self.coins.iter().map(|c| &c.ticker_symbol).collect();
+        write!(f, "wallet: {} coins.", self.coins.len())
+    }
 }
