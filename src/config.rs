@@ -1,7 +1,7 @@
 use crate::types;
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::fmt;
+use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -93,10 +93,35 @@ impl Wallet {
         Err("not found")
     }
 }
-impl fmt::Display for Wallet {
-    // This trait requires `fmt` with this exact signature.
+
+impl WalletCoin {
+    pub fn base_total(&self) -> f64 {
+        self.amounts
+            .iter()
+            .fold(0.0, |acc, coin| acc + coin.base_qty)
+    }
+}
+
+impl fmt::Display for WalletCoin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let coin_names: Vec<&String> = self.coins.iter().map(|c| &c.ticker_symbol).collect();
-        write!(f, "wallet: {} coins.", self.coins.len())
+        write!(f, "{:0.5} {}.", self.base_total(), self.ticker_symbol)
+    }
+}
+
+impl fmt::Display for Wallet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let coin_names: Vec<&str> = self
+            .coins
+            .iter()
+            .map(|c| c.ticker_symbol.as_str())
+            .collect();
+        write!(
+            f,
+            "wallet: {} coins. ",
+            self.coins.len());
+        self.coins.iter().for_each(|c| {
+            write!(f, "{}", c);
+        });
+        write!(f, "")
     }
 }
