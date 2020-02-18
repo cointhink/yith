@@ -73,10 +73,20 @@ fn run_books(
     exchanges: &config::ExchangeList,
 ) {
     for book in &books.books {
+        let wallet_coin_balance = wallet.coin_amount(&book.market.quote.symbol);
         for offer in &book.offers[..1] {
             // limit to one
             let exchange_name = &book.market.source.name;
-            let wallet_coin = wallet.find_coin("ETH");
+            let most_qty = if offer.base_qty < wallet_coin_balance {
+                offer.base_qty
+            } else {
+                println!("Offer {} capped at {} {}", offer, wallet_coin_balance, book.market.quote);
+                wallet_coin_balance
+            };
+            let capped_offer = types::Offer {
+                base_qty: most_qty,
+                quote: offer.quote,
+            };
             match exchanges.find_by_name(exchange_name) {
                 Some(exg) => match exg.protocol {
                     config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(
@@ -84,7 +94,7 @@ fn run_books(
                         &books.askbid,
                         exg,
                         &book.market,
-                        &offer,
+                        &capped_offer,
                         &config.proxy,
                     ),
                     config::ExchangeProtocol::Ddex3 => exchanges::ddex3::build(
@@ -92,7 +102,7 @@ fn run_books(
                         &books.askbid,
                         exg,
                         &book.market,
-                        &offer,
+                        &capped_offer,
                         &config.proxy,
                     ),
                 },

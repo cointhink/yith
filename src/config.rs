@@ -80,7 +80,7 @@ impl Wallet {
     pub fn coin_amount(&self, name: &str) -> f64 {
         match self.find_coin(name) {
             Ok(coin) => coin.amounts[0].base_qty,
-            Err(msg) => 0.0,
+            Err(_msg) => 0.0,
         }
     }
 
@@ -110,15 +110,7 @@ impl fmt::Display for WalletCoin {
 
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let coin_names: Vec<&str> = self
-            .coins
-            .iter()
-            .map(|c| c.ticker_symbol.as_str())
-            .collect();
-        write!(
-            f,
-            "wallet: {} coins. ",
-            self.coins.len());
+        write!(f, "wallet: {} coins. ", self.coins.len());
         self.coins.iter().for_each(|c| {
             write!(f, "{}", c);
         });
