@@ -1,9 +1,10 @@
+#![allow(non_snake_case)]
+
 use crate::config;
 use crate::eth;
 use crate::types;
-use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
+use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]

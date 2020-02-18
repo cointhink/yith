@@ -3,11 +3,10 @@ use crate::eth;
 use crate::types;
 use reqwest::header;
 use reqwest::Proxy;
-use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tiny_keccak::{Hasher, Keccak};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
