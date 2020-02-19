@@ -43,6 +43,8 @@ pub struct ExchangeApi {
     pub protocol: ExchangeProtocol,
     pub contract_address: String,
     pub api_url: String,
+    pub maker_fee: f64,
+    pub taker_fee: f64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
