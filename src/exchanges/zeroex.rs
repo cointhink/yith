@@ -98,7 +98,7 @@ pub fn build(
         exchange.api_url.as_str(),
         market_id
     );
-    println!("0x order {}", url);
+    println!("0x limit order build {}", url);
     println!("{:#?}", sheet);
     let client = reqwest::blocking::Client::new();
     println!("{}", url);
@@ -123,7 +123,7 @@ pub fn build(
         form.signature = format!("0x{}03", hex::encode(&form_sig_bytes[..]));
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("{}", url);
+        println!("0x order post {}", url);
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
