@@ -40,6 +40,10 @@ pub struct OrderForm {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildResponse {
     status: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ErrorResponse {
     error: String,
 }
 
@@ -60,7 +64,7 @@ pub fn build(
     proxy: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "HYDRO build {:#?} {} {}@{}",
+        "0x build {:#?} {} {}@{}",
         askbid, market, offer.base_qty, offer.quote
     );
     let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
@@ -124,7 +128,7 @@ pub fn build(
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
     } else {
-        let body = resp.json::<BuildResponse>().unwrap();
+        let body = resp.json::<ErrorResponse>().unwrap();
         println!("{:#?}", body);
     }
 
