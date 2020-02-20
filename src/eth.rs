@@ -68,11 +68,10 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     let signature = secp.sign_recoverable(&secp_msg, secret_key);
     let (recovery_id, sig) = signature.serialize_compact();
     let mut vec = Vec::with_capacity(65);
-    // That number between 0 and 3 we call the recovery id, or recid. Therefore, we return an extra byte,
-    // which also functions as a header byte, by using 27+recid (for uncompressed recovered pubkeys)
-    // or 31+recid (for compressed recovered pubkeys). Pieter Wuille
-
-    // chainId + 27(1b) = 27(1b) or 28(1c)
+    // That number between 0 and 3 we call the recovery id, or recid. 
+    // Therefore, we return an extra byte, which also functions as a header byte, 
+    // by using 27+recid (for uncompressed recovered pubkeys)
+    // or 31+recid (for compressed recovered pubkeys). -- Pieter Wuille
     let v = recovery_id.to_i32() + 27;
     vec.push(v as u8);
     vec.extend_from_slice(&sig);

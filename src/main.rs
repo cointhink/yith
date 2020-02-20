@@ -80,7 +80,10 @@ fn run_books(
             let most_qty = if offer.base_qty < wallet_coin_balance {
                 offer.base_qty
             } else {
-                println!("Offer {} capped at {} {}", offer, wallet_coin_balance, book.market.quote);
+                println!(
+                    "Offer {} capped at {} {}",
+                    offer, wallet_coin_balance, book.market.quote
+                );
                 wallet_coin_balance
             };
             let capped_offer = types::Offer {
