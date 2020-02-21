@@ -242,7 +242,7 @@ mod tests {
     use super::*;
 
     static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
-    static contract_addr_v2: &str = "080bf510FCbF18b91105470639e9561022937712";
+    static contract_addr_v2: &str = "0x080bf510FCbF18b91105470639e9561022937712";
     static good_exchange_hash_v2: &str =
         "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
 
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn test_eip712_domain_sep() {
-        let hash = eip712_exchange_hash(&format!("0x{}", contract_addr_v2));
+        let hash = eip712_exchange_hash(contract_addr_v2);
         println!("edh hashbytes {}", hex::encode(&hash));
         assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
     }
@@ -279,7 +279,6 @@ mod tests {
     fn test_order_tokens() {
         let form_tokens = order_tokens(&blank_order_form());
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-        println!("form_tokens_bytes {}", hex::encode(&form_tokens_bytes));
         let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
         assert_eq!(
             form_tokens_bytes,
@@ -295,7 +294,7 @@ mod tests {
         let mut form_hash = [0u8; 32];
         let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         form_hash.copy_from_slice(&hex::decode(good_form_hash).unwrap());
-        let tokens = exchange_order_tokens(form_hash, &format!("0x{}", contract_addr_v2));
+        let tokens = exchange_order_tokens(form_hash, contract_addr_v2);
         println!("tokens len {}", tokens.len());
         let exchange_tokens_bytes = ethabi::encode(&tokens);
         let eip191_header = hex::decode("1901").unwrap();
@@ -340,6 +339,6 @@ mod tests {
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
         println!("order_sign signature {}", hex::encode(&signature));
-        assert_eq!(signature, "abc")
+        assert_eq!(signature, "0xfdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd40803")
     }
 }
