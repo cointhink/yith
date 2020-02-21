@@ -3,6 +3,7 @@
 use crate::config;
 use crate::eth;
 use crate::types;
+use crate::error;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -53,6 +54,17 @@ pub enum BuySell {
     Buy,
     #[serde(rename = "SELL")]
     Sell,
+}
+
+pub enum SignatureType {
+    Illegal = 0x00,
+    Invalid = 0x01,
+    Eip712 = 0x02,
+    EthSign = 0x03,
+    Wallet = 0x04,
+    Validator = 0x05,
+    PreSigned = 0x06,
+    EIP1271Wallet = 0x07,
 }
 
 pub fn build(
@@ -109,31 +121,34 @@ pub fn build(
         let mut form = resp.json::<OrderForm>().unwrap();
         form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
         println!("{:#?}", form);
-        let privbytes = &hex::decode(privkey).unwrap();
-        let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
-        let form_tokens = order_tokens(&form);
-        let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-        let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
-        let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
-        let exg_tokens_bytes = ethabi::encode(&exg_tokens);
-        let eip191_header = hex::decode("1901").unwrap();
-        let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
-        println!("exg_with_header {}", hex::encode(&exg_with_header));
-        let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
-        let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
-        form.signature = format!("0x{}03", hex::encode(&form_sig_bytes[..]));
+        let privkey_bytes = &hex::decode(privkey).unwrap();
+        form.signature = order_sign(privkey_bytes, &mut form);
         println!("filled in {:#?}", form);
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("0x order post {}", url);
         let resp = client.post(url.as_str()).json(&form).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
+        Ok(())
     } else {
-        let body = resp.json::<ErrorResponse>().unwrap();
-        println!("{:#?}", body);
+        let bodyerr = resp.json::<ErrorResponse>().unwrap();
+        println!("{:#?}", bodyerr);
+        Err(Box::new(error::OrderError::new(&bodyerr.error)))
     }
+}
 
-    Ok(())
+pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
+    let secret_key = SecretKey::from_slice(privkey_bytes).expect("32 bytes, within curve order");
+    let form_tokens = order_tokens(&form);
+    let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
+    let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
+    let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
+    let exg_tokens_bytes = ethabi::encode(&exg_tokens);
+    let eip191_header = hex::decode("1901").unwrap();
+    let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
+    let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
+    let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
+    format!("0x{}03", hex::encode(&form_sig_bytes[..]))
 }
 
 pub fn order(os: OrderSheet) {

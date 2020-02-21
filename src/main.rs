@@ -5,6 +5,7 @@ mod eth;
 mod exchanges;
 mod geth;
 mod types;
+mod error;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();

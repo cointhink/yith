@@ -1,6 +1,7 @@
 use crate::config;
 use crate::eth;
 use crate::types;
+use crate::error;
 use reqwest::header;
 use reqwest::Proxy;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -105,10 +106,16 @@ pub fn build(
         header::HeaderValue::from_str(&token).unwrap(), //boom
     );
     let resp = client.post(&url).headers(headers).json(&sheet).send()?;
+    let status = resp.status();
     println!("{:#?} {}", resp.status(), resp.url());
     let body = resp.json::<BuildResponse>().unwrap();
     println!("{:#?}", body);
-    Ok(())
+    if status.is_success() {
+        Ok(())
+    } else {
+        Err(Box::new(error::OrderError::new(&body.desc)))
+    }
+
 }
 
 pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
