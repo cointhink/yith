@@ -1,9 +1,9 @@
 #![allow(non_snake_case)]
 
 use crate::config;
+use crate::error;
 use crate::eth;
 use crate::types;
-use crate::error;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -138,7 +138,7 @@ pub fn build(
 }
 
 pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
-    let secret_key = SecretKey::from_slice(privkey_bytes).expect("32 bytes, within curve order");
+    let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
     let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
@@ -241,20 +241,13 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
 mod tests {
     use super::*;
 
+    static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
     static contract_addr_v2: &str = "080bf510FCbF18b91105470639e9561022937712";
     static good_exchange_hash_v2: &str =
         "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
 
-    #[test]
-    fn test_eip712_domain_sep() {
-        let hash = eip712_exchange_hash(&format!("0x{}", contract_addr_v2));
-        println!("edh hashbytes {}", hex::encode(&hash));
-        assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
-    }
-
-    #[test]
-    fn test_order_tokens() {
-        let form = OrderForm {
+    fn blank_order_form() -> OrderForm {
+        OrderForm {
             chain_id: 1,
             maker_address: "0x0000000000000000000000000000000000000000".to_string(),
             taker_address: "0x0000000000000000000000000000000000000000".to_string(),
@@ -272,8 +265,19 @@ mod tests {
             maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             taker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             signature: "SET".to_string(),
-        };
-        let form_tokens = order_tokens(&form);
+        }
+    }
+
+    #[test]
+    fn test_eip712_domain_sep() {
+        let hash = eip712_exchange_hash(&format!("0x{}", contract_addr_v2));
+        println!("edh hashbytes {}", hex::encode(&hash));
+        assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
+    }
+
+    #[test]
+    fn test_order_tokens() {
+        let form_tokens = order_tokens(&blank_order_form());
         let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
         println!("form_tokens_bytes {}", hex::encode(&form_tokens_bytes));
         let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
@@ -318,15 +322,23 @@ mod tests {
 
     #[test]
     fn test_hexstr_to_hashbytes() {
+        // hand "0x" prefix
         assert_eq!(
             hexstr_to_hashbytes(&"0x0000000000000000000000000000000000000000"[2..]),
             hex::decode("5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a")
                 .unwrap()
         );
+        // empty string case
         assert_eq!(
             hexstr_to_hashbytes(&"0x"[2..]),
             hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
                 .unwrap()
         )
+    }
+    #[test]
+    fn test_order_sign() {
+        let privkey_bytes = &hex::decode(privkey).unwrap();
+        let signature = order_sign(privkey_bytes, &mut blank_order_form());
+        assert_eq!(signature, "abc")
     }
 }

@@ -1,7 +1,7 @@
 use crate::config;
+use crate::error;
 use crate::eth;
 use crate::types;
-use crate::error;
 use reqwest::header;
 use reqwest::Proxy;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -115,7 +115,6 @@ pub fn build(
     } else {
         Err(Box::new(error::OrderError::new(&body.desc)))
     }
-
 }
 
 pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
