@@ -9,3 +9,6 @@ run: all
 format:
 	find src -name '*\.rs' -exec rustfmt {} \;
 
+test:
+	cargo test -- --nocapture
+

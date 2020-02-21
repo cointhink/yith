@@ -143,9 +143,9 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
     let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
-    let exg_tokens_bytes = ethabi::encode(&exg_tokens);
+    let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();
-    let exg_with_header = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
+    let exg_with_header: Vec<u8> = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
     let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
     let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     format!("0x{}03", hex::encode(&form_sig_bytes[..]))
@@ -339,6 +339,7 @@ mod tests {
     fn test_order_sign() {
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
+        println!("order_sign signature {}", hex::encode(&signature));
         assert_eq!(signature, "abc")
     }
 }

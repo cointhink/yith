@@ -3,7 +3,6 @@ use crate::error;
 use crate::eth;
 use crate::types;
 use reqwest::header;
-use reqwest::Proxy;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
