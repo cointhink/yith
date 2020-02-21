@@ -85,7 +85,8 @@ pub fn build(
         types::AskBid::Bid => BuySell::Sell,
     };
     let expire_time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
-        + std::time::Duration::new(120 + 5, 0)) // 2min minimum + transittime
+        // 2min minimum + transittime
+        + std::time::Duration::new(120 + 5, 0))
     .as_secs();
     let sheet = OrderSheet {
         r#type: side,
