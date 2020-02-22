@@ -141,7 +141,7 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-    let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
+    let form_hash = eth::hash_msg(&form_tokens_bytes);
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();
@@ -339,6 +339,7 @@ mod tests {
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
         println!("order_sign signature {}", hex::encode(&signature));
-        assert_eq!(signature, "0xfdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd40803")
+        let good_sig = "0x1cecddcb5de284dac79c2b43fb102920a88c7ffdfecf8ae025321f4b207a7076cc49d9ebfef15499d9f4f741fdff39d8f145e028ec2ebe2b80b032d0130f21596b03";
+        assert_eq!(signature, good_sig)
     }
 }
