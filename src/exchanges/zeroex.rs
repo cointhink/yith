@@ -138,15 +138,20 @@ pub fn build(
 }
 
 pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
+    println!("order_sign privkey {}", hex::encode(privkey_bytes));
     let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-    let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
+    println!("order_bytes {}", hex::encode(&form_tokens_bytes));
+    let form_hash = eth::hash_msg(&form_tokens_bytes);
+    println!("order_hash {}", hex::encode(&form_hash));
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();
     let exg_with_header: Vec<u8> = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
-    let exg_hash = eth::ethsign_hash_msg(&exg_with_header);
+    println!("form_bytes {}", hex::encode(&exg_with_header));
+    let exg_hash = eth::hash_msg(&exg_with_header);
+    println!("form_hash {}", hex::encode(&exg_hash));
     let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     format!("0x{}03", hex::encode(&form_sig_bytes[..]))
 }
@@ -336,9 +341,10 @@ mod tests {
     }
     #[test]
     fn test_order_sign() {
+        println!("privkey {}", privkey);
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
-        println!("order_sign signature {}", hex::encode(&signature));
+        println!("order_sign signature {}", signature);
         let good_sig = "0x1cecddcb5de284dac79c2b43fb102920a88c7ffdfecf8ae025321f4b207a7076cc49d9ebfef15499d9f4f741fdff39d8f145e028ec2ebe2b80b032d0130f21596b03";
         assert_eq!(signature, good_sig)
     }
