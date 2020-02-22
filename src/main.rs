@@ -64,7 +64,7 @@ fn run_order(
 ) {
     println!("{}/{}:", &order.pair.base, &order.pair.quote);
     run_books(config, wallet, &order.ask_books, exchanges);
-    run_books(config, wallet, &order.bid_books, exchanges);
+    //run_books(config, wallet, &order.bid_books, exchanges);
 }
 
 fn run_books(
@@ -73,11 +73,12 @@ fn run_books(
     books: &types::Books,
     exchanges: &config::ExchangeList,
 ) {
-    for book in &books.books {
+    for book in &books.books[..1] {
         let wallet_coin_balance = wallet.coin_amount(&book.market.quote.symbol);
         for offer in &book.offers[..1] {
             // limit to one
             let exchange_name = &book.market.source.name;
+            println!("exchange {} askbid {:?}", exchange_name, &books.askbid);
             let most_qty = if offer.base_qty < wallet_coin_balance {
                 offer.base_qty
             } else {

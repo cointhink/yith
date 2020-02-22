@@ -141,7 +141,7 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-    let form_hash = eth::hash_msg(&form_tokens_bytes);
+    let form_hash = eth::ethsign_hash_msg(&form_tokens_bytes);
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();

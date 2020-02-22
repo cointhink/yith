@@ -56,6 +56,7 @@ pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     vec.extend_from_slice(&sig);
     // chainId + 27
     let rec_id = recovery_id.to_i32() + 27;
+    // rsv form
     vec.push(rec_id as u8);
     let mut sig_sized_bytes = [0u8; 65];
     sig_sized_bytes.copy_from_slice(vec.as_slice());
