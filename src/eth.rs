@@ -137,8 +137,7 @@ mod tests {
         let private_key =
             SecretKey::from_slice(&privkey_bytes).unwrap();
         let sig_bytes = sign_bytes_vrs(&hash_bytes, &private_key);
-        let good_sig = "0x1cecddcb5de284dac79c2b43fb102920a88c7ffdfecf8ae025321f4b207a7076cc49d9ebfef15499d9f4f741fdff39d8f145e028ec2ebe2b80b032d0130f21596b03";
-        let sig = format!("0x{}03", hex::encode(&sig_bytes[..]));
-        assert_eq!(sig, good_sig);
+        let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
+        assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
     }
 }

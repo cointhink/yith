@@ -345,7 +345,7 @@ mod tests {
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
         println!("order_sign signature {}", signature);
-        let good_sig = "0x1cecddcb5de284dac79c2b43fb102920a88c7ffdfecf8ae025321f4b207a7076cc49d9ebfef15499d9f4f741fdff39d8f145e028ec2ebe2b80b032d0130f21596b03";
+        let good_sig = "0x1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a02";
         assert_eq!(signature, good_sig)
     }
 }
