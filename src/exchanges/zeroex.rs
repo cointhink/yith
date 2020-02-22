@@ -153,7 +153,7 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let exg_hash = eth::hash_msg(&exg_with_header);
     println!("form_hash {}", hex::encode(&exg_hash));
     let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
-    format!("0x{}03", hex::encode(&form_sig_bytes[..]))
+    format!("0x{}02", hex::encode(&form_sig_bytes[..]))
 }
 
 pub fn order(os: OrderSheet) {
