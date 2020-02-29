@@ -50,7 +50,7 @@ pub fn build(
     proxy: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "HYDRO build {:#?} {} {}@{}",
+        "ddex3(hydro) build {:#?} {} {}@{}",
         askbid, market, offer.base_qty, offer.quote
     );
     let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);

@@ -6,6 +6,7 @@ mod eth;
 mod exchanges;
 mod geth;
 mod types;
+mod etherscan;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -28,6 +29,10 @@ fn app(
 ) -> Result<u32, RedisError> {
     let mut arb_id: String;
     let mut order: types::Order;
+
+    let balances = etherscan::balances(&config.wallet_private_key);
+    println!("balances {}", balances);
+
     if args.len() == 2 {
         arb_id = args[1].clone();
         println!("loading {}", arb_id);
@@ -78,7 +83,7 @@ fn run_books(
         for offer in &book.offers[..1] {
             // limit to one
             let exchange_name = &book.market.source.name;
-            println!("exchange {} askbid {:?}", exchange_name, &books.askbid);
+            println!("{:?} {}", &books.askbid, exchange_name);
             let most_qty = if offer.base_qty < wallet_coin_balance {
                 offer.base_qty
             } else {
