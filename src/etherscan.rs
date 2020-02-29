@@ -9,7 +9,7 @@ pub struct Balances<'a> {
 impl<'a> fmt::Display for Balances<'a> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         for balance in &self.coins {
-            let _ = write!(f, "{},", balance);
+            write!(f, "{},", balance)?
         }
         write!(f, "")
     }

@@ -113,9 +113,9 @@ impl fmt::Display for WalletCoin {
 
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _ = write!(f, "wallet: {} coins. ", self.coins.len());
-        self.coins.iter().for_each(|c| {
-            let _ = write!(f, "{}", c);
+        write!(f, "wallet: {} coins. ", self.coins.len())?;
+        self.coins.iter().try_for_each(|c| {
+            write!(f, "{}", c)
         });
         write!(f, "")
     }
