@@ -9,6 +9,7 @@ pub struct Config {
     pub geth_url: String,
     pub wallet_private_key: String,
     pub proxy: String,
+    pub etherscan_key: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -112,9 +113,9 @@ impl fmt::Display for WalletCoin {
 
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "wallet: {} coins. ", self.coins.len());
+        let _ = write!(f, "wallet: {} coins. ", self.coins.len());
         self.coins.iter().for_each(|c| {
-            write!(f, "{}", c);
+            let _ = write!(f, "{}", c);
         });
         write!(f, "")
     }

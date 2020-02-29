@@ -64,7 +64,11 @@ pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
 }
 
 pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
-    println!("signvrs hash {} key {}", hex::encode(&msg_hash), &secret_key);
+    println!(
+        "signvrs hash {} key {}",
+        hex::encode(&msg_hash),
+        &secret_key
+    );
     let secp = Secp256k1::new();
     let secp_msg = Message::from_slice(&msg_hash).unwrap();
     let signature = secp.sign_recoverable(&secp_msg, secret_key);
@@ -134,8 +138,7 @@ mod tests {
         let hash: &[u8] = b"fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408";
         let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
-        let private_key =
-            SecretKey::from_slice(&privkey_bytes).unwrap();
+        let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
         let sig_bytes = sign_bytes_vrs(&hash_bytes, &private_key);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);

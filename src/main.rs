@@ -3,10 +3,10 @@ use redis::{Commands, RedisError};
 mod config;
 mod error;
 mod eth;
+mod etherscan;
 mod exchanges;
 mod geth;
 mod types;
-mod etherscan;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -30,7 +30,8 @@ fn app(
     let mut arb_id: String;
     let mut order: types::Order;
 
-    let balances = etherscan::balances(&config.wallet_private_key);
+    let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+    let balances = etherscan::balances(&my_addr, &config.etherscan_key);
     println!("balances {}", balances);
 
     if args.len() == 2 {
@@ -97,7 +98,7 @@ fn run_books(
                 base_qty: most_qty,
                 quote: offer.quote,
             };
-            match exchanges.find_by_name(exchange_name) {
+            let _ = match exchanges.find_by_name(exchange_name) {
                 Some(exg) => match exg.protocol {
                     config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(
                         &config.wallet_private_key,
