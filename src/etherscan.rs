@@ -26,13 +26,15 @@ impl<'a> fmt::Display for Balance<'a> {
     }
 }
 
-static ETHERSCAN_API_URL: &'static str = "https://api.etherscan.io/api?";
+static ETHERSCAN_API_URL: &'static str = "https://api.etherscan.io/api";
 
 pub fn balances<'a>(public_addr: &str, api_key: &'a str) -> Balances<'a> {
     let url = format!("{}?module=account&action=tokenbalance&contractaddress=0x{}&address=0x{}&tag=latest&apikey={}", ETHERSCAN_API_URL, "contract", public_addr, api_key);
     let client = build_client(api_key).unwrap();
+    println!("{:?}", url);
     let resp = client.get(&url).send().unwrap();
     let status = resp.status();
+    println!("{:?}", resp.text());
 
     let coins: Vec<Balance> = Vec::new();
     let b = Balance {

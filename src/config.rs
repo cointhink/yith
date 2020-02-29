@@ -116,7 +116,7 @@ impl fmt::Display for Wallet {
         write!(f, "wallet: {} coins. ", self.coins.len())?;
         self.coins.iter().try_for_each(|c| {
             write!(f, "{}", c)
-        });
+        })?;
         write!(f, "")
     }
 }
