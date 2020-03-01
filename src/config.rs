@@ -20,6 +20,7 @@ pub struct Wallet {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WalletCoin {
     pub ticker_symbol: String,
+    pub contract: String,
     pub amounts: Vec<types::Offer>,
 }
 

@@ -31,8 +31,10 @@ fn app(
     let mut order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    let balances = etherscan::balances(&my_addr, &config.etherscan_key);
-    println!("balances {}", balances);
+    for coin in &wallet.coins {
+      let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
+      println!("{} {} {}", &coin.ticker_symbol, &coin.contract, &balance);
+    }
 
     if args.len() == 2 {
         arb_id = args[1].clone();
