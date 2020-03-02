@@ -37,7 +37,7 @@ exchanges:
   -
     name: ddex-v4  # https://docs.ddex.io/
     enabled: true
-    protocol: ddex3
+    protocol: ddex4
     contract_address: 1234
     api_url: https://api.ddex.io/v4
     taker_fee: 0.3

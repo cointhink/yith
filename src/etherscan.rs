@@ -1,7 +1,7 @@
 use reqwest::header;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::time::Duration;
-use serde::{Deserialize, Serialize};
 
 pub struct Balances<'a> {
     coins: Vec<Balance<'a>>,
@@ -34,7 +34,6 @@ pub struct BalanceResponse {
     result: String,
 }
 
-
 static ETHERSCAN_API_URL: &'static str = "https://api.etherscan.io/api";
 
 pub fn balances<'a>(public_addr: &str, api_key: &'a str) -> Balances<'a> {
@@ -55,9 +54,9 @@ pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
     let balance_response = resp.json::<BalanceResponse>().unwrap();
     println!("{:?}", balance_response);
     if balance_response.status == "1" {
-      balance_response.result.parse::<f64>().unwrap()
+        balance_response.result.parse::<f64>().unwrap()
     } else {
-      0.0
+        0.0
     }
 }
 

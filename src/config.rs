@@ -55,6 +55,8 @@ pub enum ExchangeProtocol {
     ZeroexOpen,
     #[serde(rename = "ddex3")]
     Ddex3,
+    #[serde(rename = "ddex4")]
+    Ddex4,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

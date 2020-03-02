@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod eth;
 mod etherscan;
+mod exchange;
 mod exchanges;
 mod geth;
 mod types;
@@ -32,8 +33,8 @@ fn app(
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     for coin in &wallet.coins {
-      let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
-      println!("{} {} {}", &coin.ticker_symbol, &coin.contract, &balance);
+        let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
+        println!("{} {} {}", &coin.ticker_symbol, &coin.contract, &balance);
     }
 
     if args.len() == 2 {
@@ -101,24 +102,21 @@ fn run_books(
                 quote: offer.quote,
             };
             let _ = match exchanges.find_by_name(exchange_name) {
-                Some(exg) => match exg.protocol {
-                    config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build(
+                Some(exg) => {
+                    let build = match exg.protocol {
+                        config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build,
+                        config::ExchangeProtocol::Ddex3 => exchanges::ddex3::build,
+                        config::ExchangeProtocol::Ddex4 => exchanges::ddex4::build,
+                    };
+                    build(
                         &config.wallet_private_key,
                         &books.askbid,
                         exg,
                         &book.market,
                         &capped_offer,
                         &config.proxy,
-                    ),
-                    config::ExchangeProtocol::Ddex3 => exchanges::ddex3::build(
-                        &config.wallet_private_key,
-                        &books.askbid,
-                        exg,
-                        &book.market,
-                        &capped_offer,
-                        &config.proxy,
-                    ),
-                },
+                    )
+                }
                 None => {
                     println!("exchange not found for: {:#?}", exchange_name);
                     Ok(())
