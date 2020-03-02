@@ -1,3 +1,5 @@
+use crate::exchange;
+use crate::exchanges;
 use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -38,6 +40,11 @@ pub fn read_wallet(filename: &str) -> Wallet {
     wallet
 }
 
+pub struct Exchange {
+    pub settings: ExchangeApi,
+    pub api: Box<dyn exchange::Api>,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeApi {
     pub name: String,
@@ -59,16 +66,15 @@ pub enum ExchangeProtocol {
     Ddex4,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeList {
-    exchanges: Vec<ExchangeApi>,
+    exchanges: Vec<Exchange>,
 }
 
 impl ExchangeList {
-    pub fn find_by_name(&self, name: &str) -> Option<&ExchangeApi> {
-        for api in &self.exchanges {
-            if api.name == name {
-                return Some(api);
+    pub fn find_by_name(&self, name: &str) -> Option<&Exchange> {
+        for exg in &self.exchanges {
+            if exg.settings.name == name {
+                return Some(exg);
             }
         }
         None
@@ -78,8 +84,21 @@ impl ExchangeList {
 pub fn read_exchanges(filename: &str) -> ExchangeList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
-    let config: ExchangeList = serde_yaml::from_str(&yaml).unwrap();
-    config
+    let exchange_settings: Vec<ExchangeApi> = serde_yaml::from_str(&yaml).unwrap();
+    let elist: Vec<Exchange> = vec![];
+    let mut list = ExchangeList { exchanges: elist };
+    for settings in exchange_settings {
+        let api: Box<dyn exchange::Api> = match settings.protocol {
+            ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
+            ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3 {}),
+            ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
+        };
+        list.exchanges.push(Exchange {
+            api: api,
+            settings: settings,
+        });
+    }
+    list
 }
 
 impl Wallet {

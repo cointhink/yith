@@ -1,6 +1,7 @@
 use crate::config;
 use crate::error;
 use crate::eth;
+use crate::exchange;
 use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -41,78 +42,83 @@ pub struct BuildResponse {
     desc: String,
 }
 
-pub fn build(
-    privkey: &str,
-    askbid: &types::AskBid,
-    exchange: &config::ExchangeApi,
-    market: &types::Market,
-    offer: &types::Offer,
-    proxy: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "ddex3(hydro) build {:#?} {} {}@{}",
-        askbid, market, offer.base_qty, offer.quote
-    );
-    let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
-    let mut qty = offer.base_qty;
-    let mut price = offer.quote;
-    let mut askbid_align = askbid;
-    let askbid_other = askbid.otherside();
-    if market.swapped {
-        askbid_align = &askbid_other;
-        let (s_qty, s_price) = offer.swap();
+pub struct Ddex3 {}
+
+impl exchange::Api for Ddex3 {
+    fn build(
+        &self,
+        privkey: &str,
+        askbid: &types::AskBid,
+        exchange: &config::ExchangeApi,
+        market: &types::Market,
+        offer: &types::Offer,
+        proxy: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!(
-            "unswapped {:#?} {} {}-{} {}@{}",
-            askbid_align, market.source.name, market.quote, market.base, s_qty, s_price
+            "ddex3(hydro) build {:#?} {} {}@{}",
+            askbid, market, offer.base_qty, offer.quote
         );
-        qty = s_qty;
-        price = s_price;
-    }
-    let side = match askbid_align {
-        types::AskBid::Ask => BuySell::Buy,
-        types::AskBid::Bid => BuySell::Sell,
-    };
+        let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
+        let mut qty = offer.base_qty;
+        let mut price = offer.quote;
+        let mut askbid_align = askbid;
+        let askbid_other = askbid.otherside();
+        if market.swapped {
+            askbid_align = &askbid_other;
+            let (s_qty, s_price) = offer.swap();
+            println!(
+                "unswapped {:#?} {} {}-{} {}@{}",
+                askbid_align, market.source.name, market.quote, market.base, s_qty, s_price
+            );
+            qty = s_qty;
+            price = s_price;
+        }
+        let side = match askbid_align {
+            types::AskBid::Ask => BuySell::Buy,
+            types::AskBid::Bid => BuySell::Sell,
+        };
 
-    let sheet = OrderSheet {
-        market_id: market_id,
-        side: side,
-        order_type: LimitMarket::Limit,
-        //wallet_type: "trading",
-        price: format!("{:.width$}", price, width = market.price_decimals as usize),
-        amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
-    };
+        let sheet = OrderSheet {
+            market_id: market_id,
+            side: side,
+            order_type: LimitMarket::Limit,
+            //wallet_type: "trading",
+            price: format!("{:.width$}", price, width = market.price_decimals as usize),
+            amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
+        };
 
-    let client = build_auth_client(proxy)?;
+        let client = build_auth_client(proxy)?;
 
-    let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
-    println!("Ddex3 order {}", url);
-    println!("{:#?}", &sheet);
+        let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
+        println!("Ddex3 order {}", url);
+        println!("{:#?}", &sheet);
 
-    let mut token = String::from("");
-    let fixedtime = format!(
-        "{}{}",
-        "HYDRO-AUTHENTICATION@",
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis()
-    );
-    build_token(&mut token, privkey, fixedtime.as_str());
-    let ddex_auth_headername = "Hydro-Authentication";
-    let mut headers = header::HeaderMap::new();
-    headers.insert(
-        ddex_auth_headername,
-        header::HeaderValue::from_str(&token).unwrap(), //boom
-    );
-    let resp = client.post(&url).headers(headers).json(&sheet).send()?;
-    let status = resp.status();
-    println!("{:#?} {}", resp.status(), resp.url());
-    let body = resp.json::<BuildResponse>().unwrap();
-    println!("{:#?}", body);
-    if status.is_success() {
-        Ok(())
-    } else {
-        Err(Box::new(error::OrderError::new(&body.desc)))
+        let mut token = String::from("");
+        let fixedtime = format!(
+            "{}{}",
+            "HYDRO-AUTHENTICATION@",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis()
+        );
+        build_token(&mut token, privkey, fixedtime.as_str());
+        let ddex_auth_headername = "Hydro-Authentication";
+        let mut headers = header::HeaderMap::new();
+        headers.insert(
+            ddex_auth_headername,
+            header::HeaderValue::from_str(&token).unwrap(), //boom
+        );
+        let resp = client.post(&url).headers(headers).json(&sheet).send()?;
+        let status = resp.status();
+        println!("{:#?} {}", resp.status(), resp.url());
+        let body = resp.json::<BuildResponse>().unwrap();
+        println!("{:#?}", body);
+        if status.is_success() {
+            Ok(())
+        } else {
+            Err(Box::new(error::OrderError::new(&body.desc)))
+        }
     }
 }
 

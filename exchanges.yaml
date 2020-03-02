@@ -1,5 +1,4 @@
 ---
-exchanges:
   -
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
     enabled: true

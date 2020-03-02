@@ -3,6 +3,7 @@
 use crate::config;
 use crate::error;
 use crate::eth;
+use crate::exchange;
 use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
@@ -67,73 +68,78 @@ pub enum SignatureType {
     EIP1271Wallet = 0x07,
 }
 
-pub fn build(
-    privkey: &str,
-    askbid: &types::AskBid,
-    exchange: &config::ExchangeApi,
-    market: &types::Market,
-    offer: &types::Offer,
-    proxy: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!(
-        "0x build {:#?} {} {}@{}",
-        askbid, market, offer.base_qty, offer.quote
-    );
-    let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
-    let mut qty = offer.base_qty;
-    let mut price = offer.quote;
-    let mut ab = askbid;
-    let askbid_other = askbid.otherside();
-    if market.swapped {
-        ab = &askbid_other;
-        let (s_qty, s_price) = offer.swap();
+pub struct Zeroex {}
+
+impl exchange::Api for Zeroex {
+    fn build(
+        &self,
+        privkey: &str,
+        askbid: &types::AskBid,
+        exchange: &config::ExchangeApi,
+        market: &types::Market,
+        offer: &types::Offer,
+        proxy: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         println!(
-            "unswapped {:#?} {} {}-{} {}@{}",
-            ab, market.source.name, market.quote, market.base, s_qty, s_price
+            "0x build {:#?} {} {}@{}",
+            askbid, market, offer.base_qty, offer.quote
         );
-    }
-    let side = match ab {
-        types::AskBid::Ask => BuySell::Buy,
-        types::AskBid::Bid => BuySell::Sell,
-    };
-    let expire_time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+        let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
+        let mut qty = offer.base_qty;
+        let mut price = offer.quote;
+        let mut ab = askbid;
+        let askbid_other = askbid.otherside();
+        if market.swapped {
+            ab = &askbid_other;
+            let (s_qty, s_price) = offer.swap();
+            println!(
+                "unswapped {:#?} {} {}-{} {}@{}",
+                ab, market.source.name, market.quote, market.base, s_qty, s_price
+            );
+        }
+        let side = match ab {
+            types::AskBid::Ask => BuySell::Buy,
+            types::AskBid::Bid => BuySell::Sell,
+        };
+        let expire_time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
         // 2min minimum + transittime
         + std::time::Duration::new(120 + 5, 0))
-    .as_secs();
-    let sheet = OrderSheet {
-        r#type: side,
-        quantity: format!("{}", qty),
-        price: format!("{}", price),
-        expiration: format!("{}", expire_time),
-    };
-    let url = format!(
-        "{}/markets/{}/order/limit",
-        exchange.api_url.as_str(),
-        market_id
-    );
-    println!("0x limit order build {}", url);
-    println!("{:#?}", sheet);
-    let client = reqwest::blocking::Client::new();
-    println!("{}", url);
-    let resp = client.post(url.as_str()).json(&sheet).send()?;
-    println!("{:#?} {}", resp.status(), resp.url());
-    if resp.status().is_success() {
-        let mut form = resp.json::<OrderForm>().unwrap();
-        form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
-        println!("{:#?}", form);
-        let privkey_bytes = &hex::decode(privkey).unwrap();
-        form.signature = order_sign(privkey_bytes, &mut form);
-        println!("filled in {:#?}", form);
-        let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("0x order post {}", url);
-        let resp = client.post(url.as_str()).json(&form).send()?;
+        .as_secs();
+        let sheet = OrderSheet {
+            r#type: side,
+            quantity: format!("{}", qty),
+            price: format!("{}", price),
+            expiration: format!("{}", expire_time),
+        };
+        let url = format!(
+            "{}/markets/{}/order/limit",
+            exchange.api_url.as_str(),
+            market_id
+        );
+        println!("0x limit order build {}", url);
+        println!("{:#?}", sheet);
+        let client = reqwest::blocking::Client::new();
+        println!("{}", url);
+        let resp = client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
-        println!("{:#?}", resp.text());
-        Ok(())
-    } else {
-        let bodyerr = resp.json::<ErrorResponse>().unwrap();
-        println!("{:#?}", bodyerr);
-        Err(Box::new(error::OrderError::new(&bodyerr.error)))
+        if resp.status().is_success() {
+            let mut form = resp.json::<OrderForm>().unwrap();
+            form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
+            println!("{:#?}", form);
+            let privkey_bytes = &hex::decode(privkey).unwrap();
+            form.signature = order_sign(privkey_bytes, &mut form);
+            println!("filled in {:#?}", form);
+            let url = format!("{}/orders", exchange.api_url.as_str());
+            println!("0x order post {}", url);
+            let resp = client.post(url.as_str()).json(&form).send()?;
+            println!("{:#?} {}", resp.status(), resp.url());
+            println!("{:#?}", resp.text());
+            Ok(())
+        } else {
+            let bodyerr = resp.json::<ErrorResponse>().unwrap();
+            println!("{:#?}", bodyerr);
+            Err(Box::new(error::OrderError::new(&bodyerr.error)))
+        }
     }
 }
 

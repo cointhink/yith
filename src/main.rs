@@ -102,21 +102,14 @@ fn run_books(
                 quote: offer.quote,
             };
             let _ = match exchanges.find_by_name(exchange_name) {
-                Some(exg) => {
-                    let build = match exg.protocol {
-                        config::ExchangeProtocol::ZeroexOpen => exchanges::zeroex::build,
-                        config::ExchangeProtocol::Ddex3 => exchanges::ddex3::build,
-                        config::ExchangeProtocol::Ddex4 => exchanges::ddex4::build,
-                    };
-                    build(
-                        &config.wallet_private_key,
-                        &books.askbid,
-                        exg,
-                        &book.market,
-                        &capped_offer,
-                        &config.proxy,
-                    )
-                }
+                Some(exg) => exg.api.build(
+                    &config.wallet_private_key,
+                    &books.askbid,
+                    &exg.settings,
+                    &book.market,
+                    &capped_offer,
+                    &config.proxy,
+                ),
                 None => {
                     println!("exchange not found for: {:#?}", exchange_name);
                     Ok(())
