@@ -26,11 +26,10 @@ pub enum LimitMarket {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
-    #[serde(rename = "marketId")]
     market_id: String,
     side: BuySell,
-    #[serde(rename = "orderType")]
     order_type: LimitMarket,
     price: String,
     amount: String,

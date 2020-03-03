@@ -26,9 +26,11 @@ pub enum LimitMarket {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
     #[serde(rename = "marketId")]
     market_id: String,
+    wallet_type: String,
     side: BuySell,
     #[serde(rename = "orderType")]
     order_type: LimitMarket,
@@ -82,7 +84,7 @@ impl exchange::Api for Ddex4 {
             market_id: market_id,
             side: side,
             order_type: LimitMarket::Limit,
-            //wallet_type: "trading",
+            wallet_type: "trading".to_string(),
             price: format!("{:.width$}", price, width = market.price_decimals as usize),
             amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
         };
