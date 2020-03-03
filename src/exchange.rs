@@ -1,8 +1,8 @@
-use std::error;
-use std::fmt;
 use crate::config;
 use crate::exchanges;
 use crate::types;
+use std::error;
+use std::fmt;
 
 pub enum OrderSheet {
     Ddex3(exchanges::ddex3::OrderSheet),
@@ -42,5 +42,5 @@ pub trait Api {
         proxy: &str,
     ) -> Result<OrderSheet, Box<dyn error::Error>>;
 
-    fn submit(&self) -> Result<(), Box<dyn error::Error>>;
+    fn submit(&self, sheet: OrderSheet) -> Result<(), Box<dyn error::Error>>;
 }

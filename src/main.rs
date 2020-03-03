@@ -101,20 +101,24 @@ fn run_books(
                 base_qty: most_qty,
                 quote: offer.quote,
             };
-            let _:Result<exchange::OrderSheet, std::boxed::Box<dyn std::error::Error>> = match exchanges.find_by_name(exchange_name) {
-                Some(exg) => exg.api.build(
-                    &config.wallet_private_key,
-                    &books.askbid,
-                    &exg.settings,
-                    &book.market,
-                    &capped_offer,
-                    &config.proxy,
-                ),
-                None => {
-                    println!("exchange not found for: {:#?}", exchange_name);
-                    Err(Box::new(error::OrderError::new("not found")))
-                }
-            };
+            let sheet_opt: Result<(), std::boxed::Box<dyn std::error::Error>> =
+                match exchanges.find_by_name(exchange_name) {
+                    Some(exg) => match exg.api.build(
+                        &config.wallet_private_key,
+                        &books.askbid,
+                        &exg.settings,
+                        &book.market,
+                        &capped_offer,
+                        &config.proxy,
+                    ) {
+                        Ok(sheet) => exg.api.submit(sheet),
+                        Err(e) => Err(Box::new(error::OrderError::new("not found"))),
+                    },
+                    None => {
+                        println!("exchange not found for: {:#?}", exchange_name);
+                        Err(Box::new(error::OrderError::new("not found")))
+                    }
+                };
         }
     }
 }

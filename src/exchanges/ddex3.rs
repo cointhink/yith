@@ -121,7 +121,7 @@ impl exchange::Api for Ddex3 {
         }
     }
 
-    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+    fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 }

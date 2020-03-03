@@ -69,7 +69,7 @@ impl exchange::Api for Switcheo {
         Ok(exchange::OrderSheet::Switcheo(sheet))
     }
 
-    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+    fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 }
