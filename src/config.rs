@@ -129,14 +129,14 @@ impl WalletCoin {
 
 impl fmt::Display for WalletCoin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:0.5} {}.", self.base_total(), self.ticker_symbol)
+        write!(f, "{:0.5}{}", self.base_total(), self.ticker_symbol)
     }
 }
 
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "wallet: {} coins. ", self.coins.len())?;
-        self.coins.iter().try_for_each(|c| write!(f, "{}", c))?;
+        write!(f, "wallet: ")?;
+        self.coins.iter().try_for_each(|c| write!(f, "{} ", c))?;
         write!(f, "")
     }
 }

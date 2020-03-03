@@ -34,7 +34,7 @@ fn app(
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     for coin in &wallet.coins {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
-        println!("{} {} {}", &coin.ticker_symbol, &coin.contract, &balance);
+        println!("{} {:0.4}", &coin.ticker_symbol, &balance / 10_f64.powi(18));
     }
 
     if args.len() == 2 {
