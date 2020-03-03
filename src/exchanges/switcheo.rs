@@ -1,6 +1,6 @@
+use crate::config;
 use crate::exchange;
 use crate::types;
-use crate::config;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -38,7 +38,7 @@ impl exchange::Api for Switcheo {
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "Switcheo build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
@@ -50,25 +50,26 @@ impl exchange::Api for Switcheo {
         };
 
         let sheet = OrderSheet {
-        	blockchain: "eth".to_string(),
-        	contract_hash: exchange.contract_address.as_str().to_string(),
+            blockchain: "eth".to_string(),
+            contract_hash: exchange.contract_address.as_str().to_string(),
             r#type: side,
             quantity: format!("{}", offer.base_qty),
             price: format!("{}", offer.quote),
         };
 
-        let url = format!(
-            "{}/orders",
-            exchange.api_url.as_str());
+        let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
         println!("{:#?}", sheet);
         let client = reqwest::blocking::Client::new();
 
         let resp = client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
-        if resp.status().is_success() {
-        }
+        if resp.status().is_success() {}
 
-    	Ok(())
+        Ok(exchange::OrderSheet::Switcheo(sheet))
+    }
+
+    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
     }
 }

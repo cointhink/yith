@@ -1,5 +1,35 @@
+use std::error;
+use std::fmt;
 use crate::config;
+use crate::exchanges;
 use crate::types;
+
+pub enum OrderSheet {
+    Ddex3(exchanges::ddex3::OrderSheet),
+    Ddex4(exchanges::ddex4::OrderSheet),
+    Zeroex(exchanges::zeroex::OrderSheet),
+    Switcheo(exchanges::switcheo::OrderSheet),
+}
+
+#[derive(Debug)]
+pub struct ExchangeError {}
+
+impl error::Error for ExchangeError {
+    fn description(&self) -> &str {
+        "it done goofed up"
+    }
+
+    fn cause(&self) -> Option<&dyn error::Error> {
+        // Generic error, underlying cause isn't tracked.
+        None
+    }
+}
+
+impl fmt::Display for ExchangeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "display error here")
+    }
+}
 
 pub trait Api {
     fn build(
@@ -10,5 +40,7 @@ pub trait Api {
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
-    ) -> Result<(), Box<dyn std::error::Error>>;
+    ) -> Result<OrderSheet, Box<dyn error::Error>>;
+
+    fn submit(&self) -> Result<(), Box<dyn error::Error>>;
 }

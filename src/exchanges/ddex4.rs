@@ -53,7 +53,7 @@ impl exchange::Api for Ddex4 {
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "ddex4(hydro) build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
@@ -90,7 +90,7 @@ impl exchange::Api for Ddex4 {
         let client = build_auth_client(proxy)?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
-        println!("Ddex3 order {}", url);
+        println!("Ddex4 order {}", url);
         println!("{:#?}", &sheet);
 
         let mut token = String::from("");
@@ -115,10 +115,14 @@ impl exchange::Api for Ddex4 {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
         if status.is_success() {
-            Ok(())
+            Ok(exchange::OrderSheet::Ddex4(sheet))
         } else {
             Err(Box::new(error::OrderError::new(&body.desc)))
         }
+    }
+
+    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
     }
 }
 

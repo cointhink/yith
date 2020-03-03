@@ -53,7 +53,7 @@ impl exchange::Api for Ddex3 {
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "ddex3(hydro) build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
@@ -115,10 +115,14 @@ impl exchange::Api for Ddex3 {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
         if status.is_success() {
-            Ok(())
+            Ok(exchange::OrderSheet::Ddex3(sheet))
         } else {
             Err(Box::new(error::OrderError::new(&body.desc)))
         }
+    }
+
+    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
     }
 }
 

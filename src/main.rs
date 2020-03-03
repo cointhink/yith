@@ -101,7 +101,7 @@ fn run_books(
                 base_qty: most_qty,
                 quote: offer.quote,
             };
-            let _ = match exchanges.find_by_name(exchange_name) {
+            let _:Result<exchange::OrderSheet, std::boxed::Box<dyn std::error::Error>> = match exchanges.find_by_name(exchange_name) {
                 Some(exg) => exg.api.build(
                     &config.wallet_private_key,
                     &books.askbid,
@@ -112,7 +112,7 @@ fn run_books(
                 ),
                 None => {
                     println!("exchange not found for: {:#?}", exchange_name);
-                    Ok(())
+                    Err(Box::new(error::OrderError::new("not found")))
                 }
             };
         }

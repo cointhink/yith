@@ -79,7 +79,7 @@ impl exchange::Api for Zeroex {
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "0x build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
@@ -134,12 +134,16 @@ impl exchange::Api for Zeroex {
             let resp = client.post(url.as_str()).json(&form).send()?;
             println!("{:#?} {}", resp.status(), resp.url());
             println!("{:#?}", resp.text());
-            Ok(())
+            Ok(exchange::OrderSheet::Zeroex(sheet))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
             println!("{:#?}", bodyerr);
             Err(Box::new(error::OrderError::new(&bodyerr.error)))
         }
+    }
+
+    fn submit(&self) -> Result<(), Box<dyn std::error::Error>> {
+        Ok(())
     }
 }
 
