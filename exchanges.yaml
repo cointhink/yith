@@ -1,5 +1,13 @@
 ---
   -
+    name: switcheo
+    enabled: false
+    protocol: switcheo
+    contract_address: 0x
+    api_url: https://api.switcheo.network
+    taker_fee: 0.0
+    maker_fee: 0.0
+  -
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
     enabled: true
     protocol: 0x
