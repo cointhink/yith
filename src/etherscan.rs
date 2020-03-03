@@ -46,16 +46,27 @@ pub fn balances<'a>(public_addr: &str, api_key: &'a str) -> Balances<'a> {
 }
 
 pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
-    let url = format!("{}?module=account&action=tokenbalance&contractaddress={}&address=0x{}&tag=latest&apikey={}", ETHERSCAN_API_URL, contract, public_addr, api_key);
     let client = build_client(api_key).unwrap();
-    println!("{:?}", url);
+    let url_params = match contract {
+        "0x0000000000000000000000000000000000000000" => {
+            format!("module=account&action=balance&address=0x{}", public_addr)
+        }
+        _ => format!(
+            "module=account&action=tokenbalance&contractaddress={}&address=0x{}",
+            contract, public_addr
+        ),
+    };
+    let url = format!(
+        "{}?{}&tag=latest&apikey={}",
+        ETHERSCAN_API_URL, url_params, api_key
+    );
     let resp = client.get(&url).send().unwrap();
     let status = resp.status();
     let balance_response = resp.json::<BalanceResponse>().unwrap();
-    println!("{:?}", balance_response);
     if balance_response.status == "1" {
         balance_response.result.parse::<f64>().unwrap()
     } else {
+        println!("{:?}", balance_response);
         0.0
     }
 }
