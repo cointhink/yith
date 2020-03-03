@@ -12,6 +12,15 @@ pub struct Order {
     pub bid_books: Books,
 }
 
+impl Order {
+    pub fn from_file(arb_id: String) -> Order {
+        let filename = format!("{}/order", arb_id);
+        let json = std::fs::read_to_string(filename).expect("order json file bad");
+        let order: Order = serde_yaml::from_str(&json).unwrap();
+        order
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
     #[serde(rename = "Field0")]
