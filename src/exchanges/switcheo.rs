@@ -63,7 +63,7 @@ impl exchange::Api for Switcheo {
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_millis();
-        let sheet = OrderSheet {
+        let mut sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.as_str().to_string(),
             r#type: side,
@@ -75,6 +75,7 @@ impl exchange::Api for Switcheo {
             timestamp: now_millis,
             use_native_tokens: false,
         };
+        sheet.signature = sign(&sheet).to_string();
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
@@ -101,3 +102,6 @@ pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Tick
     }
 }
 
+pub fn sign<'a>(sheet: &OrderSheet) -> &'a str {
+    "sign"
+}
