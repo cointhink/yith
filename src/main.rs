@@ -1,4 +1,4 @@
-use ::redis::Commands;
+use redis::Commands;
 
 mod config;
 mod error;
@@ -7,8 +7,8 @@ mod etherscan;
 mod exchange;
 mod exchanges;
 mod geth;
-mod types;
 mod redis;
+mod types;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -73,7 +73,7 @@ fn run_order(
 ) {
     println!("{}/{}:", &order.pair.base, &order.pair.quote);
     run_books(config, wallet, &order.ask_books, exchanges);
-    //run_books(config, wallet, &order.bid_books, exchanges);
+    run_books(config, wallet, &order.bid_books, exchanges);
 }
 
 fn run_books(

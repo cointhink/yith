@@ -131,9 +131,9 @@ impl exchange::Api for Zeroex {
             println!("filled in {:#?}", form);
             let url = format!("{}/orders", exchange.api_url.as_str());
             println!("0x order post {}", url);
-            let resp = client.post(url.as_str()).json(&form).send()?;
-            println!("{:#?} {}", resp.status(), resp.url());
-            println!("{:#?}", resp.text());
+            // let resp = client.post(url.as_str()).json(&form).send()?;
+            // println!("{:#?} {}", resp.status(), resp.url());
+            // println!("{:#?}", resp.text());
             Ok(exchange::OrderSheet::Zeroex(sheet))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
