@@ -1,4 +1,4 @@
-use redis::Commands;
+use ::redis::Commands;
 
 mod config;
 mod error;

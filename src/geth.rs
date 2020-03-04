@@ -15,6 +15,7 @@ pub struct JsonRpcParam {
     value: String,
 }
 
+#[allow(dead_code)]
 pub fn rpc(
     config: &crate::config::Config,
     url: &str,
