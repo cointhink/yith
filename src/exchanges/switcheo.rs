@@ -1,8 +1,9 @@
 use crate::config;
+use crate::eth;
 use crate::exchange;
 use crate::types;
-use crate::eth;
 use serde::{Deserialize, Serialize};
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,15 +16,21 @@ pub enum BuySell {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OrderSheetSign {
+    #[serde(flatten)]
+    sheet: OrderSheet,
+    signature: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
+    address: String,
     blockchain: String,
     contract_hash: String,
-    r#type: BuySell,
     pair: String,
-    quantity: String,
     price: String,
-    address: String,
-    signature: String,
+    quantity: String,
+    r#type: BuySell,
     timestamp: u128,
     use_native_tokens: bool,
 }
@@ -52,6 +59,8 @@ impl exchange::Api for Switcheo {
             askbid, market, offer.base_qty, offer.quote
         );
 
+        let privbytes = &hex::decode(privkey).unwrap();
+        let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
         let side = match askbid {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
@@ -60,9 +69,9 @@ impl exchange::Api for Switcheo {
         let mut market_pair = make_market_pair(market.swapped, &market.base, &market.quote);
 
         let now_millis = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis();
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
         let mut sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.as_str().to_string(),
@@ -71,23 +80,22 @@ impl exchange::Api for Switcheo {
             quantity: format!("{}", offer.base_qty),
             price: format!("{}", offer.quote),
             address: format!("0x{}", eth::privkey_to_addr(privkey)),
-            signature: "".to_string(),
             timestamp: now_millis,
             use_native_tokens: false,
         };
-        sheet.signature = sign(&sheet).to_string();
+        let signature = sign(&sheet, &secret_key).to_string();
+        let sheet_sign = OrderSheetSign { sheet: sheet, signature: signature };
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
-        println!("{:#?}", sheet);
+        println!("{:#?}", sheet_sign);
         let client = reqwest::blocking::Client::new();
-
-        let resp = client.post(url.as_str()).json(&sheet).send()?;
-        println!("{:#?} {}", resp.status(), resp.url());
+        let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
+        println!("switcheo result {:#?} {}", resp.status(), resp.url());
         println!("{}", resp.text()?);
         //if resp.status().is_success() {}
 
-        Ok(exchange::OrderSheet::Switcheo(sheet))
+        Ok(exchange::OrderSheet::Switcheo(sheet_sign))
     }
 
     fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
@@ -102,6 +110,9 @@ pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Tick
     }
 }
 
-pub fn sign<'a>(sheet: &OrderSheet) -> &'a str {
-    "sign"
+pub fn sign<'a>(sheet: &OrderSheet, secret_key: &SecretKey) -> String {
+    let json = serde_json::to_string(sheet).unwrap();
+    let msg_hash = eth::ethsign_hash_msg(&json.as_bytes().to_vec());
+    let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
+    format!("{}", hex::encode(sig_bytes.to_vec()))
 }
