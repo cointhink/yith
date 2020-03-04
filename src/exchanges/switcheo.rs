@@ -113,6 +113,7 @@ pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Tick
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     println!("json {}", json);
     let msg_hash = eth::hash_msg(&json.as_bytes().to_vec());
+    println!("hash {}", hex::encode(msg_hash));
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
@@ -125,13 +126,24 @@ mod tests {
                            
     #[test]
     fn test_order_sign() {
-        let json = "{\"apple\":\"Z\",\"blockchain\":\"neo\",\"timestamp\":1529380859}";
+        let json = "{\"apple\":\"Z\",\"blockchain\":\"eth\",\"timestamp\":1529380859}";
         println!("privkey {} {}", &privkey, &json);
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
         let signature = sign(&json.to_string(), &secret_key);
-        println!("order_sign signature {}", signature);
+        println!("json sign signature {}", signature);
         let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";                        
         assert_eq!(signature, good_sig)
     }
 }
+
+/*
+>  web3.eth.accounts.sign('{"apple":"Z","blockchain":"eth","timestamp":1529380859}', 
+                  '0x98c193239bff9eb53a83e708b63b9c08d6e47900b775402aca2acc3daad06f24')
+{ message: '{"apple":"Z","blockchain":"eth","timestamp":1529380859}',
+  messageHash: '0xd912c2d8ddef5f07bfa807be8ddb4d579ab978f52ab1176deea8b260f146ea21',
+  v: '0x1c',
+  r: '0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d8',
+  s: '0x6c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e3291',
+  signature: '0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c' }
+*/
