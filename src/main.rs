@@ -115,7 +115,7 @@ fn run_books(
                         Err(e) => {
                             println!("{}", e);
                             Err(Box::new(error::OrderError::new(&e.description())))
-                        },
+                        }
                     },
                     None => {
                         println!("exchange not found for: {:#?}", exchange_name);

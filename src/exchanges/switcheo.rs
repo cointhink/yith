@@ -1,10 +1,10 @@
 use crate::config;
+use crate::error;
 use crate::eth;
 use crate::exchange;
 use crate::types;
-use crate::error;
+use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use secp256k1::{SecretKey};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -43,8 +43,7 @@ pub struct OrderForm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct BuildSuccess {
-}
+pub struct BuildSuccess {}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildError {
@@ -82,12 +81,13 @@ impl exchange::Api for Switcheo {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
+        let unit_qty = quantity_in_base_units(offer.base_qty, &market.base);
         let mut sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
             pair: market_pair,
             price: format!("{}", offer.quote),
-            quantity: format!("{}", offer.base_qty),
+            quantity: format!("{}", unit_qty),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,
@@ -96,9 +96,9 @@ impl exchange::Api for Switcheo {
         println!("{}", &json);
         let signature = sign(&json, &secret_key);
         println!("{}", &signature);
-        let sheet_sign = OrderSheetSign { 
+        let sheet_sign = OrderSheetSign {
             address: format!("{}", eth::privkey_to_addr(privkey)),
-            sheet: sheet, 
+            sheet: sheet,
             signature: signature,
         };
 
@@ -108,15 +108,14 @@ impl exchange::Api for Switcheo {
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
         println!("switcheo result {:#?} {}", status, resp.url());
-//        let text = resp.text().unwrap();
-//        println!("{}", text);
+        //        let text = resp.text().unwrap();
+        //        println!("{}", text);
         if status.is_success() {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
             let build_err = resp.json::<BuildError>().unwrap();
             Err(Box::new(error::OrderError::new(&build_err.error_message)))
         }
-
     }
 
     fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
@@ -138,12 +137,16 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
+pub fn quantity_in_base_units(qty: f64, ticker: &types::Ticker) -> u64 {
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     static privkey: &str = "98c193239bff9eb53a83e708b63b9c08d6e47900b775402aca2acc3daad06f24";
-                           
+
     #[test]
     fn test_order_sign() {
         let json = "{\"apple\":\"Z\",\"blockchain\":\"eth\",\"timestamp\":1529380859}";
@@ -152,13 +155,13 @@ mod tests {
         let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
         let signature = sign(&json.to_string(), &secret_key);
         println!("json sign signature {}", signature);
-        let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";                        
+        let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";
         assert_eq!(signature, good_sig)
     }
 }
 
 /*
->  web3.eth.accounts.sign('{"apple":"Z","blockchain":"eth","timestamp":1529380859}', 
+>  web3.eth.accounts.sign('{"apple":"Z","blockchain":"eth","timestamp":1529380859}',
                   '0x98c193239bff9eb53a83e708b63b9c08d6e47900b775402aca2acc3daad06f24')
 { message: '{"apple":"Z","blockchain":"eth","timestamp":1529380859}',
   messageHash: '0xd912c2d8ddef5f07bfa807be8ddb4d579ab978f52ab1176deea8b260f146ea21',
