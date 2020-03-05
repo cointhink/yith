@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::types;
+use crate::error;
 use serde::{Deserialize, Serialize};
 use secp256k1::{SecretKey};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -41,6 +42,16 @@ pub struct OrderForm {
     chain_id: i64,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuildSuccess {
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuildError {
+    error: String,
+    error_message: String,
+}
+
 pub struct Switcheo {}
 
 impl exchange::Api for Switcheo {
@@ -73,11 +84,11 @@ impl exchange::Api for Switcheo {
             .as_millis();
         let mut sheet = OrderSheet {
             blockchain: "eth".to_string(),
-            contract_hash: exchange.contract_address[2..].to_string(),
-            side: side,
+            contract_hash: exchange.contract_address.to_string(),
             pair: market_pair,
-            quantity: format!("{}", offer.base_qty),
             price: format!("{}", offer.quote),
+            quantity: format!("{}", offer.base_qty),
+            side: side,
             timestamp: now_millis,
             use_native_tokens: false,
         };
@@ -86,20 +97,26 @@ impl exchange::Api for Switcheo {
         let signature = sign(&json, &secret_key);
         println!("{}", &signature);
         let sheet_sign = OrderSheetSign { 
+            address: format!("{}", eth::privkey_to_addr(privkey)),
             sheet: sheet, 
             signature: signature,
-            address: format!("{}", eth::privkey_to_addr(privkey)),
         };
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
-        println!("switcheo result {:#?} {}", resp.status(), resp.url());
-        println!("{}", resp.text()?);
-        //if resp.status().is_success() {}
+        let status = resp.status();
+        println!("switcheo result {:#?} {}", status, resp.url());
+//        let text = resp.text().unwrap();
+//        println!("{}", text);
+        if status.is_success() {
+            Ok(exchange::OrderSheet::Switcheo(sheet_sign))
+        } else {
+            let build_err = resp.json::<BuildError>().unwrap();
+            Err(Box::new(error::OrderError::new(&build_err.error_message)))
+        }
 
-        Ok(exchange::OrderSheet::Switcheo(sheet_sign))
     }
 
     fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
