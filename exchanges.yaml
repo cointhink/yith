@@ -4,8 +4,7 @@
     enabled: false
     protocol: switcheo
     contract_address: 0x7ee7ca6e75de79e618e88bdf80d0b1db136b22d0
-    api_url: http://localhost:1808
-#    api_url: https://api.switcheo.network/v2
+    api_url: https://api.switcheo.network/v2
     taker_fee: 0.0
     maker_fee: 0.0
   -

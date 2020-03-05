@@ -19,11 +19,11 @@ pub struct OrderSheetSign {
     #[serde(flatten)]
     sheet: OrderSheet,
     signature: String,
+    address: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
-    address: String,
     blockchain: String,
     contract_hash: String,
     pair: String,
@@ -78,17 +78,21 @@ impl exchange::Api for Switcheo {
             pair: market_pair,
             quantity: format!("{}", offer.base_qty),
             price: format!("{}", offer.quote),
-            address: format!("{}", eth::privkey_to_addr(privkey)),
             timestamp: now_millis,
             use_native_tokens: false,
         };
         let json = serde_json::to_string(&sheet).unwrap();
+        println!("{}", &json);
         let signature = sign(&json, &secret_key);
-        let sheet_sign = OrderSheetSign { sheet: sheet, signature: signature };
+        println!("{}", &signature);
+        let sheet_sign = OrderSheetSign { 
+            sheet: sheet, 
+            signature: signature,
+            address: format!("{}", eth::privkey_to_addr(privkey)),
+        };
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
-        println!("{:#?}", sheet_sign);
         let client = reqwest::blocking::Client::new();
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         println!("switcheo result {:#?} {}", resp.status(), resp.url());
@@ -111,7 +115,6 @@ pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Tick
 }
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
-    println!("json {}", json);
     let msg_hash = eth::ethsign_hash_msg(&json.as_bytes().to_vec());
     println!("hash {}", hex::encode(msg_hash));
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
