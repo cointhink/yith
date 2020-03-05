@@ -138,7 +138,15 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
 }
 
 pub fn quantity_in_base_units(qty: f64, ticker: &types::Ticker) -> u64 {
-    0
+    let pow = ticker_to_pow(ticker);
+    (qty * 10_f64.powi(pow)) as u64
+}
+
+pub fn ticker_to_pow(ticker: &types::Ticker) -> i32 {
+    match ticker.symbol.as_str() {
+        "ETH" | "WBTC" => 4,
+        _ => 0
+    }
 }
 
 #[cfg(test)]
@@ -157,6 +165,20 @@ mod tests {
         println!("json sign signature {}", signature);
         let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";
         assert_eq!(signature, good_sig)
+    }
+
+    #[test]
+    fn test_quantity_in_base_units() {
+        let ticker = types::Ticker{ symbol: "ETH".to_string() };
+        let unit_q = quantity_in_base_units(1.0, &ticker);
+        assert_eq!(unit_q, 1000000000000000000)
+    }
+
+    #[test]
+    fn test_ticker_to_pow() {
+        let ticker = types::Ticker{ symbol: "ETH".to_string() };
+        let pow = ticker_to_pow(&ticker);
+        assert_eq!(pow, 18)
     }
 }
 
