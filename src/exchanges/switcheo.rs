@@ -96,8 +96,9 @@ impl exchange::Api for Switcheo {
         println!("{}", &json);
         let signature = sign(&json, &secret_key);
         println!("{}", &signature);
+        let address = format!("0x{}", eth::privkey_to_addr(privkey));
         let sheet_sign = OrderSheetSign {
-            address: format!("{}", eth::privkey_to_addr(privkey)),
+            address: address,
             sheet: sheet,
             signature: signature,
         };
@@ -144,7 +145,9 @@ pub fn quantity_in_base_units(qty: f64, ticker: &types::Ticker) -> u64 {
 
 pub fn ticker_to_pow(ticker: &types::Ticker) -> i32 {
     match ticker.symbol.as_str() {
-        "ETH" | "WBTC" => 4,
+        "ETH" => 4,
+        "WBTC" => 4,
+        "DAI" => 2,
         _ => 0
     }
 }
