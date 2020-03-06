@@ -28,7 +28,7 @@ fn app(
     wallet: &config::Wallet,
     exchanges: config::ExchangeList,
     args: Vec<String>,
-) -> Result<u32, redis::RedisError> {
+) -> Result<u32, redis::Error> {
     let mut order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
