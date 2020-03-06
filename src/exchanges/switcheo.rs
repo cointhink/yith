@@ -147,7 +147,7 @@ pub fn ticker_to_pow(ticker: &types::Ticker) -> i32 {
         "ETH" => 4,
         "WBTC" => 4,
         "DAI" => 2,
-        _ => 0
+        _ => 0,
     }
 }
 
@@ -171,14 +171,18 @@ mod tests {
 
     #[test]
     fn test_quantity_in_base_units() {
-        let ticker = types::Ticker{ symbol: "ETH".to_string() };
+        let ticker = types::Ticker {
+            symbol: "ETH".to_string(),
+        };
         let unit_q = quantity_in_base_units(1.0, &ticker);
         assert_eq!(unit_q, 1000000000000000000)
     }
 
     #[test]
     fn test_ticker_to_pow() {
-        let ticker = types::Ticker{ symbol: "ETH".to_string() };
+        let ticker = types::Ticker {
+            symbol: "ETH".to_string(),
+        };
         let pow = ticker_to_pow(&ticker);
         assert_eq!(pow, 18)
     }

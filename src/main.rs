@@ -1,4 +1,4 @@
-use ::redis::Commands;
+use self::redis::Commands;
 
 mod config;
 mod error;
