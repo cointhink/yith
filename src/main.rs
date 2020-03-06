@@ -1,4 +1,3 @@
-use self::redis::Commands;
 
 mod config;
 mod error;
@@ -43,7 +42,7 @@ fn app(
         order = types::Order::from_file(arb_filename);
     } else {
         let mut client = redis::rdsetup(&config.redis_url)?;
-        let inplay_exists = client.exists("inplay")?;
+        let inplay_exists = redis::rd_exists(&mut client, "inplay");
         let arb_id = match inplay_exists {
             true => {
                 println!("active order found!");

@@ -2,10 +2,11 @@ use crate::config;
 use crate::types;
 pub use ::redis::{Commands}; // re-export
 
+pub type Connection = redis::Connection;
 pub type Error = redis::RedisError;
 
 pub fn rd_order(
-    client: &mut redis::Connection,
+    client: &mut Connection,
     arb_id: String,
 ) -> Result<types::Order, Error> {
     let hkey = [String::from("arb:"), arb_id].concat();
@@ -14,13 +15,17 @@ pub fn rd_order(
     Ok(order)
 }
 
-pub fn rdsetup(url: &str) -> Result<redis::Connection, Error> {
+pub fn rdsetup(url: &str) -> Result<Connection, Error> {
     let client = redis::Client::open(url)?;
     let con = client.get_connection()?;
     Ok(con)
 }
 
-pub fn rdsub<'a>(con: &'a mut redis::Connection) -> redis::PubSub<'a> {
+pub fn rd_exists<'a>(client: &mut Connection, key: &str) -> bool {
+    client.exists(key).unwrap()
+}
+
+pub fn rdsub<'a>(con: &'a mut Connection) -> redis::PubSub<'a> {
     let mut ps = con.as_pubsub();
     let _ = ps.subscribe("orders");
     ps
@@ -36,7 +41,7 @@ pub fn rd_next_order(config: &config::Config) -> Result<String, Error> {
     Ok(new_id)
 }
 
-pub fn rd_inplay(client: &mut redis::Connection) -> Result<String, Error> {
+pub fn rd_inplay(client: &mut Connection) -> Result<String, Error> {
     let inplay: String = client.get("inplay")?;
     Ok(inplay)
 }
