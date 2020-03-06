@@ -9,6 +9,7 @@ pub enum OrderSheet {
     Ddex4(exchanges::ddex4::OrderSheet),
     Zeroex(exchanges::zeroex::OrderSheet),
     Switcheo(exchanges::switcheo::OrderSheetSign),
+    Idex(exchanges::idex::OrderSheet),
 }
 
 #[derive(Debug)]

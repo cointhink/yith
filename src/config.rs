@@ -66,6 +66,8 @@ pub enum ExchangeProtocol {
     Ddex4,
     #[serde(rename = "switcheo")]
     Switcheo,
+    #[serde(rename = "idex")]
+    Idex,
 }
 
 pub struct ExchangeList {
@@ -95,6 +97,7 @@ pub fn read_exchanges(filename: &str) -> ExchangeList {
             ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3 {}),
             ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
             ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo {}),
+            ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex{}),
         };
         list.exchanges.push(Exchange {
             api: api,
