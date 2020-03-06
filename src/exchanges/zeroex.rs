@@ -84,9 +84,9 @@ impl exchange::Api for Zeroex {
             "0x build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
-        let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
-        let mut qty = offer.base_qty;
-        let mut price = offer.quote;
+        let market_id = make_market_id(market.swapped, &market.base, &market.quote);
+        let qty = offer.base_qty;
+        let price = offer.quote;
         let mut ab = askbid;
         let askbid_other = askbid.otherside();
         if market.swapped {

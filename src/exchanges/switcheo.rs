@@ -92,16 +92,16 @@ impl exchange::Api for Switcheo {
             timestamp: now_millis,
             use_native_tokens: false,
         };
-        let json = serde_json::to_string(&sheet).unwrap();
-        println!("{}", &json);
-        let signature = sign(&json, &secret_key);
-        println!("{}", &signature);
+        let sign_json = serde_json::to_string(&sheet).unwrap();
+        let signature = sign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
         let sheet_sign = OrderSheetSign {
             address: address,
             sheet: sheet,
             signature: signature,
         };
+        let json = serde_json::to_string(&sheet_sign).unwrap();
+        println!("{}", &json);
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
@@ -133,7 +133,6 @@ pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Tick
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     let msg_hash = eth::ethsign_hash_msg(&json.as_bytes().to_vec());
-    println!("hash {}", hex::encode(msg_hash));
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }

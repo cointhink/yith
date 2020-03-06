@@ -36,15 +36,6 @@ pub struct BalanceResponse {
 
 static ETHERSCAN_API_URL: &'static str = "https://api.etherscan.io/api";
 
-pub fn balances<'a>(public_addr: &str, api_key: &'a str) -> Balances<'a> {
-    let coins: Vec<Balance> = Vec::new();
-    let b = Balance {
-        symbol: "a",
-        amount: 0.1,
-    };
-    Balances { coins: vec![b] }
-}
-
 pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
     let client = build_client(api_key).unwrap();
     let url_params = match contract {
@@ -61,13 +52,16 @@ pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
         ETHERSCAN_API_URL, url_params, api_key
     );
     let resp = client.get(&url).send().unwrap();
-    let status = resp.status();
-    let balance_response = resp.json::<BalanceResponse>().unwrap();
-    if balance_response.status == "1" {
-        balance_response.result.parse::<f64>().unwrap()
+    if resp.status().is_success() {
+        let balance_response = resp.json::<BalanceResponse>().unwrap();
+        if balance_response.status == "1" {
+            balance_response.result.parse::<f64>().unwrap()
+        } else {
+            println!("{:?}", balance_response);
+            0.0
+        }
     } else {
-        println!("{:?}", balance_response);
-        0.0
+        0.0 // err handling
     }
 }
 

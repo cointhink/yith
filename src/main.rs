@@ -101,7 +101,7 @@ fn run_books(
                 base_qty: most_qty,
                 quote: offer.quote,
             };
-            let sheet_opt: Result<(), std::boxed::Box<dyn std::error::Error>> =
+            let _sheet_opt: Result<(), std::boxed::Box<dyn std::error::Error>> =
                 match exchanges.find_by_name(exchange_name) {
                     Some(exg) => match exg.api.build(
                         &config.wallet_private_key,
