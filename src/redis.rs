@@ -1,14 +1,11 @@
 use crate::config;
 use crate::types;
-pub use ::redis::{Commands}; // re-export
+pub use redis::Commands; // re-export
 
 pub type Connection = redis::Connection;
 pub type Error = redis::RedisError;
 
-pub fn rd_order(
-    client: &mut Connection,
-    arb_id: String,
-) -> Result<types::Order, Error> {
+pub fn rd_order(client: &mut Connection, arb_id: String) -> Result<types::Order, Error> {
     let hkey = [String::from("arb:"), arb_id].concat();
     let json: String = client.hget(&hkey, "json")?;
     let order: types::Order = serde_yaml::from_str(&json).unwrap();

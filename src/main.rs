@@ -1,4 +1,3 @@
-
 mod config;
 mod error;
 mod eth;
@@ -82,45 +81,57 @@ fn run_books(
     exchanges: &config::ExchangeList,
 ) {
     for book in &books.books[..1] {
-        let wallet_coin_balance = wallet.coin_amount(&book.market.quote.symbol);
         for offer in &book.offers[..1] {
-            // limit to one
+            // 1 offer limit
             let exchange_name = &book.market.source.name;
             println!("{:?} {}", &books.askbid, exchange_name);
-            let most_qty = if offer.base_qty < wallet_coin_balance {
-                offer.base_qty
-            } else {
-                println!(
-                    "Offer {} capped at {} {}",
-                    offer, wallet_coin_balance, book.market.quote
-                );
-                wallet_coin_balance
-            };
-            let capped_offer = types::Offer {
-                base_qty: most_qty,
-                quote: offer.quote,
-            };
-            let _sheet_opt: Result<(), std::boxed::Box<dyn std::error::Error>> =
-                match exchanges.find_by_name(exchange_name) {
-                    Some(exg) => match exg.api.build(
-                        &config.wallet_private_key,
-                        &books.askbid,
-                        &exg.settings,
-                        &book.market,
-                        &capped_offer,
-                        &config.proxy,
-                    ) {
-                        Ok(sheet) => exg.api.submit(sheet),
-                        Err(e) => {
-                            println!("{}", e);
-                            Err(Box::new(error::OrderError::new(&e.description())))
-                        }
-                    },
-                    None => {
-                        println!("exchange not found for: {:#?}", exchange_name);
-                        Err(Box::new(error::OrderError::new("not found")))
-                    }
-                };
+            match exchanges.find_by_name(exchange_name) {
+                Some(exchange) => {
+                    run_offer(config, &books.askbid, &exchange, 
+                        offer, &book.market, wallet).unwrap()
+                }
+                None => {
+                    println!("exchange detail not found for: {:#?}", exchange_name);
+                }
+            }
+        }
+    }
+}
+
+fn run_offer(
+    config: &config::Config,
+    askbid: &types::AskBid,
+    exchange: &config::Exchange,
+    offer: &types::Offer,
+    market: &types::Market,
+    wallet: &config::Wallet,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let wallet_coin_balance = wallet.coin_amount(&market.quote.symbol);
+    let most_qty = if offer.base_qty < wallet_coin_balance {
+        offer.base_qty
+    } else {
+        println!(
+            "Offer {} capped at {} {}",
+            offer, wallet_coin_balance, market.quote
+        );
+        wallet_coin_balance
+    };
+    let capped_offer = types::Offer {
+        base_qty: most_qty,
+        quote: offer.quote,
+    };
+    match exchange.api.build(
+        &config.wallet_private_key,
+        &askbid,
+        &exchange.settings,
+        market,
+        &capped_offer,
+        &config.proxy,
+    ) {
+        Ok(sheet) => exchange.api.submit(sheet),
+        Err(e) => {
+            println!("{}", e);
+            Err(Box::new(error::OrderError::new(&e.description())))
         }
     }
 }
