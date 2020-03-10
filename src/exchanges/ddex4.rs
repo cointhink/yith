@@ -60,7 +60,7 @@ impl exchange::Api for Ddex4 {
             "ddex4(hydro) build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
-        let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
+        let market_id = make_market_id(market.swapped, &market.base, &market.quote);
         let mut qty = offer.base_qty;
         let mut price = offer.quote;
         let mut askbid_align = askbid;

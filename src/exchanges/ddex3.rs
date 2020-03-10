@@ -126,7 +126,7 @@ impl exchange::Api for Ddex3 {
 }
 
 pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
-    let mut headers = header::HeaderMap::new();
+    let headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .default_headers(headers);

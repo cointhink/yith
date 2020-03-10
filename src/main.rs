@@ -1,4 +1,5 @@
 mod config;
+mod wallet;
 mod error;
 mod eth;
 mod etherscan;
@@ -15,7 +16,7 @@ fn main() {
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename);
     let wallet_filename = "wallet.yaml";
-    let wallet = config::read_wallet(wallet_filename);
+    let wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
     println!("{}", wallet);
     app(&config, &wallet, exchanges, args).unwrap();
@@ -23,13 +24,14 @@ fn main() {
 
 fn app(
     config: &config::Config,
-    wallet: &config::Wallet,
+    wallet: &wallet::Wallet,
     exchanges: config::ExchangeList,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
     let order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+    println!("Balance warmup for {}", my_addr);
     for coin in &wallet.coins {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
         println!("{} {:0.4}", &coin.ticker_symbol, &balance / 10_f64.powi(18));
@@ -65,7 +67,7 @@ fn app(
 
 fn run_order(
     config: &config::Config,
-    wallet: &config::Wallet,
+    wallet: &wallet::Wallet,
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
@@ -76,7 +78,7 @@ fn run_order(
 
 fn run_books(
     config: &config::Config,
-    wallet: &config::Wallet,
+    wallet: &wallet::Wallet,
     books: &types::Books,
     exchanges: &config::ExchangeList,
 ) {
@@ -109,7 +111,7 @@ fn run_offer(
     exchange: &config::Exchange,
     offer: &types::Offer,
     market: &types::Market,
-    wallet: &config::Wallet,
+    wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let most_qty = balance_check(wallet, exchange, &market.quote, offer.base_qty);
     let capped_offer = types::Offer {
@@ -133,7 +135,7 @@ fn run_offer(
 }
 
 fn balance_check(
-    wallet: &config::Wallet,
+    wallet: &wallet::Wallet,
     exchange: &config::Exchange,
     ticker: &types::Ticker,
     amount: f64,
@@ -144,7 +146,8 @@ fn balance_check(
     } else {
         println!(
             "** {} balance capped at {} from {}",
-            ticker.symbol, wallet_coin_balance, amount);
+            ticker.symbol, wallet_coin_balance, amount
+        );
         wallet_coin_balance
     }
 }
