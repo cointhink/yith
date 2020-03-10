@@ -25,13 +25,13 @@ impl Wallet {
     }
 
     pub fn coin_amount(&self, name: &str) -> f64 {
-        match self.find_coin(name) {
+        match self.find_coin_by_symbol(name) {
             Ok(coin) => coin.amounts[0].base_qty,
             Err(_msg) => 0.0,
         }
     }
 
-    pub fn find_coin(&self, name: &str) -> Result<&WalletCoin, &'static str> {
+    pub fn find_coin_by_symbol(&self, name: &str) -> Result<&WalletCoin, &'static str> {
         for coin in &self.coins {
             if coin.ticker_symbol == name {
                 return Ok(&coin);

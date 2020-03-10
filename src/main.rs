@@ -35,6 +35,12 @@ fn app(
     for coin in &wallet.coins {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
         println!("{} {:0.4}", &coin.ticker_symbol, &balance / 10_f64.powi(18));
+        wallet.coins.push(wallet::WalletCoin{
+            ticker_symbol: coin.ticker_symbol,
+            contract: "0x".to_string(),
+            source: my_addr,
+            amounts: vec![Offer{}]
+        });
     }
 
     if args.len() == 2 {
