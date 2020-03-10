@@ -27,7 +27,7 @@ fn app(
     exchanges: config::ExchangeList,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
-    let mut order: types::Order;
+    let order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     for coin in &wallet.coins {
@@ -86,10 +86,15 @@ fn run_books(
             let exchange_name = &book.market.source.name;
             println!("{:?} {}", &books.askbid, exchange_name);
             match exchanges.find_by_name(exchange_name) {
-                Some(exchange) => {
-                    run_offer(config, &books.askbid, &exchange, 
-                        offer, &book.market, wallet).unwrap()
-                }
+                Some(exchange) => run_offer(
+                    config,
+                    &books.askbid,
+                    &exchange,
+                    offer,
+                    &book.market,
+                    wallet,
+                )
+                .unwrap(),
                 None => {
                     println!("exchange detail not found for: {:#?}", exchange_name);
                 }
@@ -106,16 +111,7 @@ fn run_offer(
     market: &types::Market,
     wallet: &config::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let wallet_coin_balance = wallet.coin_amount(&market.quote.symbol);
-    let most_qty = if offer.base_qty < wallet_coin_balance {
-        offer.base_qty
-    } else {
-        println!(
-            "Offer {} capped at {} {}",
-            offer, wallet_coin_balance, market.quote
-        );
-        wallet_coin_balance
-    };
+    let most_qty = balance_check(wallet, exchange, &market.quote, offer.base_qty);
     let capped_offer = types::Offer {
         base_qty: most_qty,
         quote: offer.quote,
@@ -133,5 +129,22 @@ fn run_offer(
             println!("{}", e);
             Err(Box::new(error::OrderError::new(&e.description())))
         }
+    }
+}
+
+fn balance_check(
+    wallet: &config::Wallet,
+    exchange: &config::Exchange,
+    ticker: &types::Ticker,
+    amount: f64,
+) -> f64 {
+    let wallet_coin_balance = wallet.coin_amount(&ticker.symbol);
+    if amount < wallet_coin_balance {
+        amount
+    } else {
+        println!(
+            "** {} balance capped at {} from {}",
+            ticker.symbol, wallet_coin_balance, amount);
+        wallet_coin_balance
     }
 }

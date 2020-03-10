@@ -75,14 +75,14 @@ impl exchange::Api for Switcheo {
             types::AskBid::Bid => BuySell::Sell,
         };
 
-        let mut market_pair = make_market_pair(market.swapped, &market.base, &market.quote);
+        let market_pair = make_market_pair(market.swapped, &market.base, &market.quote);
 
         let now_millis = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
         let unit_qty = quantity_in_base_units(offer.base_qty, &market.base);
-        let mut sheet = OrderSheet {
+        let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
             pair: market_pair,
@@ -100,8 +100,7 @@ impl exchange::Api for Switcheo {
             sheet: sheet,
             signature: signature,
         };
-        let json = serde_json::to_string(&sheet_sign).unwrap();
-        println!("{}", &json);
+        println!("{:#?}", sheet_sign);
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
