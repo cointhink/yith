@@ -44,7 +44,7 @@ pub trait Api {
     ) -> Result<OrderSheet, Box<dyn error::Error>>;
 
     fn submit(&self, sheet: OrderSheet) -> Result<(), Box<dyn error::Error>>;
-    fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64 { 0.0 }
+    fn balance<'a>(&self, public_addr: &str, ticker_symbol: &str, contract: &str, exchange: &config::ExchangeApi) -> f64 { 0.0 }
 }
 
 pub trait Balance {

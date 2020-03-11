@@ -6,6 +6,7 @@ use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -49,6 +50,22 @@ pub struct BuildSuccess {}
 pub struct BuildError {
     error: String,
     error_message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BalanceResponse {
+  confirming: HashMap<String, BalanceConfirming>,
+  confirmed: HashMap<String, String>,
+  locked: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BalanceConfirming {
+    event_type: String,
+    asset_id: String,
+    amount: u32,
+    transaction_hash: (),
+    created_at: String
 }
 
 pub struct Switcheo {}
@@ -122,14 +139,17 @@ impl exchange::Api for Switcheo {
         Ok(())
     }
 
-    fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64 { 
+    fn balance<'a>(&self, public_addr: &str, ticker_symbol: &str, ticker_contract: &str, exchange: &config::ExchangeApi) -> f64 { 
+        let url = format!("{}/balances?addresses={}&contract_hashes={}", 
+            exchange.api_url.as_str(), public_addr, exchange.contract_address);
+        println!("switcheo limit order build {}", url);
+        let client = reqwest::blocking::Client::new();
+        let resp = client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        let balances = resp.json::<BalanceResponse>().unwrap();
+        println!("{} {:#?}", status, balances);
+        //  "confirmed": {"GAS": "47320000000.0",
         1.0 
-    }
-}
-
-impl exchange::Balance for Switcheo {
-    fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64 {
-        0.0
     }
 }
 

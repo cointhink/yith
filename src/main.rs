@@ -43,7 +43,7 @@ fn app(
         for exchange in &exchanges.exchanges {
             if exchange.settings.enabled && exchange.settings.has_balances {
                 println!("{} lookup {}", exchange, coin.ticker_symbol);
-                let balance = exchange.api.balance(&my_addr, &coin.contract);
+                let balance = exchange.api.balance(&my_addr, &coin.ticker_symbol, &coin.contract, &exchange.settings);
                 new_coins.push(wallet::WalletCoin{
                     ticker_symbol: coin.ticker_symbol.clone(),
                     contract: coin.contract.clone(),
