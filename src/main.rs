@@ -18,7 +18,6 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let mut wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
-    println!("{}", wallet);
     app(&config, wallet, exchanges, args).unwrap();
 }
 
@@ -31,21 +30,25 @@ fn app(
     let order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    println!("Balance warmup for {}", my_addr);
+    println!("etherscan balance warmup for 0x{}", my_addr);
     let mut new_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
-        println!("{} {:0.4}", &coin.ticker_symbol, &balance / 10_f64.powi(18));
         new_coins.push(wallet::WalletCoin{
             ticker_symbol: coin.ticker_symbol.clone(),
-            contract: "0x".to_string(),
+            contract: coin.contract.clone(),
             source: my_addr.clone(),
             amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
         });
+        for exchange in &exchanges.exchanges {
+            if exchange.settings.has_balances {
+                println!("{} has balances", exchange);
+            }
+        }
     }
     wallet.coins.append(&mut new_coins);
     println!("{}", wallet);
-    
+
     if args.len() == 2 {
         let arb_filename = args[1].clone();
         println!("loading {}", arb_filename);

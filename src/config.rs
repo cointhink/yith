@@ -26,10 +26,17 @@ pub struct Exchange {
     pub api: Box<dyn exchange::Api>,
 }
 
+impl fmt::Display for Exchange {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.settings.name)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExchangeApi {
     pub name: String,
     pub enabled: bool,
+    pub has_balances: bool,
     pub protocol: ExchangeProtocol,
     pub contract_address: String,
     pub api_url: String,
@@ -52,7 +59,7 @@ pub enum ExchangeProtocol {
 }
 
 pub struct ExchangeList {
-    exchanges: Vec<Exchange>,
+    pub exchanges: Vec<Exchange>,
 }
 
 impl ExchangeList {
@@ -64,6 +71,11 @@ impl ExchangeList {
         }
         None
     }
+
+    // incredible rust wtf
+    //pub fn active(&self) -> Vec<Exchange> {
+    //    self.exchanges.iter().filter(|e| e.settings.enabled)
+    //}
 }
 
 pub fn read_exchanges(filename: &str) -> ExchangeList {

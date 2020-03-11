@@ -2,6 +2,7 @@
   -
     name: idex
     enabled: false
+    has_balances: true
     protocol: idex
     contract_address: 0x
     api_url: https://api.idex.market/
@@ -9,6 +10,7 @@
     maker_fee: 0.0
   -
     name: switcheo
+    has_balances: true
     enabled: false
     protocol: switcheo
     contract_address: 0x7ee7ca6e75de79e618e88bdf80d0b1db136b22d0
@@ -17,6 +19,7 @@
     maker_fee: 0.0
   -
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
+    has_balances: false
     enabled: true
     protocol: 0x
     contract_address: 0x080bf510FCbF18b91105470639e9561022937712
@@ -26,6 +29,7 @@
     maker_fee: 0.0
   - 
     name: 0x2.1
+    has_balances: false
     enabled: false
     protocol: 0x
     contract_address: 080bf510FCbF18b91105470639e9561022937712
@@ -34,6 +38,7 @@
     maker_fee: 0.0
   - 
     name: 0x3
+    has_balances: false
     enabled: false
     protocol: 0x
     contract_address: B27F1DB0a7e473304A5a06E54bdf035F671400C0
@@ -42,6 +47,7 @@
     maker_fee: 0.0
   -
     name: ddex-v3 # https://legacy-docs.ddex.io/
+    has_balances: false
     enabled: true
     protocol: ddex3
     contract_address: 1234
@@ -51,6 +57,7 @@
     maker_fee: 0.1
   -
     name: ddex-v4  # https://docs.ddex.io/
+    has_balances: false
     enabled: true
     protocol: ddex4
     contract_address: 1234
