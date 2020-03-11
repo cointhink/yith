@@ -51,10 +51,23 @@ pub struct Books {
     pub books: Vec<Book>,
 }
 
+impl Books {
+    pub fn cost_total(&self) -> f64 {
+        self.books.iter().map(|b: &Book| b.cost_total()).sum()
+        //self.books.iter().map(|b| 12.0).sum()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Book {
     pub market: Market,
     pub offers: Vec<Offer>,
+}
+
+impl Book {
+    pub fn cost_total(&self) -> f64 {
+        self.offers.iter().map(|o| o.cost()).sum()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,5 +128,9 @@ impl Offer {
         let s_qty = self.base_qty * self.quote;
         let s_quote = 1.0 / self.quote;
         (s_qty, s_quote)
+    }
+
+    pub fn cost(&self) -> f64 {
+        self.base_qty * self.quote
     }
 }

@@ -16,15 +16,15 @@ fn main() {
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename);
     let wallet_filename = "wallet.yaml";
-    let wallet = wallet::Wallet::load_file(wallet_filename);
+    let mut wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
     println!("{}", wallet);
-    app(&config, &wallet, exchanges, args).unwrap();
+    app(&config, wallet, exchanges, args).unwrap();
 }
 
 fn app(
     config: &config::Config,
-    wallet: &wallet::Wallet,
+    mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
@@ -32,17 +32,20 @@ fn app(
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     println!("Balance warmup for {}", my_addr);
-    for coin in &wallet.coins {
+    let mut new_coins = Vec::<wallet::WalletCoin>::new();
+    for coin in wallet.coins.iter() {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
         println!("{} {:0.4}", &coin.ticker_symbol, &balance / 10_f64.powi(18));
-        wallet.coins.push(wallet::WalletCoin{
-            ticker_symbol: coin.ticker_symbol,
+        new_coins.push(wallet::WalletCoin{
+            ticker_symbol: coin.ticker_symbol.clone(),
             contract: "0x".to_string(),
-            source: my_addr,
-            amounts: vec![Offer{}]
+            source: my_addr.clone(),
+            amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
         });
     }
-
+    wallet.coins.append(&mut new_coins);
+    println!("{}", wallet);
+    
     if args.len() == 2 {
         let arb_filename = args[1].clone();
         println!("loading {}", arb_filename);
@@ -67,13 +70,13 @@ fn app(
         "Order {} loaded. Cost {} Profit {}",
         order.id, order.cost, order.profit
     );
-    run_order(config, wallet, &order, &exchanges);
+    run_order(config, &mut wallet, &order, &exchanges);
     Ok(0)
 }
 
 fn run_order(
     config: &config::Config,
-    wallet: &wallet::Wallet,
+    wallet: &mut wallet::Wallet,
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
