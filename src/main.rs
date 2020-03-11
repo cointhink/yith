@@ -41,8 +41,15 @@ fn app(
             amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
         });
         for exchange in &exchanges.exchanges {
-            if exchange.settings.has_balances {
-                println!("{} has balances", exchange);
+            if exchange.settings.enabled && exchange.settings.has_balances {
+                println!("{} lookup {}", exchange, coin.ticker_symbol);
+                let balance = exchange.api.balance(&my_addr, &coin.contract);
+                new_coins.push(wallet::WalletCoin{
+                    ticker_symbol: coin.ticker_symbol.clone(),
+                    contract: coin.contract.clone(),
+                    source: exchange.settings.name.clone(),
+                    amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
+                });
             }
         }
     }

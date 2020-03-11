@@ -121,6 +121,16 @@ impl exchange::Api for Switcheo {
     fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
+
+    fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64 { 
+        1.0 
+    }
+}
+
+impl exchange::Balance for Switcheo {
+    fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64 {
+        0.0
+    }
 }
 
 pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
