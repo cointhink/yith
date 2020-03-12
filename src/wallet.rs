@@ -31,9 +31,13 @@ impl Wallet {
         }
     }
 
-    pub fn find_coin_by_symbol(&self, name: &str) -> Result<&WalletCoin, &'static str> {
+    pub fn find_coin_by_symbol(&self, symbol: &str) -> Result<&WalletCoin, &'static str> {
+        self.find_coin_by_source_symbol("limit", symbol)
+    }
+
+    pub fn find_coin_by_source_symbol(&self, source: &str, symbol: &str) -> Result<&WalletCoin, &'static str> {
         for coin in &self.coins {
-            if coin.ticker_symbol == name {
+            if coin.ticker_symbol == symbol && coin.source == source {
                 return Ok(&coin);
             }
         }
