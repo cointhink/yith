@@ -28,9 +28,10 @@ pub struct OrderSheetSign {
 pub struct OrderSheet {
     blockchain: String,
     contract_hash: String,
+    order_type: String,
     pair: String,
-    price: String,
-    quantity: String,
+    price: String, // market-specified precision
+    quantity: String, // integer unit quantity
     side: BuySell,
     timestamp: u128,
     use_native_tokens: bool,
@@ -102,6 +103,7 @@ impl exchange::Api for Switcheo {
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
+            order_type: "limit".to_string(), 
             pair: market_pair,
             price: format!("{}", offer.quote),
             quantity: format!("{}", unit_qty),
