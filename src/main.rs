@@ -172,7 +172,7 @@ fn run_offer(
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {
             println!("{}", e);
-            Err(Box::new(error::OrderError::new(&e.description())))
+            Err(e)
         }
     }
 }
