@@ -125,13 +125,14 @@ impl exchange::Api for Switcheo {
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
         println!("switcheo result {:#?} {}", status, resp.url());
-        //        let text = resp.text().unwrap();
-        //        println!("{}", text);
+                let text = resp.text().unwrap();
+                println!("{}", text);
         if status.is_success() {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
-            let build_err = resp.json::<BuildError>().unwrap();
-            Err(Box::new(error::OrderError::new(&build_err.error_message)))
+            //let build_err = resp.json::<BuildError>().unwrap();
+            //Err(Box::new(error::OrderError::new(&build_err.error_message)))
+            Err(Box::new(error::OrderError::new("grinds my gears")))
         }
     }
 
@@ -139,27 +140,27 @@ impl exchange::Api for Switcheo {
         Ok(())
     }
 
-    fn balance<'a>(
+    fn balances<'a>(
         &self,
         public_addr: &str,
-        ticker_symbol: &str,
+        ticker_symbols: Vec<&str>,
         ticker_contract: &str,
         exchange: &config::ExchangeApi,
-    ) -> f64 {
+    ) -> Vec<(&str, f64)> {
         let url = format!(
             "{}/balances?addresses={}&contract_hashes={}",
             exchange.api_url.as_str(),
             public_addr,
             exchange.contract_address
         );
-        println!("switcheo limit order build {}", url);
+        println!("switcheo balances {}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         let balances = resp.json::<BalanceResponse>().unwrap();
         println!("{} {:#?}", status, balances);
         //  "confirmed": {"GAS": "47320000000.0",
-        1.0
+        vec![]
     }
 }
 

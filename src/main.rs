@@ -43,28 +43,35 @@ fn app(
                 quote: 1.0,
             }],
         });
-        for exchange in &exchanges.exchanges {
-            if exchange.settings.enabled && exchange.settings.has_balances {
-                println!("{} lookup {}", exchange, coin.ticker_symbol);
-                let balance = exchange.api.balance(
-                    &my_addr,
-                    &coin.ticker_symbol,
-                    &coin.contract,
-                    &exchange.settings,
-                );
-                new_coins.push(wallet::WalletCoin {
-                    ticker_symbol: coin.ticker_symbol.clone(),
-                    contract: coin.contract.clone(),
+    }
+    wallet.coins.append(&mut new_coins);
+    for exchange in &exchanges.exchanges {
+        let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
+        let mut coin_symbols = Vec::<&str>::new();
+        for coin in wallet.coins.iter() {
+            coin_symbols.push(&coin.ticker_symbol);
+        }
+        if exchange.settings.enabled && exchange.settings.has_balances {
+            let balances = exchange.api.balances(
+                &my_addr,
+                coin_symbols,
+                "wut",
+                &exchange.settings,
+            );
+            for balance in balances {
+                exchange_coins.push(wallet::WalletCoin {
+                    ticker_symbol: balance.0.to_string(),
+                    contract: "none".to_string(),
                     source: exchange.settings.name.clone(),
                     amounts: vec![types::Offer {
-                        base_qty: balance,
+                        base_qty: balance.1,
                         quote: 1.0,
                     }],
                 });
             }
         }
+        wallet.coins.append(&mut exchange_coins);
     }
-    wallet.coins.append(&mut new_coins);
     println!("{}", wallet);
 
     if args.len() == 2 {
