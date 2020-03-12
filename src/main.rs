@@ -1,5 +1,4 @@
 mod config;
-mod wallet;
 mod error;
 mod eth;
 mod etherscan;
@@ -8,6 +7,7 @@ mod exchanges;
 mod geth;
 mod redis;
 mod types;
+mod wallet;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -34,21 +34,32 @@ fn app(
     let mut new_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
         let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
-        new_coins.push(wallet::WalletCoin{
+        new_coins.push(wallet::WalletCoin {
             ticker_symbol: coin.ticker_symbol.clone(),
             contract: coin.contract.clone(),
             source: my_addr.clone(),
-            amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
+            amounts: vec![types::Offer {
+                base_qty: balance,
+                quote: 1.0,
+            }],
         });
         for exchange in &exchanges.exchanges {
             if exchange.settings.enabled && exchange.settings.has_balances {
                 println!("{} lookup {}", exchange, coin.ticker_symbol);
-                let balance = exchange.api.balance(&my_addr, &coin.ticker_symbol, &coin.contract, &exchange.settings);
-                new_coins.push(wallet::WalletCoin{
+                let balance = exchange.api.balance(
+                    &my_addr,
+                    &coin.ticker_symbol,
+                    &coin.contract,
+                    &exchange.settings,
+                );
+                new_coins.push(wallet::WalletCoin {
                     ticker_symbol: coin.ticker_symbol.clone(),
                     contract: coin.contract.clone(),
                     source: exchange.settings.name.clone(),
-                    amounts: vec![types::Offer{base_qty:balance,quote:1.0}]
+                    amounts: vec![types::Offer {
+                        base_qty: balance,
+                        quote: 1.0,
+                    }],
                 });
             }
         }
@@ -107,15 +118,21 @@ fn run_books(
             let exchange_name = &book.market.source.name;
             println!("{:?} {}", &books.askbid, exchange_name);
             match exchanges.find_by_name(exchange_name) {
-                Some(exchange) => run_offer(
-                    config,
-                    &books.askbid,
-                    &exchange,
-                    offer,
-                    &book.market,
-                    wallet,
-                )
-                .unwrap(),
+                Some(exchange) => {
+                    if exchange.settings.enabled {
+                        run_offer(
+                            config,
+                            &books.askbid,
+                            &exchange,
+                            offer,
+                            &book.market,
+                            wallet,
+                        )
+                        .unwrap()
+                    } else {
+                        println!("exchange {} is disabled!", exchange_name);
+                    }
+                }
                 None => {
                     println!("exchange detail not found for: {:#?}", exchange_name);
                 }

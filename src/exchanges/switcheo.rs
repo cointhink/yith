@@ -5,8 +5,8 @@ use crate::exchange;
 use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::collections::HashMap;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -54,9 +54,9 @@ pub struct BuildError {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceResponse {
-  confirming: HashMap<String, BalanceConfirming>,
-  confirmed: HashMap<String, String>,
-  locked: HashMap<String, String>,
+    confirming: HashMap<String, BalanceConfirming>,
+    confirmed: HashMap<String, String>,
+    locked: HashMap<String, String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,7 +65,7 @@ pub struct BalanceConfirming {
     asset_id: String,
     amount: u32,
     transaction_hash: (),
-    created_at: String
+    created_at: String,
 }
 
 pub struct Switcheo {}
@@ -139,9 +139,19 @@ impl exchange::Api for Switcheo {
         Ok(())
     }
 
-    fn balance<'a>(&self, public_addr: &str, ticker_symbol: &str, ticker_contract: &str, exchange: &config::ExchangeApi) -> f64 { 
-        let url = format!("{}/balances?addresses={}&contract_hashes={}", 
-            exchange.api_url.as_str(), public_addr, exchange.contract_address);
+    fn balance<'a>(
+        &self,
+        public_addr: &str,
+        ticker_symbol: &str,
+        ticker_contract: &str,
+        exchange: &config::ExchangeApi,
+    ) -> f64 {
+        let url = format!(
+            "{}/balances?addresses={}&contract_hashes={}",
+            exchange.api_url.as_str(),
+            public_addr,
+            exchange.contract_address
+        );
         println!("switcheo limit order build {}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
@@ -149,7 +159,7 @@ impl exchange::Api for Switcheo {
         let balances = resp.json::<BalanceResponse>().unwrap();
         println!("{} {:#?}", status, balances);
         //  "confirmed": {"GAS": "47320000000.0",
-        1.0 
+        1.0
     }
 }
 

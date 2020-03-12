@@ -51,7 +51,14 @@ impl WalletCoin {
 
 impl fmt::Display for WalletCoin {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:{:0.5}:{}({})", self.source, self.base_total(), self.ticker_symbol, self.contract)
+        write!(
+            f,
+            "{}:{:0.5}:{}({})",
+            self.source,
+            self.base_total(),
+            self.ticker_symbol,
+            self.contract
+        )
     }
 }
 
