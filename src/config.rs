@@ -22,7 +22,7 @@ pub fn read_config(filename: &str) -> Config {
 }
 
 pub struct Exchange {
-    pub settings: ExchangeApi,
+    pub settings: ExchangeSettings,
     pub api: Box<dyn exchange::Api>,
 }
 
@@ -33,7 +33,7 @@ impl fmt::Display for Exchange {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ExchangeApi {
+pub struct ExchangeSettings {
     pub name: String,
     pub enabled: bool,
     pub has_balances: bool,
@@ -81,7 +81,7 @@ impl ExchangeList {
 pub fn read_exchanges(filename: &str) -> ExchangeList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
-    let exchange_settings: Vec<ExchangeApi> = serde_yaml::from_str(&yaml).unwrap();
+    let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml).unwrap();
     let elist: Vec<Exchange> = vec![];
     let mut list = ExchangeList { exchanges: elist };
     for settings in exchange_settings {

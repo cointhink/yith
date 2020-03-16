@@ -9,6 +9,21 @@ use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TokenDetail {
+    symbol: String,
+    name: String,
+    r#type: String,
+    hash: String,
+    decimals: i32,
+    transfer_decimals: i32,
+    precision: i32,
+    minimum_quantity: String,
+    trading_active: bool,
+    is_stablecoin: bool,
+    stablecoin_type: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
     #[serde(rename = "buy")]
     Buy,
@@ -76,7 +91,7 @@ impl exchange::Api for Switcheo {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
@@ -147,7 +162,7 @@ impl exchange::Api for Switcheo {
         public_addr: &str,
         ticker_symbols: Vec<&str>,
         ticker_contract: &str,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
         let url = format!(
             "{}/balances?addresses={}&contract_hashes={}",
@@ -189,7 +204,7 @@ pub fn amount_to_units(amount: f64, ticker: &types::Ticker) -> String {
         Err(e) => {
             println!("{} {} => NOT FOUND", amount, ticker.symbol);
             "error".to_string()
-        },
+        }
     }
 }
 

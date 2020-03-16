@@ -36,6 +36,7 @@ pub enum AskBid {
     #[serde(rename = "bid")]
     Bid,
 }
+
 impl AskBid {
     pub fn otherside(&self) -> AskBid {
         match self {
@@ -49,7 +50,7 @@ impl fmt::Display for AskBid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let word = match self {
             Ask => "ASK",
-            Bid => "BID"
+            Bid => "BID",
         };
         write!(f, "{}", word)
     }

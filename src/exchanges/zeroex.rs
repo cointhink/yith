@@ -75,7 +75,7 @@ impl exchange::Api for Zeroex {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,

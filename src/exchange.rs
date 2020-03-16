@@ -37,7 +37,7 @@ pub trait Api {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
@@ -49,7 +49,7 @@ pub trait Api {
         public_addr: &str,
         ticker_symbol: Vec<&str>,
         contract: &str,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
         vec![]
     }

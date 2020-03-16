@@ -96,7 +96,7 @@ fn app(
 
     println!(
         "{}/{} Cost {:0.5} Profit {:0.5} {}",
-        order.pair.base, order.pair.quote, order.cost, order.profit, order.id, 
+        order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
     );
     run_order(config, &mut wallet, &order, &exchanges);
     Ok(0)

@@ -51,7 +51,7 @@ impl exchange::Api for Ddex4 {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        exchange: &config::ExchangeApi,
+        exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
         proxy: &str,
