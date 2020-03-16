@@ -53,7 +53,7 @@ impl exchange::Api for Ddex3 {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: &str,
+        proxy: Option<String>,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "ddex3(hydro) build {:#?} {} {}@{}",
@@ -127,17 +127,18 @@ impl exchange::Api for Ddex3 {
     }
 }
 
-pub fn build_auth_client(proxy_url: &str) -> reqwest::Result<reqwest::blocking::Client> {
-    let headers = header::HeaderMap::new();
+pub fn build_auth_client(proxy_url: Option<String>) -> reqwest::Result<reqwest::blocking::Client> {
+    let mut headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .default_headers(headers);
-    let bldr = if proxy_url.len() > 0 {
-        println!("PROXY {}", proxy_url);
-        let proxy = reqwest::Proxy::all(proxy_url)?;
-        bldr.proxy(proxy)
-    } else {
-        bldr
+    let bldr = match proxy_url {
+        Some(proxy_url) => {
+            println!("PROXY {}", proxy_url);
+            let proxy = reqwest::Proxy::all(&proxy_url)?;
+            bldr.proxy(proxy)
+        }
+        None => bldr,
     };
     bldr.build()
 }

@@ -167,7 +167,7 @@ fn run_offer(
         &exchange.settings,
         market,
         &capped_offer,
-        &config.proxy,
+        config.proxy.clone(),
     ) {
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {

@@ -80,7 +80,7 @@ impl exchange::Api for Zeroex {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: &str,
+        proxy: Option<String>,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "0x build {:#?} {} {}@{}",

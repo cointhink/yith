@@ -41,7 +41,7 @@ pub trait Api {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: &str,
+        proxy: Option<String>,
     ) -> Result<OrderSheet, Box<dyn error::Error>>;
 
     fn submit(&self, sheet: OrderSheet) -> Result<(), Box<dyn error::Error>>;
