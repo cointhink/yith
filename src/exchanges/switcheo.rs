@@ -103,7 +103,7 @@ impl exchange::Api for Switcheo {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
-            pair: "USDT_DAI".to_string(), //market_pair,
+            pair: market_pair,
             price: amount_to_units(offer.quote, &market.quote),
             quantity: amount_to_units(offer.base_qty, &market.base),
             side: side,
@@ -186,7 +186,10 @@ pub fn amount_to_units(amount: f64, ticker: &types::Ticker) -> String {
             println!("{} {}^{} => {}", amount, ticker.symbol, exp, units);
             format!("{}", units)
         }
-        Err(e) => "error".to_string(),
+        Err(e) => {
+            println!("{} {} => NOT FOUND", amount, ticker.symbol);
+            "error".to_string()
+        },
     }
 }
 
@@ -200,6 +203,7 @@ pub fn ticker_to_pow(ticker: &types::Ticker) -> Result<i32, ()> {
         "WBTC" => Ok(8),
         "DAI" => Ok(18),
         "USDT" => Ok(6),
+        "USDC" => Ok(6),
         _ => Err(()),
     }
 }
@@ -223,11 +227,20 @@ mod tests {
     }
 
     #[test]
+    fn test_amount_to_units() {
+        let ticker = types::Ticker {
+            symbol: "ETH".to_string(),
+        };
+        let units = amount_to_units(2.3, &ticker);
+        assert_eq!(units, "2299999999999999744") // float sigma fun
+    }
+
+    #[test]
     fn test_quantity_in_base_units() {
         let ticker = types::Ticker {
             symbol: "ETH".to_string(),
         };
-        let unit_q = quantity_in_base_units(1.0, &ticker);
+        let unit_q = quantity_in_base_units(1.0, 18);
         assert_eq!(unit_q, 1000000000000000000)
     }
 
@@ -236,7 +249,7 @@ mod tests {
         let ticker = types::Ticker {
             symbol: "ETH".to_string(),
         };
-        let pow = ticker_to_pow(&ticker);
+        let pow = ticker_to_pow(&ticker).unwrap();
         assert_eq!(pow, 18)
     }
 }
