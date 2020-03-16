@@ -33,7 +33,10 @@ fn app(
     println!("etherscan balance warmup for 0x{}", my_addr);
     let mut new_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
-        let balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
+        let mut balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
+        if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH_765cc2" {
+            balance = eth::wei_to_eth(balance)
+        }
         new_coins.push(wallet::WalletCoin {
             ticker_symbol: coin.ticker_symbol.clone(),
             contract: coin.contract.clone(),
