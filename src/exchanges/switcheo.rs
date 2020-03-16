@@ -30,7 +30,7 @@ pub struct OrderSheet {
     contract_hash: String,
     order_type: String,
     pair: String,
-    price: String, // market-specified precision
+    price: String,    // market-specified precision
     quantity: String, // integer unit quantity
     side: BuySell,
     timestamp: u128,
@@ -99,14 +99,13 @@ impl exchange::Api for Switcheo {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
-        let unit_qty = quantity_in_base_units(offer.base_qty, &market.base);
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
-            order_type: "limit".to_string(), 
-            pair: market_pair,
-            price: format!("{}", offer.quote),
-            quantity: format!("{}", unit_qty),
+            order_type: "limit".to_string(),
+            pair: "USDT_DAI".to_string(), //market_pair,
+            price: amount_to_units(offer.quote, &market.quote),
+            quantity: amount_to_units(offer.base_qty, &market.base),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,
@@ -128,8 +127,8 @@ impl exchange::Api for Switcheo {
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
         println!("switcheo result {:#?} {}", status, resp.url());
-                let text = resp.text().unwrap();
-                println!("{}", text);
+        let text = resp.text().unwrap();
+        println!("{}", text);
         if status.is_success() {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
@@ -180,17 +179,28 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-pub fn quantity_in_base_units(qty: f64, ticker: &types::Ticker) -> u64 {
-    let pow = ticker_to_pow(ticker);
-    (qty * 10_f64.powi(pow)) as u64
+pub fn amount_to_units(amount: f64, ticker: &types::Ticker) -> String {
+    match ticker_to_pow(ticker) {
+        Ok(exp) => {
+            let units = quantity_in_base_units(amount, exp);
+            println!("{} {}^{} => {}", amount, ticker.symbol, exp, units);
+            format!("{}", units)
+        }
+        Err(e) => "error".to_string(),
+    }
 }
 
-pub fn ticker_to_pow(ticker: &types::Ticker) -> i32 {
+pub fn quantity_in_base_units(qty: f64, exp: i32) -> u64 {
+    (qty * 10_f64.powi(exp)) as u64
+}
+
+pub fn ticker_to_pow(ticker: &types::Ticker) -> Result<i32, ()> {
     match ticker.symbol.as_str() {
-        "ETH" => 4,
-        "WBTC" => 4,
-        "DAI" => 2,
-        _ => 0,
+        "ETH" => Ok(18),
+        "WBTC" => Ok(8),
+        "DAI" => Ok(18),
+        "USDT" => Ok(6),
+        _ => Err(()),
     }
 }
 

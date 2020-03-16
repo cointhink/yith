@@ -13,8 +13,10 @@
     has_balances: true
     enabled: true
     protocol: switcheo
-    contract_address: 0x7ee7ca6e75de79e618e88bdf80d0b1db136b22d0
-    api_url: https://api.switcheo.network/v2
+    contract_address: 0x4d19fd42e780d56ff6464fe9e7d5158aee3d125d #test
+    api_url: https://test-api.switcheo.network/v2
+    #contract_address: 0x7ee7ca6e75de79e618e88bdf80d0b1db136b22d0 #live
+    #api_url: https://api.switcheo.network/v2
     taker_fee: 0.0
     maker_fee: 0.0
   -

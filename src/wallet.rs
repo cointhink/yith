@@ -35,7 +35,11 @@ impl Wallet {
         self.find_coin_by_source_symbol("limit", symbol)
     }
 
-    pub fn find_coin_by_source_symbol(&self, source: &str, symbol: &str) -> Result<&WalletCoin, &'static str> {
+    pub fn find_coin_by_source_symbol(
+        &self,
+        source: &str,
+        symbol: &str,
+    ) -> Result<&WalletCoin, &'static str> {
         for coin in &self.coins {
             if coin.ticker_symbol == symbol && coin.source == source {
                 return Ok(&coin);

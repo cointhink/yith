@@ -52,12 +52,9 @@ fn app(
             coin_symbols.push(&coin.ticker_symbol);
         }
         if exchange.settings.enabled && exchange.settings.has_balances {
-            let balances = exchange.api.balances(
-                &my_addr,
-                coin_symbols,
-                "wut",
-                &exchange.settings,
-            );
+            let balances = exchange
+                .api
+                .balances(&my_addr, coin_symbols, "wut", &exchange.settings);
             for balance in balances {
                 exchange_coins.push(wallet::WalletCoin {
                     ticker_symbol: balance.0.to_string(),
