@@ -6,6 +6,7 @@ use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,6 +22,14 @@ pub struct TokenDetail {
     trading_active: bool,
     is_stablecoin: bool,
     stablecoin_type: Option<String>,
+}
+
+type TokenList = HashMap<String, TokenDetail>;
+pub fn read_tokens(filename: &str) -> TokenList {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let tokens: TokenList = serde_yaml::from_str(&yaml).unwrap();
+    tokens
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -84,9 +93,21 @@ pub struct BalanceConfirming {
     created_at: String,
 }
 
-pub struct Switcheo {}
+pub struct Switcheo {
+    tokens: TokenList,
+}
+
+impl Switcheo {
+    pub fn new() -> Switcheo {
+        let tokens = read_tokens("notes/switcheo-tokens.json");
+        println!("switcheo loaded {} tokens", tokens.len());
+        Switcheo { tokens: tokens }
+    }
+}
 
 impl exchange::Api for Switcheo {
+    fn setup(&mut self) {}
+
     fn build(
         &self,
         privkey: &str,

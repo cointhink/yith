@@ -44,6 +44,8 @@ pub struct BuildResponse {
 pub struct Ddex3 {}
 
 impl exchange::Api for Ddex3 {
+    fn setup(&mut self) {}
+
     fn build(
         &self,
         privkey: &str,

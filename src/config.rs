@@ -89,7 +89,7 @@ pub fn read_exchanges(filename: &str) -> ExchangeList {
             ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
             ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3 {}),
             ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
-            ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo {}),
+            ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new()),
             ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex {}),
         };
         list.exchanges.push(Exchange {

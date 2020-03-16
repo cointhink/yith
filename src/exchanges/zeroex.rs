@@ -71,6 +71,8 @@ pub enum SignatureType {
 pub struct Zeroex {}
 
 impl exchange::Api for Zeroex {
+    fn setup(&mut self) {}
+
     fn build(
         &self,
         privkey: &str,

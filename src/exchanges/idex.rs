@@ -23,6 +23,8 @@ pub struct OrderSheet {
 pub struct Idex {}
 
 impl exchange::Api for Idex {
+    fn setup(&mut self) {}
+
     fn build(
         &self,
         privkey: &str,

@@ -33,6 +33,7 @@ impl fmt::Display for ExchangeError {
 }
 
 pub trait Api {
+    fn setup(&mut self);
     fn build(
         &self,
         privkey: &str,
