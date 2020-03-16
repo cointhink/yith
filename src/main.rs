@@ -189,7 +189,7 @@ fn balance_limit(
         amount
     } else {
         println!(
-            "** {} balance capped at {} from {}",
+            "* {} balance capped at {} from {}",
             ticker.symbol, wallet_coin_balance, amount
         );
         wallet_coin_balance
