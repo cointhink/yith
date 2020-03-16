@@ -95,8 +95,8 @@ fn app(
     }
 
     println!(
-        "Order {} loaded. Cost {} Profit {}",
-        order.id, order.cost, order.profit
+        "{}/{} Cost {:0.5} Profit {:0.5} {}",
+        order.pair.base, order.pair.quote, order.cost, order.profit, order.id, 
     );
     run_order(config, &mut wallet, &order, &exchanges);
     Ok(0)
@@ -108,7 +108,6 @@ fn run_order(
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
-    println!("{}/{}:", &order.pair.base, &order.pair.quote);
     run_books(config, wallet, &order.ask_books, exchanges);
     run_books(config, wallet, &order.bid_books, exchanges);
 }
@@ -123,7 +122,6 @@ fn run_books(
         for offer in &book.offers[..1] {
             // 1 offer limit
             let exchange_name = &book.market.source.name;
-            println!("{:?} {}", &books.askbid, exchange_name);
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
                     if exchange.settings.enabled {
@@ -156,6 +154,7 @@ fn run_offer(
     market: &types::Market,
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    println!("** {} {} {}", askbid, market, offer);
     let most_quote = balance_limit(wallet, exchange, &market.quote, offer.cost());
     let most_qty = most_quote / offer.quote;
     let capped_offer = types::Offer {

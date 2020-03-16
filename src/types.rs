@@ -45,6 +45,16 @@ impl AskBid {
     }
 }
 
+impl fmt::Display for AskBid {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let word = match self {
+            Ask => "ASK",
+            Bid => "BID"
+        };
+        write!(f, "{}", word)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Books {
     pub askbid: AskBid,

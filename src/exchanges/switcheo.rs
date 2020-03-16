@@ -82,7 +82,7 @@ impl exchange::Api for Switcheo {
         proxy: &str,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
-            "**{:#?} {} {}@{}",
+            "={:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
 
