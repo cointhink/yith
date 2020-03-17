@@ -75,6 +75,7 @@ pub struct BuildSuccess {}
 pub struct BuildError {
     error: String,
     error_message: String,
+    error_code: u32
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -163,14 +164,14 @@ impl exchange::Api for Switcheo {
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
         println!("switcheo result {:#?} {}", status, resp.url());
-        let text = resp.text().unwrap();
-        println!("{}", text);
+        //let text = resp.text().unwrap();
+        //println!("{}", text);
         if status.is_success() {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
-            //let build_err = resp.json::<BuildError>().unwrap();
-            //Err(Box::new(error::OrderError::new(&build_err.error_message)))
-            Err(Box::new(error::OrderError::new("grinds my gears")))
+            let build_err = resp.json::<BuildError>().unwrap();
+            Err(Box::new(error::OrderError::new(&build_err.error_message)))
+            //Err(Box::new(error::OrderError::new("grinds my gears")))
         }
     }
 

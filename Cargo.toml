@@ -19,4 +19,4 @@ ethabi = "11.0.0"
 ethereum-types = "0.8.0"
 #ethereum-tx-sign = "3.0.1"
 #serde-rlp = "0.1.4"
-
+lettre = { version = "0.9", features = ["smtp-transport"] }

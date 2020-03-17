@@ -1,3 +1,5 @@
+use lettre::{SmtpClient, Transport, SendableEmail, EmailAddress, Envelope};
+
 mod config;
 mod error;
 mod eth;
@@ -171,7 +173,24 @@ fn run_offer(
     ) {
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {
-            println!("{}", e);
+            let subject = format!("{} {} {}", askbid, market, offer);
+            println!("Email {} {}", &config.email, &subject);
+            let email = SendableEmail::new(
+                Envelope::new(
+                    Some(EmailAddress::new("yith@donp.org".to_string()).unwrap()),
+                    vec![EmailAddress::new(config.email.clone()).unwrap()],
+                )
+                .unwrap(),
+                subject,
+                "yith alert".to_string().into_bytes(),
+            );
+            let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
+            let result = mailer.send(email);
+            if result.is_ok() {
+                println!("Email sent {}", &config.email);
+            } else {
+                println!("Email FAILED {}", &config.email);
+            }
             Err(e)
         }
     }
