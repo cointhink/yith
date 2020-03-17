@@ -14,5 +14,6 @@ pub fn send(to_addr: &str, subject: &str, body: &str) {
     let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
     let result = mailer.send(email);
     let word = if result.is_ok() { "sent" } else { "FAILED" };
-    println!("Email {} {} {}", to_addr, subject, word);
+    println!("email {} {} {}", to_addr, subject, word);
+    println!("{}", body);
 }

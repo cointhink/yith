@@ -105,7 +105,7 @@ fn run_order(
     let ask_runs = run_books(config, wallet, &order.ask_books, exchanges);
     let bid_runs = run_books(config, wallet, &order.bid_books, exchanges);
     let run_out = format!(
-        "ask runs: {}\nbid runs: {}",
+        "ask runs: \n{}\nbid runs: \n{}",
         format_runs(ask_runs),
         format_runs(bid_runs)
     );
@@ -130,7 +130,7 @@ fn run_books(
                     match exchanges.find_by_name(exchange_name) {
                         Some(exchange) => {
                             if exchange.settings.enabled {
-                                match run_offer(
+                                let out = match run_offer(
                                     config,
                                     &books.askbid,
                                     &exchange,
@@ -140,7 +140,8 @@ fn run_books(
                                 ) {
                                     Ok(zip) => "ok".to_string(),
                                     Err(e) => e.to_string(),
-                                }
+                                };
+                                format!("{} {} {} {}", &books.askbid, &book.market, offer, out)
                             } else {
                                 format!("exchange {} is disabled!", exchange_name)
                             }
@@ -177,10 +178,7 @@ fn run_offer(
         config.proxy.clone(),
     ) {
         Ok(sheet) => exchange.api.submit(sheet),
-        Err(e) => {
-            let subject = format!("{} {} {} {}", askbid, market, offer, e);
-            Err(e)
-        }
+        Err(e) => Err(e),
     }
 }
 
@@ -203,12 +201,14 @@ fn balance_limit(
 }
 
 fn format_runs(runs: Vec<Vec<String>>) -> String {
-    runs.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
-        let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
-            m.push_str(&format!("offr #{}: {}", idx, t));
+    runs.iter()
+        .enumerate()
+        .fold(String::new(), |mut m, (idx, t)| {
+            let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
+                m.push_str(&format!("offr #{}: {}", idx, t));
+                m
+            });
+            m.push_str(&format!("exg #{}: {}", idx, line));
             m
-        });
-        m.push_str(&format!("exg #{}: {}", idx, line));
-        m
-    })
+        })
 }
