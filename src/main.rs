@@ -1,4 +1,4 @@
-use lettre::{SmtpClient, Transport, SendableEmail, EmailAddress, Envelope};
+use lettre::{EmailAddress, Envelope, SendableEmail, SmtpClient, Transport};
 
 mod config;
 mod error;
@@ -20,13 +20,15 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let mut wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
-    app(&config, wallet, exchanges, args).unwrap();
+    let redis = redis::Redis{url: &config.redis_url};
+    app(&config, wallet, exchanges, redis, args).unwrap();
 }
 
 fn app(
     config: &config::Config,
     mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
+    redis: redis::Redis,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
     let order: types::Order;
@@ -76,25 +78,17 @@ fn app(
     }
     println!("{}", wallet);
 
-    if args.len() == 2 {
-        let arb_filename = args[1].clone();
-        println!("loading {}", arb_filename);
-        order = types::Order::from_file(arb_filename);
-    } else {
-        let mut client = redis::rdsetup(&config.redis_url)?;
-        let inplay_exists = redis::rd_exists(&mut client, "inplay");
-        let arb_id = match inplay_exists {
-            true => {
-                println!("active order found!");
-                redis::rd_inplay(&mut client)
-            }
-            false => {
-                println!("no active order. waiting for order.");
-                redis::rd_next_order(config)
-            }
-        }?;
-        order = redis::rd_order(&mut client, arb_id)?;
-    }
+    let order = match args.len() {
+        2 => {
+            let arb_filename = args[1].clone();
+            println!("loading {}", arb_filename);
+            types::Order::from_file(arb_filename)
+        }
+        _ => {
+            let mut client = redis::rdsetup(&config.redis_url)?;
+            redis.rd_next(&mut client)
+        }
+    };
 
     println!(
         "{}/{} Cost {:0.5} Profit {:0.5} {}",

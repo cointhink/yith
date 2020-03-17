@@ -75,7 +75,7 @@ pub struct BuildSuccess {}
 pub struct BuildError {
     error: String,
     error_message: String,
-    error_code: u32
+    error_code: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
