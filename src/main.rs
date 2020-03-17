@@ -125,16 +125,17 @@ fn run_books(
                     match exchanges.find_by_name(exchange_name) {
                         Some(exchange) => {
                             if exchange.settings.enabled {
-                                run_offer(
+                                match run_offer(
                                     config,
                                     &books.askbid,
                                     &exchange,
                                     offer,
                                     &book.market,
                                     wallet,
-                                )
-                                .unwrap();
-                                format!("good")
+                                ) {
+                                    Ok(zip) => "ok".to_string(),
+                                    Err(e) => e.description().to_string()
+                                }
                             } else {
                                 format!("exchange {} is disabled!", exchange_name)
                             }
