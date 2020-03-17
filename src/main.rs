@@ -20,7 +20,9 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let mut wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
-    let redis = redis::Redis{url: &config.redis_url};
+    let redis = redis::Redis {
+        url: &config.redis_url,
+    };
     app(&config, wallet, exchanges, redis, args).unwrap();
 }
 
@@ -78,16 +80,13 @@ fn app(
     }
     println!("{}", wallet);
 
-    let order = match args.len() {
-        2 => {
-            let arb_filename = args[1].clone();
-            println!("loading {}", arb_filename);
-            types::Order::from_file(arb_filename)
-        }
-        _ => {
-            let mut client = redis::rdsetup(&config.redis_url)?;
-            redis.rd_next(&mut client)
-        }
+    let order = if args.len() == 2 {
+        let arb_filename = args[1].clone();
+        println!("loading {}", arb_filename);
+        types::Order::from_file(arb_filename)
+    } else {
+        let mut client = redis::rdsetup(&config.redis_url)?;
+        redis.rd_next(&mut client)
     };
 
     println!(
