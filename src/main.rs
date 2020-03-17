@@ -104,8 +104,13 @@ fn run_order(
 ) {
     let ask_runs = run_books(config, wallet, &order.ask_books, exchanges);
     let bid_runs = run_books(config, wallet, &order.bid_books, exchanges);
-    let run_out = format!("{} {}", format_runs(ask_runs), format_runs(bid_runs));
-    println!("{}", run_out)
+    let run_out = format!(
+        "ask runs: {}\nbid runs: {}",
+        format_runs(ask_runs),
+        format_runs(bid_runs)
+    );
+    let subject = format!("{}", order.pair);
+    email::send(&config.email, &subject, &run_out);
 }
 
 fn run_books(
@@ -134,7 +139,7 @@ fn run_books(
                                     wallet,
                                 ) {
                                     Ok(zip) => "ok".to_string(),
-                                    Err(e) => e.description().to_string()
+                                    Err(e) => e.to_string(),
                                 }
                             } else {
                                 format!("exchange {} is disabled!", exchange_name)
@@ -174,8 +179,6 @@ fn run_offer(
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {
             let subject = format!("{} {} {} {}", askbid, market, offer, e);
-            let body = format!("{}\n{}", subject, e);
-            email::send(&config.email, &subject, &body);
             Err(e)
         }
     }
@@ -200,12 +203,12 @@ fn balance_limit(
 }
 
 fn format_runs(runs: Vec<Vec<String>>) -> String {
-    runs.iter().fold(String::new(), |mut m, t| {
-        let line = t.iter().fold(String::new(), |mut m, t| {
-            m.push_str(t);
+    runs.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
+        let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
+            m.push_str(&format!("offr #{}: {}", idx, t));
             m
         });
-        m.push_str(&line);
+        m.push_str(&format!("exg #{}: {}", idx, line));
         m
     })
-}    
+}

@@ -29,6 +29,12 @@ pub struct Pair {
     pub quote: String, //quote
 }
 
+impl fmt::Display for Pair {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{}", self.base, self.quote)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub enum AskBid {
     #[serde(rename = "ask")]
