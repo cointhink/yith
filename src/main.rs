@@ -102,8 +102,10 @@ fn run_order(
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
-    run_books(config, wallet, &order.ask_books, exchanges);
-    run_books(config, wallet, &order.bid_books, exchanges);
+    let ask_runs = run_books(config, wallet, &order.ask_books, exchanges);
+    let bid_runs = run_books(config, wallet, &order.bid_books, exchanges);
+    let run_out = format!("{} {}", format_runs(ask_runs), format_runs(bid_runs));
+    println!("{}", run_out)
 }
 
 fn run_books(
@@ -111,33 +113,38 @@ fn run_books(
     wallet: &wallet::Wallet,
     books: &types::Books,
     exchanges: &config::ExchangeList,
-) {
-    for book in &books.books[..1] {
-        for offer in &book.offers[..1] {
-            // 1 offer limit
-            let exchange_name = &book.market.source.name;
-            match exchanges.find_by_name(exchange_name) {
-                Some(exchange) => {
-                    if exchange.settings.enabled {
-                        run_offer(
-                            config,
-                            &books.askbid,
-                            &exchange,
-                            offer,
-                            &book.market,
-                            wallet,
-                        )
-                        .unwrap()
-                    } else {
-                        println!("exchange {} is disabled!", exchange_name);
+) -> Vec<Vec<String>> {
+    books.books[..1]
+        .iter()
+        .map(|book| {
+            book.offers[..1]
+                .iter()
+                .map(|offer| {
+                    // 1 offer limit
+                    let exchange_name = &book.market.source.name;
+                    match exchanges.find_by_name(exchange_name) {
+                        Some(exchange) => {
+                            if exchange.settings.enabled {
+                                run_offer(
+                                    config,
+                                    &books.askbid,
+                                    &exchange,
+                                    offer,
+                                    &book.market,
+                                    wallet,
+                                )
+                                .unwrap();
+                                format!("good")
+                            } else {
+                                format!("exchange {} is disabled!", exchange_name)
+                            }
+                        }
+                        None => format!("exchange detail not found for: {:#?}", exchange_name),
                     }
-                }
-                None => {
-                    println!("exchange detail not found for: {:#?}", exchange_name);
-                }
-            }
-        }
-    }
+                })
+                .collect::<Vec<String>>()
+        })
+        .collect::<Vec<Vec<String>>>()
 }
 
 fn run_offer(
@@ -190,3 +197,14 @@ fn balance_limit(
         wallet_coin_balance
     }
 }
+
+fn format_runs(runs: Vec<Vec<String>>) -> String {
+    runs.iter().fold(String::new(), |mut m, t| {
+        let line = t.iter().fold(String::new(), |mut m, t| {
+            m.push_str(t);
+            m
+        });
+        m.push_str(&line);
+        m
+    })
+}    
