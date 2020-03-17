@@ -173,7 +173,7 @@ fn run_offer(
     ) {
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {
-            let subject = format!("{} {} {}", askbid, market, offer);
+            let subject = format!("{} {} {}\n{}", askbid, market, offer, e);
             println!("Email {} {}", &config.email, &subject);
             let email = SendableEmail::new(
                 Envelope::new(
