@@ -1,6 +1,5 @@
-use lettre::{EmailAddress, Envelope, SendableEmail, SmtpClient, Transport};
-
 mod config;
+mod email;
 mod error;
 mod eth;
 mod etherscan;
@@ -166,24 +165,9 @@ fn run_offer(
     ) {
         Ok(sheet) => exchange.api.submit(sheet),
         Err(e) => {
-            let subject = format!("{} {} {}\n{}", askbid, market, offer, e);
-            println!("Email {} {}", &config.email, &subject);
-            let email = SendableEmail::new(
-                Envelope::new(
-                    Some(EmailAddress::new("yith@donp.org".to_string()).unwrap()),
-                    vec![EmailAddress::new(config.email.clone()).unwrap()],
-                )
-                .unwrap(),
-                "msgid-1234abc".to_string(),
-                ("Subject: omg\n".to_string() + &subject).into_bytes(),
-            );
-            let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
-            let result = mailer.send(email);
-            if result.is_ok() {
-                println!("Email sent {}", &config.email);
-            } else {
-                println!("Email FAILED {}", &config.email);
-            }
+            let subject = format!("{} {} {} {}", askbid, market, offer, e);
+            let body = format!("{}\n{}", subject, e);
+            email::send(&config.email, &subject, &body);
             Err(e)
         }
     }
