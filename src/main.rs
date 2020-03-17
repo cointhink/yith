@@ -175,7 +175,7 @@ fn run_offer(
                 )
                 .unwrap(),
                 "msgid-1234abc".to_string(),
-                subject.into_bytes(),
+                ("Subject: omg\n".to_string() + &subject).into_bytes(),
             );
             let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
             let result = mailer.send(email);
