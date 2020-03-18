@@ -235,8 +235,8 @@ pub fn amount_to_units(amount: f64, ticker: &types::Ticker) -> String {
     }
 }
 
-pub fn quantity_in_base_units(qty: f64, exp: i32) -> u64 {
-    (qty * 10_f64.powi(exp)) as u64
+pub fn quantity_in_base_units(qty: f64, exp: i32) -> u128 {
+    (qty * 10_f64.powi(exp)) as u128
 }
 
 pub fn ticker_to_pow(ticker: &types::Ticker) -> Result<i32, ()> {
