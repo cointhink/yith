@@ -55,8 +55,8 @@ impl AskBid {
 impl fmt::Display for AskBid {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let word = match self {
-            Ask => "ASK",
-            Bid => "BID",
+            ask => "ASK",
+            bid => "BID",
         };
         write!(f, "{}", word)
     }

@@ -130,8 +130,7 @@ impl exchange::Api for Zeroex {
             println!("{:#?}", form);
             let privkey_bytes = &hex::decode(privkey).unwrap();
             form.signature = order_sign(privkey_bytes, &mut form);
-            println!("filled in {:#?}", form);
-            Ok(exchange::OrderSheet::Zeroex(sheet))
+            Ok(exchange::OrderSheet::Zeroex(form))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
             println!("{:#?}", bodyerr);
@@ -144,30 +143,27 @@ impl exchange::Api for Zeroex {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let client = reqwest::blocking::Client::new();
         let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("0x order post {}", url);
-        // let resp = client.post(url.as_str()).json(&sheet).send()?;
-        // println!("{:#?} {}", resp.status(), resp.url());
-        // println!("{:#?}", resp.text());
+        println!("SUBMIT 0x order {}", url);
+        println!("{}", serde_json::to_string(&sheet).unwrap());
+        let resp = client.post(url.as_str()).json(&sheet).send()?;
+        println!("{:#?} {}", resp.status(), resp.url());
+        println!("{:#?}", resp.text());
         Ok(())
     }
 }
 
 pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
-    println!("order_sign privkey {}", hex::encode(privkey_bytes));
     let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
-    println!("order_bytes {}", hex::encode(&form_tokens_bytes));
     let form_hash = eth::hash_msg(&form_tokens_bytes);
-    println!("order_hash {}", hex::encode(&form_hash));
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();
     let exg_with_header: Vec<u8> = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
-    println!("form_bytes {}", hex::encode(&exg_with_header));
     let exg_hash = eth::hash_msg(&exg_with_header);
-    println!("form_hash {}", hex::encode(&exg_hash));
     let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     format!("0x{}02", hex::encode(&form_sig_bytes[..]))
 }
@@ -229,8 +225,6 @@ pub fn hexstr_to_hashbytes(msg_str: &str) -> Vec<u8> {
 
 pub fn exchange_order_tokens(order_hash: [u8; 32], contract_addr: &str) -> Vec<ethabi::Token> {
     let exchange_hash = eip712_exchange_hash(contract_addr);
-    println!("exg hash {}", hex::encode(&exchange_hash));
-    println!("ord hash {}", hex::encode(&order_hash));
     vec![
         ethabi::Token::FixedBytes(exchange_hash.to_vec()),
         ethabi::Token::FixedBytes(order_hash.to_vec()),
