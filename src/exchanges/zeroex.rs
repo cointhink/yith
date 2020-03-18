@@ -122,6 +122,7 @@ impl exchange::Api for Zeroex {
         println!("{:#?}", sheet);
         let client = reqwest::blocking::Client::new();
         println!("{}", url);
+        println!("{}", serde_json::to_string(&sheet).unwrap());
         let resp = client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         if resp.status().is_success() {

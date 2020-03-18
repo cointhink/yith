@@ -110,6 +110,7 @@ impl exchange::Api for Ddex3 {
             ddex_auth_headername,
             header::HeaderValue::from_str(&token).unwrap(), //boom
         );
+        println!("{}", serde_json::to_string(&sheet).unwrap());
         let resp = client.post(&url).headers(headers).json(&sheet).send()?;
         let status = resp.status();
         println!("{:#?} {}", resp.status(), resp.url());
