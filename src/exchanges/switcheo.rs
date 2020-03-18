@@ -170,8 +170,8 @@ impl exchange::Api for Switcheo {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
             let build_err = resp.json::<BuildError>().unwrap();
-            Err(Box::new(error::OrderError::new(&build_err.error_message)))
-            //Err(Box::new(error::OrderError::new("grinds my gears")))
+            let err_msg = format!("{} {}", &build_err.error_code, &build_err.error_message);
+            Err(Box::new(error::OrderError::new(&err_msg)))
         }
     }
 
