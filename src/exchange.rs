@@ -44,7 +44,11 @@ pub trait Api {
         proxy: Option<String>,
     ) -> Result<OrderSheet, Box<dyn error::Error>>;
 
-    fn submit(&self, sheet: OrderSheet) -> Result<(), Box<dyn error::Error>>;
+    fn submit(
+        &self,
+        exchange: &config::ExchangeSettings,
+        sheet: OrderSheet,
+    ) -> Result<(), Box<dyn error::Error>>;
     fn balances<'a>(
         &self,
         public_addr: &str,

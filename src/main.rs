@@ -177,7 +177,7 @@ fn run_offer(
         &capped_offer,
         config.proxy.clone(),
     ) {
-        Ok(sheet) => exchange.api.submit(sheet),
+        Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
         Err(e) => Err(e),
     }
 }

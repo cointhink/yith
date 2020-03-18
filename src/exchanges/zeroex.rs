@@ -131,11 +131,6 @@ impl exchange::Api for Zeroex {
             let privkey_bytes = &hex::decode(privkey).unwrap();
             form.signature = order_sign(privkey_bytes, &mut form);
             println!("filled in {:#?}", form);
-            let url = format!("{}/orders", exchange.api_url.as_str());
-            println!("0x order post {}", url);
-            // let resp = client.post(url.as_str()).json(&form).send()?;
-            // println!("{:#?} {}", resp.status(), resp.url());
-            // println!("{:#?}", resp.text());
             Ok(exchange::OrderSheet::Zeroex(sheet))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
@@ -144,7 +139,16 @@ impl exchange::Api for Zeroex {
         }
     }
 
-    fn submit(&self, sheet: exchange::OrderSheet) -> Result<(), Box<dyn std::error::Error>> {
+    fn submit(
+        &self,
+        exchange: &config::ExchangeSettings,
+        sheet: exchange::OrderSheet,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let url = format!("{}/orders", exchange.api_url.as_str());
+        println!("0x order post {}", url);
+        // let resp = client.post(url.as_str()).json(&sheet).send()?;
+        // println!("{:#?} {}", resp.status(), resp.url());
+        // println!("{:#?}", resp.text());
         Ok(())
     }
 }
