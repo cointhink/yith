@@ -168,10 +168,6 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     format!("0x{}02", hex::encode(&form_sig_bytes[..]))
 }
 
-pub fn order(os: OrderSheet) {
-    println!("0x order! {:#?}", os);
-}
-
 pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
     match swapped {
         true => format!("{}-{}", quote.symbol, base.symbol),

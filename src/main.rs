@@ -17,7 +17,7 @@ fn main() {
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename);
     let wallet_filename = "wallet.yaml";
-    let mut wallet = wallet::Wallet::load_file(wallet_filename);
+    let wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
     let redis = redis::Redis {
         url: &config.redis_url,

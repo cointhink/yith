@@ -59,7 +59,7 @@ impl exchange::Api for Ddex3 {
             "ddex3(hydro) build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
-        let mut market_id = make_market_id(market.swapped, &market.base, &market.quote);
+        let market_id = make_market_id(market.swapped, &market.base, &market.quote);
         let mut qty = offer.base_qty;
         let mut price = offer.quote;
         let mut askbid_align = askbid;
@@ -132,12 +132,13 @@ impl exchange::Api for Ddex3 {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        println!("HYDRO order! {:#?}", sheet);
         Ok(())
     }
 }
 
 pub fn build_auth_client(proxy_url: Option<String>) -> reqwest::Result<reqwest::blocking::Client> {
-    let mut headers = header::HeaderMap::new();
+    let headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .default_headers(headers);
@@ -170,10 +171,6 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
         )
         .as_str(),
     );
-}
-
-pub fn order(os: OrderSheet) {
-    println!("HYDRO order! {:#?}", os);
 }
 
 pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {

@@ -1,6 +1,5 @@
 use crate::exchange;
 use crate::exchanges;
-use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;

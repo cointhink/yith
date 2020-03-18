@@ -1,4 +1,3 @@
-use crate::config;
 use crate::types;
 pub use redis::Commands; // re-export
 
