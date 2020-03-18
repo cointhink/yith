@@ -159,7 +159,7 @@ impl exchange::Api for Switcheo {
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);
-        println!("{}", serde_json::to_string(&sheet_sign).unwrap());
+        println!("{}", serde_json::to_string(&sheet).unwrap());
         let client = reqwest::blocking::Client::new();
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
