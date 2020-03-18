@@ -171,6 +171,7 @@ impl exchange::Api for Switcheo {
         } else {
             let build_err = resp.json::<BuildError>().unwrap();
             let err_msg = format!("{} {}", &build_err.error_code, &build_err.error_message);
+            println!("{}", err_msg);
             Err(Box::new(error::OrderError::new(&err_msg)))
         }
     }
