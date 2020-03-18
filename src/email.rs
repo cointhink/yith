@@ -8,7 +8,8 @@ pub fn send(to_addr: &str, subject: &str, body: &str) {
         .from("yith@donp.org")
         .subject(subject)
         .body(body)
-        .build().unwrap();
+        .build()
+        .unwrap();
     let mut mailer = SmtpClient::new_unencrypted_localhost().unwrap().transport();
     let result = mailer.send(email.into());
     let word = if result.is_ok() { "sent" } else { "FAILED" };

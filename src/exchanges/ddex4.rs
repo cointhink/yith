@@ -119,7 +119,12 @@ impl exchange::Api for Ddex4 {
         let body = resp.json::<BuildResponse>().unwrap();
         println!("{:#?}", body);
         if status.is_success() {
-            Ok(exchange::OrderSheet::Ddex4(sheet))
+            if body.status > 0 {
+                let err_msg = format!("{} {}", &body.status, &body.desc);
+                Err(Box::new(error::OrderError::new(&err_msg)))
+            } else {
+                Ok(exchange::OrderSheet::Ddex4(sheet))
+            }
         } else {
             Err(Box::new(error::OrderError::new(&body.desc)))
         }
