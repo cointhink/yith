@@ -122,12 +122,14 @@ impl Switcheo {
     pub fn amount_to_units(&self, amount: f64, ticker: &types::Ticker) -> String {
         match self.tokens.get(ticker) {
             Some(token_detail) => {
-                let units = quantity_in_base_units(amount, token_detail.decimals);
+                let units = quantity_in_base_units(amount, token_detail.precision as u32);
+                let remaining: usize = (token_detail.decimals - token_detail.precision) as usize;
+                let qty_str = format!("{}{}", units, "0".repeat(remaining));
                 println!(
                     "{} {}^{} => {}",
-                    amount, ticker.symbol, token_detail.decimals, units
+                    amount, ticker.symbol, token_detail.decimals, qty_str
                 );
-                format!("{}", units)
+                qty_str
             }
             None => {
                 println!("{} {} => NOT FOUND", amount, ticker.symbol);
@@ -255,8 +257,8 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-pub fn quantity_in_base_units(qty: f64, exp: i32) -> u128 {
-    (qty * 10_f64.powi(exp)) as u128
+pub fn quantity_in_base_units(qty: f64, exp: u32) -> u64 {
+    (qty * 10_f64.powi(exp as i32)) as u64
 }
 
 #[cfg(test)]
@@ -279,30 +281,22 @@ mod tests {
 
     #[test]
     fn test_amount_to_units() {
+        let switcheo = Switcheo::new();
         let ticker = types::Ticker {
             symbol: "ETH".to_string(),
         };
-        let units = amount_to_units(2.3, &ticker);
-        assert_eq!(units, "2299999999999999744") // float sigma fun
+        let units = switcheo.amount_to_units(2.3, &ticker);
+        assert_eq!(units, "2300000000000000000") // float sigma fun
     }
 
     #[test]
     fn test_quantity_in_base_units() {
-        let ticker = types::Ticker {
-            symbol: "ETH".to_string(),
-        };
         let unit_q = quantity_in_base_units(1.0, 18);
-        assert_eq!(unit_q, 1000000000000000000)
+        assert_eq!(unit_q, 1000000000000000000);
+        let unit_q = quantity_in_base_units(1.234, 8);
+        assert_eq!(unit_q, 123400000);
     }
 
-    #[test]
-    fn test_ticker_to_pow() {
-        let ticker = types::Ticker {
-            symbol: "ETH".to_string(),
-        };
-        let pow = ticker_to_pow(&ticker).unwrap();
-        assert_eq!(pow, 18)
-    }
 }
 
 /*
