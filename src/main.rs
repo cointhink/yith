@@ -135,6 +135,7 @@ fn run_book(
         .iter()
         .map(|offer| {
             // 1 offer limit
+            println!("** {} {} {}", askbid, market, offer);
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
@@ -152,6 +153,7 @@ fn run_book(
                         };
                         format!("{} {} {}\n{}", askbid, &book.market, offer, out)
                     } else {
+                        println!("exchange {} is disabled!", exchange_name)
                         format!("exchange {} is disabled!", exchange_name)
                     }
                 }
@@ -168,7 +170,6 @@ fn run_offer(
     market: &types::Market,
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("** {} {} {}", askbid, market, offer);
     let most_quote = balance_limit(wallet, &market.quote, offer.cost());
     let most_qty = most_quote / offer.quote;
     let capped_offer = types::Offer {
