@@ -1,5 +1,4 @@
 use crate::config;
-use crate::error;
 use crate::eth;
 use crate::exchange;
 use crate::types;
@@ -119,12 +118,22 @@ impl exchange::Api for Ddex3 {
         if status.is_success() {
             if body.status > 0 {
                 let err_msg = format!("{} {}", &body.status, &body.desc);
-                Err(Box::new(error::OrderError::new(&err_msg)))
+                let order_error = exchange::OrderError {
+                    msg: body.desc,
+                    code: body.status as i32,
+                };
+                println!("ERR: {}", order_error);
+                Err(Box::new(order_error))
             } else {
                 Ok(exchange::OrderSheet::Ddex3(sheet))
             }
         } else {
-            Err(Box::new(error::OrderError::new(&body.desc)))
+            let order_error = exchange::OrderError {
+                msg: body.desc,
+                code: body.status as i32,
+            };
+            println!("ERR: {}", order_error);
+            Err(Box::new(order_error))
         }
     }
 

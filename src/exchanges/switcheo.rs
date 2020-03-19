@@ -1,5 +1,4 @@
 use crate::config;
-use crate::error;
 use crate::eth;
 use crate::exchange;
 use crate::types;
@@ -25,14 +24,14 @@ pub struct TokenDetail {
 }
 
 pub struct TokenList {
-    tokens: HashMap<String, TokenDetail>
+    tokens: HashMap<String, TokenDetail>,
 }
 
 pub fn read_tokens(filename: &str) -> TokenList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
     let tokens = serde_yaml::from_str(&yaml).unwrap();
-    TokenList{tokens: tokens}
+    TokenList { tokens: tokens }
 }
 
 impl TokenList {
@@ -40,7 +39,9 @@ impl TokenList {
         self.tokens.get(&ticker.symbol)
     }
 
-    pub fn len(&self) -> usize { self.tokens.len() }
+    pub fn len(&self) -> usize {
+        self.tokens.len()
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -122,7 +123,10 @@ impl Switcheo {
         match self.tokens.get(ticker) {
             Some(token_detail) => {
                 let units = quantity_in_base_units(amount, token_detail.decimals);
-                println!("{} {}^{} => {}", amount, ticker.symbol, token_detail.decimals, units);
+                println!(
+                    "{} {}^{} => {}",
+                    amount, ticker.symbol, token_detail.decimals, units
+                );
                 format!("{}", units)
             }
             None => {
@@ -197,10 +201,12 @@ impl exchange::Api for Switcheo {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
             let build_err = resp.json::<BuildError>().unwrap();
-            let err_msg = format!("{} [#{}]", &build_err.error, &build_err.error_code);
-            println!("{}", err_msg);
-            Err(Box::new(error::OrderError::new(&err_msg)))
-            //Err(Box::new(error::OrderError::new("grinds")))
+            let order_error = exchange::OrderError {
+                msg: build_err.error,
+                code: build_err.error_code as i32,
+            };
+            println!("ERR: {}", order_error);
+            Err(Box::new(order_error))
         }
     }
 

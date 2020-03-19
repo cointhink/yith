@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 use crate::config;
-use crate::error;
 use crate::eth;
 use crate::exchange;
 use crate::types;
@@ -134,8 +133,12 @@ impl exchange::Api for Zeroex {
             Ok(exchange::OrderSheet::Zeroex(form))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
-            println!("{:#?}", bodyerr);
-            Err(Box::new(error::OrderError::new(&bodyerr.error)))
+            let order_error = exchange::OrderError {
+                msg: bodyerr.error,
+                code: -1,
+            };
+            println!("ERR: {}", order_error);
+            Err(Box::new(order_error))
         }
     }
 

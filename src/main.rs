@@ -1,6 +1,5 @@
 mod config;
 mod email;
-mod error;
 mod eth;
 mod etherscan;
 mod exchange;
@@ -182,11 +181,7 @@ fn run_offer(
     }
 }
 
-fn balance_limit(
-    wallet: &wallet::Wallet,
-    ticker: &types::Ticker,
-    amount: f64,
-) -> f64 {
+fn balance_limit(wallet: &wallet::Wallet, ticker: &types::Ticker, amount: f64) -> f64 {
     let wallet_coin_balance = wallet.coin_amount(&ticker.symbol);
     if amount < wallet_coin_balance {
         amount

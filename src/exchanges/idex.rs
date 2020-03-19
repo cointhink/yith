@@ -1,5 +1,4 @@
 use crate::config;
-use crate::error;
 use crate::eth;
 use crate::exchange;
 use crate::types;

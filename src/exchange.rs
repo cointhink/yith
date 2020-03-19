@@ -35,6 +35,29 @@ impl fmt::Display for ExchangeError {
     }
 }
 
+#[derive(Debug)]
+pub struct OrderError {
+    pub msg: String,
+    pub code: i32,
+}
+
+impl OrderError {
+    pub fn new(msg: &str, code: i32) -> OrderError {
+        OrderError {
+            msg: msg.to_string(),
+            code: code,
+        }
+    }
+}
+
+impl std::error::Error for OrderError {}
+
+impl std::fmt::Display for OrderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} [#{}]", self.msg, self.code)
+    }
+}
+
 pub trait Api {
     fn setup(&mut self);
     fn build(
@@ -62,7 +85,3 @@ pub trait Api {
         vec![]
     }
 }
-
-// pub trait Balance {
-//     fn balance<'a>(&self, public_addr: &str, contract: &str) -> f64;
-// }
