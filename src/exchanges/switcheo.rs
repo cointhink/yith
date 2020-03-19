@@ -181,12 +181,12 @@ impl exchange::Api for Switcheo {
         let sign_json = serde_json::to_string(&sheet).unwrap();
         let signature = sign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
+        println!("{:#?}", sheet);
         let sheet_sign = OrderSheetSign {
             address: address,
             sheet: sheet,
             signature: signature,
         };
-        println!("{:#?}", sheet_sign);
 
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo limit order build {}", url);

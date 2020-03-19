@@ -120,39 +120,46 @@ fn run_books(
 ) -> Vec<Vec<String>> {
     books.books[..1]
         .iter()
-        .map(|book| {
-            book.offers[..1]
-                .iter()
-                .map(|offer| {
-                    // 1 offer limit
-                    let exchange_name = &book.market.source.name;
-                    match exchanges.find_by_name(exchange_name) {
-                        Some(exchange) => {
-                            if exchange.settings.enabled {
-                                let out = match run_offer(
-                                    config,
-                                    &books.askbid,
-                                    &exchange,
-                                    offer,
-                                    &book.market,
-                                    wallet,
-                                ) {
-                                    Ok(zip) => "ok".to_string(),
-                                    Err(e) => e.to_string(),
-                                };
-                                format!("{} {} {}\n{}", &books.askbid, &book.market, offer, out)
-                            } else {
-                                format!("exchange {} is disabled!", exchange_name)
-                            }
-                        }
-                        None => format!("exchange detail not found for: {:#?}", exchange_name),
-                    }
-                })
-                .collect::<Vec<String>>()
-        })
+        .map(|book| run_book(config, wallet, &books.askbid, book, exchanges))
         .collect::<Vec<Vec<String>>>()
 }
 
+fn run_book(
+    config: &config::Config,
+    wallet: &wallet::Wallet,
+    askbid: &types::AskBid,
+    book: &types::Book,
+    exchanges: &config::ExchangeList,
+) -> Vec<String> {
+    book.offers[..1]
+        .iter()
+        .map(|offer| {
+            // 1 offer limit
+            let exchange_name = &book.market.source.name;
+            match exchanges.find_by_name(exchange_name) {
+                Some(exchange) => {
+                    if exchange.settings.enabled {
+                        let out = match run_offer(
+                            config,
+                            askbid,
+                            &exchange,
+                            offer,
+                            &book.market,
+                            wallet,
+                        ) {
+                            Ok(zip) => "ok".to_string(),
+                            Err(e) => e.to_string(),
+                        };
+                        format!("{} {} {}\n{}", askbid, &book.market, offer, out)
+                    } else {
+                        format!("exchange {} is disabled!", exchange_name)
+                    }
+                }
+                None => format!("exchange detail not found for: {:#?}", exchange_name),
+            }
+        })
+        .collect::<Vec<String>>()
+}
 fn run_offer(
     config: &config::Config,
     askbid: &types::AskBid,
