@@ -135,7 +135,7 @@ fn run_book(
         .iter()
         .map(|offer| {
             // 1 offer limit
-            println!("** {} {} {}", askbid, market, offer);
+            println!("** {} {} {}", askbid, &book.market, offer);
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
