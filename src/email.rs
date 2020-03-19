@@ -14,5 +14,4 @@ pub fn send(to_addr: &str, subject: &str, body: &str) {
     let result = mailer.send(email.into());
     let word = if result.is_ok() { "sent" } else { "FAILED" };
     println!("email {} {} {}", to_addr, subject, word);
-    println!("{}", body);
 }
