@@ -140,7 +140,7 @@ fn run_books(
                                     Ok(zip) => "ok".to_string(),
                                     Err(e) => e.to_string(),
                                 };
-                                format!("{} {} {} {}", &books.askbid, &book.market, offer, out)
+                                format!("{} {} {}\n{}", &books.askbid, &book.market, offer, out)
                             } else {
                                 format!("exchange {} is disabled!", exchange_name)
                             }
