@@ -114,7 +114,6 @@ impl exchange::Api for Ddex3 {
         let status = resp.status();
         println!("{:#?} {}", resp.status(), resp.url());
         let body = resp.json::<BuildResponse>().unwrap();
-        println!("{:#?}", body);
         if status.is_success() {
             if body.status > 0 {
                 let err_msg = format!("{} {}", &body.status, &body.desc);

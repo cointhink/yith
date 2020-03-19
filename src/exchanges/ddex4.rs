@@ -117,7 +117,6 @@ impl exchange::Api for Ddex4 {
         let status = resp.status();
         println!("{:#?} {}", resp.status(), resp.url());
         let body = resp.json::<BuildResponse>().unwrap();
-        println!("{:#?}", body);
         if status.is_success() {
             if body.status > 0 {
                 let order_error = exchange::OrderError {
