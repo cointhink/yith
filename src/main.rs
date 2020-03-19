@@ -153,7 +153,7 @@ fn run_book(
                         };
                         format!("{} {} {}\n{}", askbid, &book.market, offer, out)
                     } else {
-                        println!("exchange {} is disabled!", exchange_name)
+                        println!("exchange {} is disabled!", exchange_name);
                         format!("exchange {} is disabled!", exchange_name)
                     }
                 }
