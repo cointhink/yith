@@ -24,12 +24,23 @@ pub struct TokenDetail {
     stablecoin_type: Option<String>,
 }
 
-type TokenList = HashMap<String, TokenDetail>;
+pub struct TokenList {
+    tokens: HashMap<String, TokenDetail>
+}
+
 pub fn read_tokens(filename: &str) -> TokenList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
-    let tokens: TokenList = serde_yaml::from_str(&yaml).unwrap();
-    tokens
+    let tokens = serde_yaml::from_str(&yaml).unwrap();
+    TokenList{tokens: tokens}
+}
+
+impl TokenList {
+    pub fn get(&self, ticker: &types::Ticker) -> Option<&TokenDetail> {
+        self.tokens.get(&ticker.symbol)
+    }
+
+    pub fn len(&self) -> usize { self.tokens.len() }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,7 +85,9 @@ pub struct BuildSuccess {}
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildError {
     error: String,
+    #[serde(default)]
     error_message: String,
+    #[serde(default)]
     error_code: u32,
 }
 
@@ -103,6 +116,20 @@ impl Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         println!("switcheo loaded {} tokens", tokens.len());
         Switcheo { tokens: tokens }
+    }
+
+    pub fn amount_to_units(&self, amount: f64, ticker: &types::Ticker) -> String {
+        match self.tokens.get(ticker) {
+            Some(token_detail) => {
+                let units = quantity_in_base_units(amount, token_detail.decimals);
+                println!("{} {}^{} => {}", amount, ticker.symbol, token_detail.decimals, units);
+                format!("{}", units)
+            }
+            None => {
+                println!("{} {} => NOT FOUND", amount, ticker.symbol);
+                "error".to_string()
+            }
+        }
     }
 }
 
@@ -141,8 +168,8 @@ impl exchange::Api for Switcheo {
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: amount_to_units(offer.quote, &market.quote),
-            quantity: amount_to_units(offer.base_qty, &market.base),
+            price: self.amount_to_units(offer.quote, &market.quote),
+            quantity: self.amount_to_units(offer.base_qty, &market.base),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,
@@ -170,9 +197,10 @@ impl exchange::Api for Switcheo {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
             let build_err = resp.json::<BuildError>().unwrap();
-            let err_msg = format!("{} {}", &build_err.error_code, &build_err.error_message);
+            let err_msg = format!("{} [#{}]", &build_err.error, &build_err.error_code);
             println!("{}", err_msg);
             Err(Box::new(error::OrderError::new(&err_msg)))
+            //Err(Box::new(error::OrderError::new("grinds")))
         }
     }
 
@@ -221,33 +249,8 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-pub fn amount_to_units(amount: f64, ticker: &types::Ticker) -> String {
-    match ticker_to_pow(ticker) {
-        Ok(exp) => {
-            let units = quantity_in_base_units(amount, exp);
-            println!("{} {}^{} => {}", amount, ticker.symbol, exp, units);
-            format!("{}", units)
-        }
-        Err(e) => {
-            println!("{} {} => NOT FOUND", amount, ticker.symbol);
-            "error".to_string()
-        }
-    }
-}
-
 pub fn quantity_in_base_units(qty: f64, exp: i32) -> u128 {
     (qty * 10_f64.powi(exp)) as u128
-}
-
-pub fn ticker_to_pow(ticker: &types::Ticker) -> Result<i32, ()> {
-    match ticker.symbol.as_str() {
-        "ETH" => Ok(18),
-        "WBTC" => Ok(8),
-        "DAI" => Ok(18),
-        "USDT" => Ok(6),
-        "USDC" => Ok(6),
-        _ => Err(()),
-    }
 }
 
 #[cfg(test)]

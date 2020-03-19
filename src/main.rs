@@ -163,7 +163,7 @@ fn run_offer(
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("** {} {} {}", askbid, market, offer);
-    let most_quote = balance_limit(wallet, exchange, &market.quote, offer.cost());
+    let most_quote = balance_limit(wallet, &market.quote, offer.cost());
     let most_qty = most_quote / offer.quote;
     let capped_offer = types::Offer {
         base_qty: most_qty,
@@ -184,7 +184,6 @@ fn run_offer(
 
 fn balance_limit(
     wallet: &wallet::Wallet,
-    exchange: &config::Exchange,
     ticker: &types::Ticker,
     amount: f64,
 ) -> f64 {
