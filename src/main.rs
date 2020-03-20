@@ -54,24 +54,24 @@ fn app(
     wallet.coins.append(&mut new_coins);
     for exchange in &exchanges.exchanges {
         let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
-        if exchange.settings.enabled && exchange.settings.has_balances {
-            let balances = exchange
-                .api
-                .balances(&my_addr, &exchange.settings);
-            for balance in balances {
-                exchange_coins.push(wallet::WalletCoin {
-                    ticker_symbol: balance.0.to_string(),
-                    contract: "none".to_string(),
-                    source: exchange.settings.name.clone(),
-                    amounts: vec![types::Offer {
-                        base_qty: balance.1,
-                        quote: 1.0,
-                    }],
-                });
+        if exchange.settings.enabled {
+            if exchange.settings.has_balances {
+                let balances = exchange.api.balances(&my_addr, &exchange.settings);
+                for balance in balances {
+                    exchange_coins.push(wallet::WalletCoin {
+                        ticker_symbol: balance.0.to_string(),
+                        contract: "none".to_string(),
+                        source: exchange.settings.name.clone(),
+                        amounts: vec![types::Offer {
+                            base_qty: balance.1,
+                            quote: 1.0,
+                        }],
+                    });
+                }
             }
+            wallet.coins.append(&mut exchange_coins);
+            exchange.api.open_orders(&my_addr, &exchange.settings);
         }
-        wallet.coins.append(&mut exchange_coins);
-        exchange.api.open_orders(&my_addr);
     }
     println!("{}", wallet);
 

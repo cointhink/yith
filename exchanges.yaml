@@ -35,7 +35,7 @@
     enabled: false
     protocol: 0x
     contract_address: 080bf510FCbF18b91105470639e9561022937712
-    api_url:
+    api_url: https://api.0x.org/sra
     taker_fee: 0.0
     maker_fee: 0.0
   - 

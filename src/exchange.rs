@@ -37,9 +37,26 @@ impl fmt::Display for ExchangeError {
 }
 
 #[derive(Debug)]
+pub enum BuySell {
+    Buy,
+    Sell,
+}
+
+#[derive(Debug)]
+pub enum OrderState {
+    Open,
+    Filled,
+    Cancelled,
+    Expired,
+    Unfunded,
+}
+
+#[derive(Debug)]
 pub struct Order {
     pub exchange_name: String,
     pub id: String,
+    pub side: BuySell,
+    pub state: OrderState,
     pub market: String,
     pub base_qty: f64,
     pub quote: f64,
@@ -93,7 +110,7 @@ pub trait Api {
     ) -> Vec<(&str, f64)> {
         vec![]
     }
-    fn open_orders(&self, account: &str) -> Vec<Order> {
+    fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
         vec![]
     }
 }

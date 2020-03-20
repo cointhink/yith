@@ -39,6 +39,30 @@ pub struct OrderForm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Order {
+    order_hash: String,
+    r#type: String,
+    state: String,
+    base_token_address: String,
+    quote_token_address: String,
+    remaining_base_token_amount: String,
+    remaining_quote_token_amount: String,
+    price: String,
+    created_date: String,
+}
+/*    "orderHash": "0x0cfaaa4e4f0a4409573b711ace266c2a10f7b025d0ec96567738353f32bd4eb1",
+    "type": "BID",
+    "state": "UNFUNDED",
+    "baseTokenAddress": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+    "quoteTokenAddress": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+    "remainingBaseTokenAmount": "0.037784",
+    "remainingQuoteTokenAmount": "10.03883096",
+    "price": "265.69",
+    "createdDate": "2020-03-18 17:41:39",
+*/
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BuildResponse {
     status: i64,
 }
@@ -157,8 +181,19 @@ impl exchange::Api for Zeroex {
         Ok(())
     }
 
-    fn open_orders(&self, account: &str) -> Vec<exchange::Order> {
-        //https://api.radarrelay.com/v3/accounts/0x<acct>/orders
+    fn open_orders(
+        &self,
+        account: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Vec<exchange::Order> {
+        println!("{:#?}", exchange);
+        let client = reqwest::blocking::Client::new();
+        let url = format!("{}/accounts/0x{}/orders", exchange.api_url.as_str(), account);
+        println!("{}", url);
+        let resp = client.get(url.as_str()).send().unwrap();
+        println!("{:#?} {}", resp.status(), resp.url());
+        let orders = resp.json::<Vec<Order>>().unwrap();
+        println!("{:#?}", orders);
         vec![]
     }
 }
