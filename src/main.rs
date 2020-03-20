@@ -70,7 +70,8 @@ fn app(
                 }
             }
             wallet.coins.append(&mut exchange_coins);
-            exchange.api.open_orders(&my_addr, &exchange.settings);
+            let orders = exchange.api.open_orders(&my_addr, &exchange.settings);
+            println!("{} {:?}", exchange.settings.name, orders);
         }
     }
     println!("{}", wallet);

@@ -4,8 +4,11 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::types;
+use chrono;
+use chrono::format::ParseError;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -61,6 +64,38 @@ pub struct Order {
     "price": "265.69",
     "createdDate": "2020-03-18 17:41:39",
 */
+
+impl Order {
+    pub fn to_exchange_order(&self) -> exchange::Order {
+        let side = match self.r#type.as_str() {
+            "BID" => Ok(exchange::BuySell::Sell),
+            "SELL" => Ok(exchange::BuySell::Buy),
+            _ => Err(()),
+        }
+        .unwrap();
+        let state = match self.state.as_str() {
+            "OPEN" => Ok(exchange::OrderState::Open),
+            "FILLED" => Ok(exchange::OrderState::Filled),
+            "CANCELLED" => Ok(exchange::OrderState::Cancelled),
+            "EXPIRED" => Ok(exchange::OrderState::Expired),
+            "UNFUNDED" => Ok(exchange::OrderState::Unfunded),
+            _ => Err(()),
+        }
+        .unwrap();
+        let date =
+            chrono::NaiveDateTime::parse_from_str(self.created_date.as_str(), "%Y-%m-%d %H:%M:%S")
+                .unwrap();
+        exchange::Order {
+            id: self.order_hash.clone(),
+            side: side,
+            state: state,
+            market: "UNK".to_string(),
+            base_qty: f64::from_str(self.remaining_base_token_amount.as_str()).unwrap(),
+            quote: f64::from_str(self.price.as_str()).unwrap(),
+            create_date: date.timestamp(),
+        }
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BuildResponse {
@@ -186,15 +221,21 @@ impl exchange::Api for Zeroex {
         account: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
-        println!("{:#?}", exchange);
         let client = reqwest::blocking::Client::new();
-        let url = format!("{}/accounts/0x{}/orders", exchange.api_url.as_str(), account);
+        let url = format!(
+            "{}/accounts/0x{}/orders",
+            exchange.api_url.as_str(),
+            account
+        );
         println!("{}", url);
         let resp = client.get(url.as_str()).send().unwrap();
         println!("{:#?} {}", resp.status(), resp.url());
         let orders = resp.json::<Vec<Order>>().unwrap();
-        println!("{:#?}", orders);
-        vec![]
+        //println!("{:#?}", orders);
+        orders
+            .iter()
+            .map(|native_order| native_order.to_exchange_order())
+            .collect()
     }
 }
 

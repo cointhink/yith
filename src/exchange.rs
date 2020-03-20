@@ -42,6 +42,16 @@ pub enum BuySell {
     Sell,
 }
 
+impl fmt::Display for BuySell {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let word = match self {
+            Buy => "buy",
+            Sell => "sell",
+        };
+        write!(f, "{}", word)
+    }
+}
+
 #[derive(Debug)]
 pub enum OrderState {
     Open,
@@ -53,14 +63,19 @@ pub enum OrderState {
 
 #[derive(Debug)]
 pub struct Order {
-    pub exchange_name: String,
     pub id: String,
     pub side: BuySell,
     pub state: OrderState,
     pub market: String,
     pub base_qty: f64,
     pub quote: f64,
-    pub create_date: time::Instant,
+    pub create_date: i64,
+}
+
+impl fmt::Display for Order {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {:0.5}@{:0.5}", self.side, self.base_qty, self.quote)
+    }
 }
 
 #[derive(Debug)]
