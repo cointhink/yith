@@ -4,6 +4,7 @@ use crate::types;
 use serde::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
+use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -33,6 +34,16 @@ impl fmt::Display for ExchangeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "display error here")
     }
+}
+
+#[derive(Debug)]
+pub struct Order {
+    pub exchange_name: String,
+    pub id: String,
+    pub market: String,
+    pub base_qty: f64,
+    pub quote: f64,
+    pub create_date: time::Instant,
 }
 
 #[derive(Debug)]
@@ -78,10 +89,11 @@ pub trait Api {
     fn balances<'a>(
         &self,
         public_addr: &str,
-        ticker_symbol: Vec<&str>,
-        contract: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
+        vec![]
+    }
+    fn open_orders(&self, account: &str) -> Vec<Order> {
         vec![]
     }
 }

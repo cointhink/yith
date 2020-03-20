@@ -54,14 +54,10 @@ fn app(
     wallet.coins.append(&mut new_coins);
     for exchange in &exchanges.exchanges {
         let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
-        let mut coin_symbols = Vec::<&str>::new();
-        for coin in wallet.coins.iter() {
-            coin_symbols.push(&coin.ticker_symbol);
-        }
         if exchange.settings.enabled && exchange.settings.has_balances {
             let balances = exchange
                 .api
-                .balances(&my_addr, coin_symbols, "wut", &exchange.settings);
+                .balances(&my_addr, &exchange.settings);
             for balance in balances {
                 exchange_coins.push(wallet::WalletCoin {
                     ticker_symbol: balance.0.to_string(),
@@ -75,6 +71,7 @@ fn app(
             }
         }
         wallet.coins.append(&mut exchange_coins);
+        exchange.api.open_orders(&my_addr);
     }
     println!("{}", wallet);
 
@@ -140,17 +137,12 @@ fn run_book(
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
                     if exchange.settings.enabled {
-                        let out = match run_offer(
-                            config,
-                            askbid,
-                            &exchange,
-                            offer,
-                            &book.market,
-                            wallet,
-                        ) {
-                            Ok(zip) => "ok".to_string(),
-                            Err(e) => e.to_string(),
-                        };
+                        let out =
+                            match run_offer(config, askbid, &exchange, offer, &book.market, wallet)
+                            {
+                                Ok(zip) => "ok".to_string(),
+                                Err(e) => e.to_string(),
+                            };
                         format!("{} {} {}\n{}", askbid, &book.market, offer, out)
                     } else {
                         println!("exchange {} is disabled!", exchange_name);

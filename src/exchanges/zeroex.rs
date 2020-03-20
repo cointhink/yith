@@ -6,7 +6,7 @@ use crate::exchange;
 use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
@@ -102,7 +102,7 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        let expire_time = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()
+        let expire_time = (time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap()
         // 2min minimum + transittime
         + std::time::Duration::new(120 + 5, 0))
         .as_secs();
@@ -155,6 +155,11 @@ impl exchange::Api for Zeroex {
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
         Ok(())
+    }
+
+    fn open_orders(&self, account: &str) -> Vec<exchange::Order> {
+        //https://api.radarrelay.com/v3/accounts/0x<acct>/orders
+        vec![]
     }
 }
 

@@ -4,7 +4,7 @@ use crate::exchange;
 use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {

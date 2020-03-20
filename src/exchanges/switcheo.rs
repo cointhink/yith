@@ -223,8 +223,6 @@ impl exchange::Api for Switcheo {
     fn balances<'a>(
         &self,
         public_addr: &str,
-        ticker_symbols: Vec<&str>,
-        ticker_contract: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
         let url = format!(
@@ -296,7 +294,6 @@ mod tests {
         let unit_q = quantity_in_base_units(1.234, 8);
         assert_eq!(unit_q, 123400000);
     }
-
 }
 
 /*
