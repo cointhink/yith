@@ -231,7 +231,6 @@ impl exchange::Api for Switcheo {
             public_addr,
             exchange.contract_address
         );
-        println!("switcheo balances {}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();

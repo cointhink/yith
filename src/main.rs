@@ -34,7 +34,7 @@ fn app(
     let order: types::Order;
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    println!("etherscan balance warmup for 0x{}", my_addr);
+    println!("etherscan BALANCES for 0x{}", my_addr);
     let mut new_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
         let mut balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
@@ -71,7 +71,7 @@ fn app(
             }
             wallet.coins.append(&mut exchange_coins);
             let orders = exchange.api.open_orders(&my_addr, &exchange.settings);
-            println!("{} {:?}", exchange.settings.name, orders);
+            println!("{} ORDERS {:?}", exchange.settings.name, orders);
         }
     }
     println!("{}", wallet);
