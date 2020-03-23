@@ -68,8 +68,8 @@ pub struct Order {
 impl Order {
     pub fn to_exchange_order(&self) -> exchange::Order {
         let side = match self.r#type.as_str() {
-            "BID" => Ok(exchange::BuySell::Sell),
-            "SELL" => Ok(exchange::BuySell::Buy),
+            "SELL" => Ok(exchange::BuySell::Sell),
+            "BUY" => Ok(exchange::BuySell::Buy),
             _ => Err(()),
         }
         .unwrap();

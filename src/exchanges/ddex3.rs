@@ -7,6 +7,7 @@ use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -38,6 +39,49 @@ pub struct OrderSheet {
 pub struct BuildResponse {
     status: i64,
     desc: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Order {
+    id: String,
+    r#type: String,
+    version: String,
+    status: String,
+    side: String,
+    price: String,
+    amount: String,
+    created_at: i64,
+}
+
+impl Order {
+    pub fn to_exchange_order(&self) -> exchange::Order {
+        let side = match self.r#type.as_str() {
+            "buy" => Ok(exchange::BuySell::Sell),
+            "sell" => Ok(exchange::BuySell::Buy),
+            _ => Err(()),
+        }
+        .unwrap();
+        let state = match self.status.as_str() {
+            "pending" => Ok(exchange::OrderState::Open),
+            "partial filled" => Ok(exchange::OrderState::Open),
+            "full filled" => Ok(exchange::OrderState::Filled),
+            "canceled" => Ok(exchange::OrderState::Cancelled),
+            _ => Err(()),
+        }
+        .unwrap();
+        let date =
+            chrono::NaiveDateTime::from_timestamp(self.created_at, 0);
+        exchange::Order {
+            id: self.id.clone(),
+            side: side,
+            state: state,
+            market: "UNK".to_string(),
+            base_qty: f64::from_str(self.amount.as_str()).unwrap(),
+            quote: f64::from_str(self.price.as_str()).unwrap(),
+            create_date: date.timestamp(),
+        }
+    }
 }
 
 pub struct Ddex3 {}
@@ -143,6 +187,24 @@ impl exchange::Api for Ddex3 {
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("HYDRO order! {:#?}", sheet);
         Ok(())
+    }
+
+    fn open_orders(
+        &self,
+        account: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Vec<exchange::Order> {
+        let client = reqwest::blocking::Client::new();
+        let url = format!("{}/orders", exchange.api_url.as_str());
+        println!("{}", url);
+        let resp = client.get(url.as_str()).send().unwrap();
+        println!("{:#?} {}", resp.status(), resp.url());
+        let orders = resp.json::<Vec<Order>>().unwrap();
+        //println!("{:#?}", orders);
+        orders
+            .iter()
+            .map(|native_order| native_order.to_exchange_order())
+            .collect()
     }
 }
 
