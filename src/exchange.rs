@@ -45,8 +45,8 @@ pub enum BuySell {
 impl fmt::Display for BuySell {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let word = match self {
-            Buy => "buy",
-            Sell => "sell",
+            BuySell::Buy => "buy",
+            BuySell::Sell => "sell",
         };
         write!(f, "{}", word)
     }
@@ -120,7 +120,7 @@ pub trait Api {
     ) -> Result<(), Box<dyn error::Error>>;
     fn balances<'a>(
         &self,
-        public_addr: &str,
+        privkey: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
         vec![]

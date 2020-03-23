@@ -68,9 +68,9 @@ pub struct Order {
 impl Order {
     pub fn to_exchange_order(&self) -> exchange::Order {
         let side = match self.r#type.as_str() {
-            "SELL" => Ok(exchange::BuySell::Sell),
-            "BUY" => Ok(exchange::BuySell::Buy),
-            _ => Err(()),
+            "ASK" => Ok(exchange::BuySell::Sell),
+            "BID" => Ok(exchange::BuySell::Buy),
+            _ => Err(self.r#type.clone()),
         }
         .unwrap();
         let state = match self.state.as_str() {
@@ -218,10 +218,11 @@ impl exchange::Api for Zeroex {
 
     fn open_orders(
         &self,
-        account: &str,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
         let client = reqwest::blocking::Client::new();
+        let account = eth::privkey_to_addr(private_key);
         let url = format!(
             "{}/accounts/0x{}/orders",
             exchange.api_url.as_str(),
