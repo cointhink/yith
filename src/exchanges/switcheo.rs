@@ -9,6 +9,40 @@ use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Pair {
+    name: String,
+    precision: i32
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PairList {
+    pairs: Vec<Pair>
+}
+
+impl PairList {
+    pub fn get(&self, market: &str) -> Option<&Pair> {
+        let mut result: Option<&Pair> = None;
+        for pair in &self.pairs {
+            if pair.name == market {
+                result = Some(&pair)
+            }
+        }
+        result
+    }
+
+    pub fn len(&self) -> usize {
+        self.pairs.len()
+    }
+}
+
+pub fn read_pairs(filename: &str) -> PairList {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let pairs = serde_yaml::from_str::<Vec<Pair>>(&yaml).unwrap();
+    PairList { pairs: pairs}
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenDetail {
     symbol: String,
     name: String,
@@ -110,32 +144,28 @@ pub struct BalanceConfirming {
 
 pub struct Switcheo {
     tokens: TokenList,
+    pairs: PairList
 }
 
 impl Switcheo {
     pub fn new() -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
-        println!("switcheo loaded {} tokens", tokens.len());
-        Switcheo { tokens: tokens }
+        let pairs = read_pairs("notes/switcheo-pairs.json");
+        println!("switcheo loaded {} tokens and {} pairs", tokens.len(), pairs.len());
+        Switcheo { 
+            tokens: tokens,
+            pairs: pairs }
     }
 
-    pub fn amount_to_units(&self, amount: f64, ticker: &types::Ticker) -> String {
-        match self.tokens.get(ticker) {
-            Some(token_detail) => {
-                let units = quantity_in_base_units(amount, token_detail.precision as u32);
-                let remaining: usize = (token_detail.decimals - token_detail.precision) as usize;
-                let qty_str = format!("{}{}", units, "0".repeat(remaining));
-                println!(
-                    "{} {}^{} => {}",
-                    amount, ticker.symbol, token_detail.decimals, qty_str
-                );
-                qty_str
-            }
-            None => {
-                println!("{} {} => NOT FOUND", amount, ticker.symbol);
-                "error".to_string()
-            }
-        }
+    pub fn amount_to_units(&self, amount: f64, market: &Pair, token: &TokenDetail) -> String {
+        let units = quantity_in_base_units(amount, market.precision as u32);
+        let remaining: usize = (token.decimals - market.precision) as usize;
+        let qty_str = format!("{}{}", units, "0".repeat(remaining));
+        println!(
+            "{} mkt^{} {}^{} => {}",
+            amount, market.precision, token.symbol, token.decimals, qty_str
+        );
+        qty_str
     }
 }
 
@@ -169,13 +199,17 @@ impl exchange::Api for Switcheo {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_millis();
+        let base_token_detail = self.tokens.get(&market.base).unwrap();
+        let quote_token_detail = self.tokens.get(&market.quote).unwrap();
+        let market_detail = self.pairs.get(&market_pair).unwrap();
+
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: self.amount_to_units(offer.quote, &market.quote),
-            quantity: self.amount_to_units(offer.base_qty, &market.base),
+            price: self.amount_to_units(offer.quote, market_detail, quote_token_detail),
+            quantity: self.amount_to_units(offer.base_qty, market_detail, base_token_detail),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,
