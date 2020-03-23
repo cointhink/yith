@@ -5,6 +5,7 @@ use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -41,6 +42,60 @@ pub struct OrderSheet {
 pub struct BuildResponse {
     status: i64,
     desc: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Order {
+    id: String,
+    r#type: String,
+    version: String,
+    status: String,
+    side: String,
+    price: String,
+    amount: String,
+    created_at: i64,
+}
+
+impl Order {
+    pub fn to_exchange_order(&self) -> exchange::Order {
+        let side = match self.r#type.as_str() {
+            "buy" => Ok(exchange::BuySell::Sell),
+            "sell" => Ok(exchange::BuySell::Buy),
+            _ => Err(()),
+        }
+        .unwrap();
+        let state = match self.status.as_str() {
+            "pending" => Ok(exchange::OrderState::Open),
+            "partial filled" => Ok(exchange::OrderState::Open),
+            "full filled" => Ok(exchange::OrderState::Filled),
+            "canceled" => Ok(exchange::OrderState::Cancelled),
+            _ => Err(()),
+        }
+        .unwrap();
+        let date = chrono::NaiveDateTime::from_timestamp(self.created_at, 0);
+        exchange::Order {
+            id: self.id.clone(),
+            side: side,
+            state: state,
+            market: "UNK".to_string(),
+            base_qty: f64::from_str(self.amount.as_str()).unwrap(),
+            quote: f64::from_str(self.price.as_str()).unwrap(),
+            create_date: date.timestamp(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrderData {
+    orders: Vec<Order>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrderResponse {
+    status: i64,
+    desc: String,
+    data: Option<OrderData>,
 }
 
 pub struct Ddex4 {}
@@ -96,22 +151,7 @@ impl exchange::Api for Ddex4 {
         println!("Ddex4 order {}", url);
         println!("{:#?}", &sheet);
 
-        let mut token = String::from("");
-        let fixedtime = format!(
-            "{}{}",
-            "HYDRO-AUTHENTICATION@",
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis()
-        );
-        build_token(&mut token, privkey, fixedtime.as_str());
-        let ddex_auth_headername = "Hydro-Authentication";
-        let mut headers = header::HeaderMap::new();
-        headers.insert(
-            ddex_auth_headername,
-            header::HeaderValue::from_str(&token).unwrap(), //boom
-        );
+        let headers = auth_header(privkey);
         println!("{}", serde_json::to_string(&sheet).unwrap());
         let resp = client.post(&url).headers(headers).json(&sheet).send()?;
         let status = resp.status();
@@ -146,6 +186,33 @@ impl exchange::Api for Ddex4 {
         println!("HYDRO order! {:#?}", sheet);
         Ok(())
     }
+
+    fn open_orders(
+        &self,
+        private_key: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Vec<exchange::Order> {
+        let client = reqwest::blocking::Client::new();
+        let url = format!("{}/orders?marketId=all", exchange.api_url.as_str());
+        println!("{}", url);
+        let headers = auth_header(private_key);
+        let resp = client.get(url.as_str()).headers(headers).send().unwrap();
+        println!("{:#?} {}", resp.status(), resp.url());
+        //println!("{:#?}", resp.text());
+        let order_resp = resp.json::<OrderResponse>().unwrap();
+        if order_resp.status < 0 {
+            println!("ddex3 order list error {}", order_resp.desc);
+            vec![]
+        } else {
+            order_resp
+                .data
+                .unwrap()
+                .orders
+                .iter()
+                .map(|native_order| native_order.to_exchange_order())
+                .collect()
+        }
+    }
 }
 
 pub fn build_auth_client(proxy_url: Option<String>) -> reqwest::Result<reqwest::blocking::Client> {
@@ -164,7 +231,28 @@ pub fn build_auth_client(proxy_url: Option<String>) -> reqwest::Result<reqwest::
     bldr.build()
 }
 
-fn build_token(token: &mut String, privkey: &str, msg: &str) {
+fn auth_header(privkey: &str) -> header::HeaderMap {
+    let msg = format!(
+        "{}{}",
+        "HYDRO-AUTHENTICATION@",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis()
+    );
+
+    let token = build_token(privkey, &msg);
+    let ddex_auth_headername = "Hydro-Authentication";
+    let mut headers = header::HeaderMap::new();
+    headers.insert(
+        ddex_auth_headername,
+        header::HeaderValue::from_str(&token).unwrap(), //boom
+    );
+    headers
+}
+
+fn build_token(privkey: &str, msg: &str) -> String {
+    let mut token = "".to_string();
     let secp = Secp256k1::new();
     let privbytes = &hex::decode(privkey).unwrap();
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
@@ -182,6 +270,7 @@ fn build_token(token: &mut String, privkey: &str, msg: &str) {
         )
         .as_str(),
     );
+    token
 }
 
 pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
