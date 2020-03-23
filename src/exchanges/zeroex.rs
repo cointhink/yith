@@ -270,22 +270,22 @@ pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
         ethabi::Token::Address(str_to_H160(&form.fee_recipient_address[2..])),
         ethabi::Token::Address(str_to_H160(&form.sender_address[2..])),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.maker_asset_amount.parse::<u64>().unwrap(),
+            form.maker_asset_amount.parse::<u128>().unwrap(),
         )),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.taker_asset_amount.parse::<u64>().unwrap(),
+            form.taker_asset_amount.parse::<u128>().unwrap(),
         )),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.maker_fee.parse::<u64>().unwrap(),
+            form.maker_fee.parse::<u128>().unwrap(),
         )),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.taker_fee.parse::<u64>().unwrap(),
+            form.taker_fee.parse::<u128>().unwrap(),
         )),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.expiration_time_seconds.parse::<u64>().unwrap(),
+            form.expiration_time_seconds.parse::<u128>().unwrap(),
         )),
         ethabi::Token::Uint(ethereum_types::U256::from(
-            form.salt.parse::<u64>().unwrap(),
+            form.salt.parse::<u128>().unwrap(),
         )),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
