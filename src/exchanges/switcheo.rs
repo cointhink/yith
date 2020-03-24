@@ -268,11 +268,12 @@ impl exchange::Api for Switcheo {
         exchange: &config::ExchangeSettings,
     ) -> Vec<(&str, f64)> {
         let url = format!(
-            "{}/balances?addresses={}&contract_hashes={}",
+            "{}/balances?addresses=0x{}&contract_hashes={}",
             exchange.api_url.as_str(),
             public_addr,
             exchange.contract_address
         );
+        println!("{}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
