@@ -214,7 +214,9 @@ impl exchange::Api for Ddex4 {
     }
 }
 
-pub fn build_auth_client(exchange: &config::ExchangeSettings) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_auth_client(
+    exchange: &config::ExchangeSettings,
+) -> reqwest::Result<reqwest::blocking::Client> {
     let headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::error;
 use std::fmt;
 use std::time;
+use std::collections;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -103,6 +104,8 @@ impl std::fmt::Display for OrderError {
     }
 }
 
+type BalanceList = collections::HashMap<String, f64>;
+
 pub trait Api {
     fn setup(&mut self);
     fn build(
@@ -120,8 +123,8 @@ pub trait Api {
         sheet: OrderSheet,
     ) -> Result<(), Box<dyn error::Error>>;
 
-    fn balances<'a>(&self, privkey: &str, exchange: &config::ExchangeSettings) -> Vec<(&str, f64)> {
-        vec![]
+    fn balances<'a>(&self, privkey: &str, exchange: &config::ExchangeSettings) -> BalanceList {
+        collections::HashMap::new()
     }
 
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {

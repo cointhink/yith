@@ -266,7 +266,7 @@ impl exchange::Api for Switcheo {
         &self,
         public_addr: &str,
         exchange: &config::ExchangeSettings,
-    ) -> Vec<(&str, f64)> {
+    ) -> HashMap<String, f64> {
         let url = format!(
             "{}/balances?addresses=0x{}&contract_hashes={}",
             exchange.api_url.as_str(),
@@ -277,10 +277,15 @@ impl exchange::Api for Switcheo {
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
-        let balances = resp.json::<BalanceResponse>().unwrap();
+        let mut balances = resp.json::<BalanceResponse>().unwrap();
         println!("switcheo {} {:#?}", status, balances);
-        //  "confirmed": {"GAS": "47320000000.0",
-        vec![]
+        balances
+            .confirmed
+            .iter()
+            .map(|(k, v)| {
+                let f_bal = v.parse::<u128>().unwrap() as f64;
+                (k.clone(), f_bal)
+            }).collect()
     }
 
     fn deposit(
