@@ -11,12 +11,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
     name: String,
-    precision: i32
+    precision: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PairList {
-    pairs: Vec<Pair>
+    pairs: Vec<Pair>,
 }
 
 impl PairList {
@@ -39,7 +39,7 @@ pub fn read_pairs(filename: &str) -> PairList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
     let pairs = serde_yaml::from_str::<Vec<Pair>>(&yaml).unwrap();
-    PairList { pairs: pairs}
+    PairList { pairs: pairs }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -144,17 +144,22 @@ pub struct BalanceConfirming {
 
 pub struct Switcheo {
     tokens: TokenList,
-    pairs: PairList
+    pairs: PairList,
 }
 
 impl Switcheo {
     pub fn new() -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
-        println!("switcheo loaded {} tokens and {} pairs", tokens.len(), pairs.len());
-        Switcheo { 
+        println!(
+            "switcheo loaded {} tokens and {} pairs",
+            tokens.len(),
+            pairs.len()
+        );
+        Switcheo {
             tokens: tokens,
-            pairs: pairs }
+            pairs: pairs,
+        }
     }
 
     pub fn amount_to_units(&self, amount: f64, market: &Pair, token: &TokenDetail) -> String {

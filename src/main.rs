@@ -70,7 +70,9 @@ fn app(
                 }
             }
             wallet.coins.append(&mut exchange_coins);
-            let orders = exchange.api.open_orders(&config.wallet_private_key, &exchange.settings);
+            let orders = exchange
+                .api
+                .open_orders(&config.wallet_private_key, &exchange.settings);
             println!("{} ORDERS {:?}", exchange.settings.name, orders);
         }
     }
@@ -141,7 +143,10 @@ fn run_book(
                         let out =
                             match run_offer(config, askbid, &exchange, offer, &book.market, wallet)
                             {
-                                Ok(zip) => "ok".to_string(),
+                                Ok(zip) => {
+                                    wait_order(config, &exchange);
+                                    "ok".to_string()
+                                }
                                 Err(e) => e.to_string(),
                             };
                         format!("{} {} {}\n{}", askbid, &book.market, offer, out)
@@ -155,6 +160,7 @@ fn run_book(
         })
         .collect::<Vec<String>>()
 }
+
 fn run_offer(
     config: &config::Config,
     askbid: &types::AskBid,
@@ -179,6 +185,16 @@ fn run_offer(
     ) {
         Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
         Err(e) => Err(e),
+    }
+}
+
+fn wait_order(config: &config::Config, exchange: &config::Exchange) {
+    let mut open_orders: Vec<exchange::Order> = vec![];
+    while open_orders.len() > 0 {
+        open_orders = exchange.api.open_orders(&config.wallet_private_key, &exchange.settings);
+        println!("{} {:?}", exchange.settings.name, open_orders);
+        let delay = std::time::Duration::from_secs(3);
+        std::thread::sleep(delay);
     }
 }
 
