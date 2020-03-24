@@ -337,7 +337,7 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
 mod tests {
     use super::*;
 
-    static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+    static PRIVKEY: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
     static contract_addr_v2: &str = "0x080bf510FCbF18b91105470639e9561022937712";
     static good_exchange_hash_v2: &str =
         "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
@@ -367,7 +367,6 @@ mod tests {
     #[test]
     fn test_eip712_domain_sep() {
         let hash = eip712_exchange_hash(contract_addr_v2);
-        println!("edh hashbytes {}", hex::encode(&hash));
         assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
     }
 
@@ -391,13 +390,10 @@ mod tests {
         let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         form_hash.copy_from_slice(&hex::decode(good_form_hash).unwrap());
         let tokens = exchange_order_tokens(form_hash, contract_addr_v2);
-        println!("tokens len {}", tokens.len());
         let exchange_tokens_bytes = ethabi::encode(&tokens);
         let eip191_header = hex::decode("1901").unwrap();
         let exg_with_header = [&eip191_header[..], &exchange_tokens_bytes[..]].concat();
-        println!("exchange_tokens_bytes {}", hex::encode(&exg_with_header));
         let good_exchange_tokens_bytes = "1901b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de06272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
-        println!("Gxchange_tokens_bytes {}", good_exchange_tokens_bytes);
         assert_eq!(
             exg_with_header,
             hex::decode(good_exchange_tokens_bytes).unwrap()
@@ -432,10 +428,8 @@ mod tests {
     }
     #[test]
     fn test_order_sign() {
-        println!("privkey {}", privkey);
-        let privkey_bytes = &hex::decode(privkey).unwrap();
+        let privkey_bytes = &hex::decode(PRIVKEY).unwrap();
         let signature = order_sign(privkey_bytes, &mut blank_order_form());
-        println!("order_sign signature {}", signature);
         let good_sig = "0x1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a02";
         assert_eq!(signature, good_sig)
     }

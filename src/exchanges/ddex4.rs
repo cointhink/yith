@@ -284,15 +284,15 @@ pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker
 #[cfg(test)]
 mod tests {
     use super::*;
-    static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
-    static good_addr: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
-    static msg_v4: &str = "HYDRO-AUTHENTICATION@1566380397473";
-    static good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+    static PRIVKEY: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+    static GOOD_ADDR: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
+    static MSG_V4: &str = "HYDRO-AUTHENTICATION@1566380397473";
+    static GOOD_SIG_V4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
 
     #[test]
     fn test_build_token() {
-        let token = build_token(privkey, msg_v4);
-        let good_token = format!("0x{}#{}#0x{}", good_addr, msg_v4, good_sig_v4);
+        let token = build_token(PRIVKEY, MSG_V4);
+        let good_token = format!("0x{}#{}#0x{}", GOOD_ADDR, MSG_V4, GOOD_SIG_V4);
         assert_eq!(token, good_token);
     }
 }
