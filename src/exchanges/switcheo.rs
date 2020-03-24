@@ -184,7 +184,6 @@ impl exchange::Api for Switcheo {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: Option<String>,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "={:#?} {} {}@{}",
@@ -278,7 +277,7 @@ impl exchange::Api for Switcheo {
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         let balances = resp.json::<BalanceResponse>().unwrap();
-        println!("{} {:#?}", status, balances);
+        println!("switcheo {} {:#?}", status, balances);
         //  "confirmed": {"GAS": "47320000000.0",
         vec![]
     }

@@ -31,7 +31,6 @@ impl exchange::Api for Idex {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: Option<String>,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             blockchain: "eth".to_string(),

@@ -110,7 +110,6 @@ impl exchange::Api for Ddex4 {
         exchange: &config::ExchangeSettings,
         market: &types::Market,
         offer: &types::Offer,
-        proxy: Option<String>,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "ddex4(hydro) build {:#?} {} {}@{}",
@@ -145,7 +144,7 @@ impl exchange::Api for Ddex4 {
             amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
         };
 
-        let client = build_auth_client(proxy)?;
+        let client = build_auth_client(exchange)?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
         println!("Ddex4 order {}", url);
@@ -215,19 +214,19 @@ impl exchange::Api for Ddex4 {
     }
 }
 
-pub fn build_auth_client(proxy_url: Option<String>) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_auth_client(exchange: &config::ExchangeSettings) -> reqwest::Result<reqwest::blocking::Client> {
     let headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
         .default_headers(headers);
-    let bldr = match proxy_url {
-        Some(proxy_url) => {
-            println!("PROXY {}", proxy_url);
-            let proxy = reqwest::Proxy::all(&proxy_url)?;
-            bldr.proxy(proxy)
-        }
-        None => bldr,
-    };
+    // let bldr = match proxy_url {
+    //     Some(proxy_url) => {
+    //         println!("PROXY {}", proxy_url);
+    //         let proxy = reqwest::Proxy::all(&proxy_url)?;
+    //         bldr.proxy(proxy)
+    //     }
+    //     None => bldr,
+    // };
     bldr.build()
 }
 
