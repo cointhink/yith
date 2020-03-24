@@ -176,7 +176,13 @@ fn run_offer(
         base_qty: most_qty,
         quote: offer.quote,
     };
-    match wallet.find_coin_by_source_symbol(&exchange.settings.name, &market.quote.symbol) {
+    let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
+    let source_name = if exchange.settings.has_balances {
+        &exchange.settings.name
+    } else {
+        &pub_key
+    };
+    match wallet.find_coin_by_source_symbol(source_name, &market.quote.symbol) {
         Ok(coin) => match coin.base_total() > capped_offer.base_qty {
             true => {
                 println!(
@@ -240,7 +246,7 @@ fn balance_limit(wallet: &wallet::Wallet, ticker: &types::Ticker, amount: f64) -
         amount
     } else {
         println!(
-            "* {} balance capped at {} from {}",
+            "* {} balance capped at {:0.5} from {:0.5}",
             ticker.symbol, wallet_coin_balance, amount
         );
         wallet_coin_balance
