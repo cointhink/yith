@@ -370,6 +370,8 @@ mod tests {
         assert_eq!(unit_q, 1000000000000000000);
         let unit_q = quantity_in_base_units(1.234, 8);
         assert_eq!(unit_q, 123400000);
+        let unit_q = quantity_in_base_units(2.3, 2);
+        assert_eq!(unit_q, 230);
     }
 }
 
