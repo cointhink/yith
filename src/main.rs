@@ -180,9 +180,10 @@ fn run_offer(
         Ok(coin) => match coin.base_total() > capped_offer.base_qty {
             true => {
                 println!(
-                    "balance check {} at {} is sufficient for {}",
+                    "balance check {} at {} of {} is sufficient for {}",
                     coin.base_total(),
                     exchange.settings.name,
+                    coin.base_total(),
                     capped_offer.base_qty
                 );
                 match exchange.api.build(
@@ -197,24 +198,26 @@ fn run_offer(
                     Err(e) => Err(e),
                 }
             }
-            false => Err(Box::new(exchange::ExchangeError {
-                msg: format!(
-                    "{} {} insufficient balance for {}",
-                    exchange.settings.name, market.quote.symbol, capped_offer.base_qty
-                ),
-            })),
+            false => {
+                let exg_err = exchange::ExchangeError {
+                    msg: format!(
+                        "{} {} insufficient balance for {}",
+                        exchange.settings.name, market.quote.symbol, capped_offer.base_qty
+                    ),
+                };
+                println!("{}", exg_err);
+                Err(Box::new(exg_err))
+            }
         },
         Err(e) => {
-            println!(
-                "balance check {} at {} failed",
-                market.quote.symbol, exchange.settings.name
-            );
-            Err(Box::new(exchange::ExchangeError {
+            let exg_err = exchange::ExchangeError {
                 msg: format!(
                     "{} {} not found in wallet",
                     exchange.settings.name, market.quote.symbol
                 ),
-            }))
+            };
+            println!("{}", exg_err);
+            Err(Box::new(exg_err))
         }
     }
 }
