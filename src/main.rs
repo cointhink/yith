@@ -56,6 +56,7 @@ fn app(
         let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
         if exchange.settings.enabled {
             if exchange.settings.has_balances {
+                println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
                 let balances = exchange.api.balances(&my_addr, &exchange.settings);
                 for balance in balances {
                     exchange_coins.push(wallet::WalletCoin {
@@ -70,13 +71,18 @@ fn app(
                 }
             }
             wallet.coins.append(&mut exchange_coins);
+        }
+    }
+    println!("{}", wallet);
+    for exchange in &exchanges.exchanges {
+        if exchange.settings.enabled {
             let orders = exchange
                 .api
                 .open_orders(&config.wallet_private_key, &exchange.settings);
             println!("{} ORDERS {:?}", exchange.settings.name, orders);
         }
     }
-    println!("{}", wallet);
+    println!("");
 
     let order = if args.len() == 2 {
         let arb_filename = args[1].clone();

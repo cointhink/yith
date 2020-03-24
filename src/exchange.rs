@@ -2,10 +2,10 @@ use crate::config;
 use crate::exchanges;
 use crate::types;
 use serde::{Deserialize, Serialize};
+use std::collections;
 use std::error;
 use std::fmt;
 use std::time;
-use std::collections;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]

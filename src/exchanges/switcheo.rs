@@ -172,6 +172,10 @@ impl Switcheo {
         );
         qty_str
     }
+
+    pub fn units_to_amount(&self, units: &str, token: &TokenDetail) -> f64 {
+        (units.parse::<u128>().unwrap() / 10_u128.pow(token.decimals as u32)) as f64
+    }
 }
 
 impl exchange::Api for Switcheo {
@@ -273,19 +277,25 @@ impl exchange::Api for Switcheo {
             public_addr,
             exchange.contract_address
         );
-        println!("{}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         let mut balances = resp.json::<BalanceResponse>().unwrap();
-        println!("switcheo {} {:#?}", status, balances);
         balances
             .confirmed
             .iter()
             .map(|(k, v)| {
-                let f_bal = v.parse::<u128>().unwrap() as f64;
-                (k.clone(), f_bal)
-            }).collect()
+                match self.tokens.get(&types::Ticker {
+                    symbol: k.to_string(),
+                }) {
+                    Some(token) => {
+                        let f_bal = self.units_to_amount(v, token);
+                        (k.clone(), f_bal)
+                    }
+                    None => ("conversion-err".to_string(), 0.0),
+                }
+            })
+            .collect()
     }
 
     fn deposit(
@@ -337,10 +347,20 @@ mod tests {
     #[test]
     fn test_amount_to_units() {
         let switcheo = Switcheo::new();
-        let ticker = types::Ticker {
-            symbol: "ETH".to_string(),
+        let token = TokenDetail {
+            symbol: "BAT".to_string(),
+            name: "BAT".to_string(),
+            r#type: "wut".to_string(),
+            hash: "abc".to_string(),
+            decimals: 18,
+            transfer_decimals: 18,
+            precision: 2,
+            minimum_quantity: "0".to_string(),
+            trading_active: true,
+            is_stablecoin: false,
+            stablecoin_type: None,
         };
-        let units = switcheo.amount_to_units(2.3, &ticker);
+        let units = switcheo.amount_to_units(2.3, 2, &token);
         assert_eq!(units, "2300000000000000000") // float sigma fun
     }
 

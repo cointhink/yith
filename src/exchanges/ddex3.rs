@@ -287,13 +287,12 @@ mod tests {
     static msg_v4: &str = "HYDRO-AUTHENTICATION@1566380397473";
     static msg_v3: &str = "HYDRO-AUTHENTICATION@1524088776656";
     static good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
-    static good_sig_v3: &str = "603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f93500";
+    static good_sig_v3: &str = "603efd7241bfb6c61f4330facee0f7027d98e030ef241ad03a372638c317859a50620dacee177b771ce05812770a637c4c7395da0042c94250f86fb52472f9351b"; // was ..00"
 
     #[test]
     fn test_build_token() {
-        let mut token = String::from("");
-        build_token(&mut token, privkey, msg_v4);
-        let good_token = format!("0x{}#{}#0x{}", good_addr, msg_v4, good_sig_v4);
+        let token = build_token(privkey, msg_v3);
+        let good_token = format!("0x{}#{}#0x{}", good_addr, msg_v3, good_sig_v3);
         assert_eq!(token, good_token);
     }
 }
