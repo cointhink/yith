@@ -7,6 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
+use bigdecimal::BigDecimal;
+use num_traits::cast::FromPrimitive;
+use num_bigint::BigInt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
@@ -163,12 +166,11 @@ impl Switcheo {
     }
 
     pub fn amount_to_units(&self, amount: f64, precision: i32, token: &TokenDetail) -> String {
-        let units = quantity_in_base_units(amount, precision as u32);
-        let remaining: usize = (token.decimals - precision) as usize;
-        let qty_str = format!("{}{}", units, "0".repeat(remaining));
+        let qty_int = quantity_in_base_units(amount, precision, token.decimals);
+        let qty_str = qty_int.to_str_radix(10);
         println!(
-            "{}^{} {}^{} => \"{}\"",
-            amount, precision, token.symbol, token.decimals, qty_str
+            "{}^{} {}^{} => \"{}\"", 
+           amount, precision, token.symbol, token.decimals, qty_str
         );
         qty_str
     }
@@ -322,8 +324,12 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-pub fn quantity_in_base_units(qty: f64, exp: u32) -> u64 {
-    (qty * 10_f64.powi(exp as i32)) as u64
+pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
+    let big_dec = BigDecimal::from_f64(qty).unwrap()
+       .with_scale(prec as i64) // truncates
+       .with_scale(scale as i64);
+    let (qty_int, exp) = big_dec.into_bigint_and_exponent();
+    qty_int
 }
 
 #[cfg(test)]
@@ -366,12 +372,12 @@ mod tests {
 
     #[test]
     fn test_quantity_in_base_units() {
-        let unit_q = quantity_in_base_units(1.0, 18);
-        assert_eq!(unit_q, 1000000000000000000);
-        let unit_q = quantity_in_base_units(1.234, 8);
-        assert_eq!(unit_q, 123400000);
-        let unit_q = quantity_in_base_units(2.3, 2);
-        assert_eq!(unit_q, 230);
+        let unit_q = quantity_in_base_units(1.1234, 2, 18);
+        assert_eq!(unit_q, 1120000000000000000_u64.into());
+        let unit_q = quantity_in_base_units(1.234, 8, 8);
+        assert_eq!(unit_q, 123400000.into());
+        let unit_q = quantity_in_base_units(2.3, 2, 2);
+        assert_eq!(unit_q, 230.into());
     }
 }
 
