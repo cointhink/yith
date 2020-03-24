@@ -162,13 +162,13 @@ impl Switcheo {
         }
     }
 
-    pub fn amount_to_units(&self, amount: f64, market: &Pair, token: &TokenDetail) -> String {
-        let units = quantity_in_base_units(amount, market.precision as u32);
-        let remaining: usize = (token.decimals - market.precision) as usize;
+    pub fn amount_to_units(&self, amount: f64, precision: i32, token: &TokenDetail) -> String {
+        let units = quantity_in_base_units(amount, precision as u32);
+        let remaining: usize = (token.decimals - precision) as usize;
         let qty_str = format!("{}{}", units, "0".repeat(remaining));
         println!(
-            "{} mkt^{} {}^{} => {}",
-            amount, market.precision, token.symbol, token.decimals, qty_str
+            "{}^{} {}^{} => \"{}\"",
+            amount, precision, token.symbol, token.decimals, qty_str
         );
         qty_str
     }
@@ -213,8 +213,8 @@ impl exchange::Api for Switcheo {
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: self.amount_to_units(offer.quote, market_detail, quote_token_detail),
-            quantity: self.amount_to_units(offer.base_qty, market_detail, base_token_detail),
+            price: self.amount_to_units(offer.quote, market_detail.precision, quote_token_detail),
+            quantity: self.amount_to_units(offer.base_qty, base_token_detail.precision, base_token_detail),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,
