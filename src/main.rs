@@ -197,14 +197,24 @@ fn run_offer(
                     Err(e) => Err(e),
                 }
             }
-            false => Err(Box::new(exchange::ExchangeError {})),
+            false => Err(Box::new(exchange::ExchangeError {
+                msg: format!(
+                    "{} {} insufficient balance for {}",
+                    exchange.settings.name, market.quote.symbol, capped_offer.base_qty
+                ),
+            })),
         },
         Err(e) => {
             println!(
                 "balance check {} at {} failed",
                 market.quote.symbol, exchange.settings.name
             );
-            Err(Box::new(exchange::ExchangeError {}))
+            Err(Box::new(exchange::ExchangeError {
+                msg: format!(
+                    "{} {} not found in wallet",
+                    exchange.settings.name, market.quote.symbol
+                ),
+            }))
         }
     }
 }

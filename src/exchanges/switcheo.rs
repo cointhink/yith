@@ -290,9 +290,7 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: types::Ticker,
     ) {
-        let url = format!(
-            "{}/deposits",
-            exchange.api_url.as_str());
+        let url = format!("{}/deposits", exchange.api_url.as_str());
     }
 }
 

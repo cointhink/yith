@@ -17,7 +17,9 @@ pub enum OrderSheet {
 }
 
 #[derive(Debug)]
-pub struct ExchangeError {}
+pub struct ExchangeError {
+    pub msg: String,
+}
 
 impl error::Error for ExchangeError {
     fn description(&self) -> &str {
@@ -31,8 +33,8 @@ impl error::Error for ExchangeError {
 }
 
 impl fmt::Display for ExchangeError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "display error here")
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.msg)
     }
 }
 
