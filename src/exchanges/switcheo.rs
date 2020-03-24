@@ -282,6 +282,18 @@ impl exchange::Api for Switcheo {
         //  "confirmed": {"GAS": "47320000000.0",
         vec![]
     }
+
+    fn deposit(
+        &self,
+        privkey: &str,
+        exchange: &config::ExchangeSettings,
+        amount: f64,
+        token: types::Ticker,
+    ) {
+        let url = format!(
+            "{}/deposits",
+            exchange.api_url.as_str());
+    }
 }
 
 pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {

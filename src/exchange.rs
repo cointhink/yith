@@ -127,5 +127,12 @@ pub trait Api {
         vec![]
     }
 
-    fn deposit(&self, exchange: &config::ExchangeSettings, amount: f64, token: types::Ticker) {}
+    fn deposit(
+        &self,
+        privkey: &str,
+        exchange: &config::ExchangeSettings,
+        amount: f64,
+        token: types::Ticker,
+    ) {
+    }
 }
