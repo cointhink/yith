@@ -118,10 +118,14 @@ pub trait Api {
         exchange: &config::ExchangeSettings,
         sheet: OrderSheet,
     ) -> Result<(), Box<dyn error::Error>>;
+
     fn balances<'a>(&self, privkey: &str, exchange: &config::ExchangeSettings) -> Vec<(&str, f64)> {
         vec![]
     }
+
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
         vec![]
     }
+
+    fn deposit(&self, exchange: &config::ExchangeSettings, amount: f64, token: types::Ticker) {}
 }

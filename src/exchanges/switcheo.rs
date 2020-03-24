@@ -214,7 +214,11 @@ impl exchange::Api for Switcheo {
             order_type: "limit".to_string(),
             pair: market_pair,
             price: self.amount_to_units(offer.quote, market_detail.precision, quote_token_detail),
-            quantity: self.amount_to_units(offer.base_qty, base_token_detail.precision, base_token_detail),
+            quantity: self.amount_to_units(
+                offer.base_qty,
+                base_token_detail.precision,
+                base_token_detail,
+            ),
             side: side,
             timestamp: now_millis,
             use_native_tokens: false,

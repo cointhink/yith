@@ -176,23 +176,45 @@ fn run_offer(
         base_qty: most_qty,
         quote: offer.quote,
     };
-    match exchange.api.build(
-        &config.wallet_private_key,
-        &askbid,
-        &exchange.settings,
-        market,
-        &capped_offer,
-        config.proxy.clone(),
-    ) {
-        Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
-        Err(e) => Err(e),
+    match wallet.find_coin_by_source_symbol(&exchange.settings.name, &market.quote.symbol) {
+        Ok(coin) => match coin.base_total() > capped_offer.base_qty {
+            true => {
+                println!(
+                    "balance check {} at {} is sufficient for {}",
+                    coin.base_total(),
+                    exchange.settings.name,
+                    capped_offer.base_qty
+                );
+                match exchange.api.build(
+                    &config.wallet_private_key,
+                    &askbid,
+                    &exchange.settings,
+                    market,
+                    &capped_offer,
+                    config.proxy.clone(),
+                ) {
+                    Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
+                    Err(e) => Err(e),
+                }
+            }
+            false => Err(Box::new(exchange::ExchangeError {})),
+        },
+        Err(e) => {
+            println!(
+                "balance check {} at {} failed",
+                market.quote.symbol, exchange.settings.name
+            );
+            Err(Box::new(exchange::ExchangeError {}))
+        }
     }
 }
 
 fn wait_order(config: &config::Config, exchange: &config::Exchange) {
     let mut open_orders: Vec<exchange::Order> = vec![];
     while open_orders.len() > 0 {
-        open_orders = exchange.api.open_orders(&config.wallet_private_key, &exchange.settings);
+        open_orders = exchange
+            .api
+            .open_orders(&config.wallet_private_key, &exchange.settings);
         println!("{} {:?}", exchange.settings.name, open_orders);
         let delay = std::time::Duration::from_secs(3);
         std::thread::sleep(delay);
