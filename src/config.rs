@@ -73,10 +73,12 @@ impl ExchangeList {
         None
     }
 
-    // incredible rust wtf
-    //pub fn active(&self) -> Vec<Exchange> {
-    //    self.exchanges.iter().filter(|e| e.settings.enabled)
-    //}
+    pub fn enabled(&self) -> Vec<&Exchange> {
+        self.exchanges
+            .iter()
+            .filter(|e| e.settings.enabled)
+            .collect()
+    }
 }
 
 pub fn read_exchanges(filename: &str) -> ExchangeList {

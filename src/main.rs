@@ -47,34 +47,26 @@ fn app(
         eth_coins.push(eth_coin);
     }
     wallet.coins.append(&mut eth_coins);
-    for exchange in &exchanges.exchanges {
+    for exchange in exchanges.enabled() {
         let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
-        if exchange.settings.enabled {
-            if exchange.settings.has_balances {
-                println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
-                let balances = exchange.api.balances(&my_addr, &exchange.settings);
-                for (symbol, balance) in balances {
-                    let exchange_coin = wallet::WalletCoin::build(
-                        &symbol,
-                        "none",
-                        &exchange.settings.name,
-                        balance,
-                    );
-                    exchange_coins.push(exchange_coin);
-                }
+        if exchange.settings.has_balances {
+            println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
+            let balances = exchange.api.balances(&my_addr, &exchange.settings);
+            for (symbol, balance) in balances {
+                let exchange_coin =
+                    wallet::WalletCoin::build(&symbol, "none", &exchange.settings.name, balance);
+                exchange_coins.push(exchange_coin);
             }
             wallet.coins.append(&mut exchange_coins);
         }
     }
     println!("{}", wallet);
 
-    for exchange in &exchanges.exchanges {
-        if exchange.settings.enabled {
-            let orders = exchange
-                .api
-                .open_orders(&config.wallet_private_key, &exchange.settings);
-            println!("{} ORDERS {:?}", exchange.settings.name, orders);
-        }
+    for exchange in exchanges.enabled() {
+        let orders = exchange
+            .api
+            .open_orders(&config.wallet_private_key, &exchange.settings);
+        println!("{} ORDERS {:?}", exchange.settings.name, orders);
     }
     println!("");
 
