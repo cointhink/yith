@@ -164,22 +164,6 @@ impl Switcheo {
             pairs: pairs,
         }
     }
-
-    pub fn amount_to_units(&self, amount: f64, precision: i32, token: &TokenDetail) -> String {
-        let qty_int = quantity_in_base_units(amount, precision, token.decimals);
-        let qty_str = qty_int.to_str_radix(10);
-        println!(
-            "{}^{} {}^{} => \"{}\"",
-            amount, precision, token.symbol, token.decimals, qty_str
-        );
-        qty_str
-    }
-
-    pub fn units_to_amount(&self, units: &str, token: &TokenDetail) -> f64 {
-        let unts = units.parse::<u128>().unwrap();
-        let power = 10_u128.pow(token.decimals as u32);
-        unts as f64 / power as f64
-    }
 }
 
 impl exchange::Api for Switcheo {
@@ -220,8 +204,8 @@ impl exchange::Api for Switcheo {
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: self.amount_to_units(offer.quote, market_detail.precision, quote_token_detail),
-            quantity: self.amount_to_units(
+            price: amount_to_units(offer.quote, market_detail.precision, quote_token_detail),
+            quantity: amount_to_units(
                 offer.base_qty,
                 base_token_detail.precision,
                 base_token_detail,
@@ -293,7 +277,7 @@ impl exchange::Api for Switcheo {
                     symbol: k.to_string(),
                 }) {
                     Some(token) => {
-                        let f_bal = self.units_to_amount(v, token);
+                        let f_bal = units_to_amount(v, token);
                         println!("{} {} = {}", k, v, f_bal);
                         (k.clone(), f_bal)
                     }
@@ -327,6 +311,22 @@ pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
+pub fn amount_to_units(amount: f64, precision: i32, token: &TokenDetail) -> String {
+    let qty_int = quantity_in_base_units(amount, precision, token.decimals);
+    let qty_str = qty_int.to_str_radix(10);
+    println!(
+        "{}^{} {}^{} => \"{}\"",
+        amount, precision, token.symbol, token.decimals, qty_str
+    );
+    qty_str
+}
+
+pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
+    let unts = units.parse::<u128>().unwrap();
+    let power = 10_u128.pow(token.decimals as u32);
+    unts as f64 / power as f64
+}
+
 pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
     let big_dec = BigDecimal::from_f64(qty)
         .unwrap()
@@ -356,7 +356,6 @@ mod tests {
 
     #[test]
     fn test_amount_to_units() {
-        let switcheo = Switcheo::new();
         let token = TokenDetail {
             symbol: "BAT".to_string(),
             name: "BAT".to_string(),
@@ -370,7 +369,7 @@ mod tests {
             is_stablecoin: false,
             stablecoin_type: None,
         };
-        let units = switcheo.amount_to_units(2.3, 2, &token);
+        let units = amount_to_units(2.3, 2, &token);
         assert_eq!(units, "2300000000000000000") // float sigma fun
     }
 
@@ -388,7 +387,6 @@ mod tests {
 
     #[test]
     fn test_units_to_amount() {
-        let switcheo = Switcheo::new();
         let token = TokenDetail {
             symbol: "BAT".to_string(),
             name: "BAT".to_string(),
@@ -402,7 +400,7 @@ mod tests {
             is_stablecoin: false,
             stablecoin_type: None,
         };
-        let amt = switcheo.units_to_amount("123456789", &token);
+        let amt = units_to_amount("123456789", &token);
         assert_eq!(amt, 1.23456789)
     }
 }

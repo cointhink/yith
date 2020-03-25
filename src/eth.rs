@@ -118,7 +118,7 @@ mod tests {
         let good_hash_bytes = hex::decode(good_hash_v3).unwrap();
         let mut good_hash_sized_bytes = [0u8; 32];
         good_hash_sized_bytes.copy_from_slice(&good_hash_bytes);
-        let mut hash_bytes = ethsign_hash_msg(&msg_v3.as_bytes().to_vec());
+        let hash_bytes = ethsign_hash_msg(&msg_v3.as_bytes().to_vec());
         assert_eq!(hash_bytes, good_hash_sized_bytes);
     }
 
