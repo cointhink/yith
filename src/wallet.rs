@@ -17,11 +17,12 @@ pub struct WalletCoin {
 }
 
 impl WalletCoin {
-    pub fn build(coin: &WalletCoin, my_addr: &str, balance: f64) -> WalletCoin {
+    pub fn build(ticker: &str, contract: &str,  
+        name: &str, balance: f64) -> WalletCoin {
         WalletCoin {
-            ticker_symbol: coin.ticker_symbol.clone(),
-            contract: coin.contract.clone(),
-            source: my_addr.to_string(),
+            ticker_symbol: ticker.to_string(),
+            contract: contract.to_string(),
+            source: name.to_string(),
             amounts: vec![types::Offer {
                 base_qty: balance,
                 quote: 1.0,

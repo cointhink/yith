@@ -42,7 +42,8 @@ fn app(
         if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH_765cc2" {
             balance = eth::wei_to_eth(balance)
         }
-        let eth_coin = wallet::WalletCoin::build(coin, &my_addr, balance);
+        let eth_coin = wallet::WalletCoin::build(&coin.ticker_symbol, &coin.contract, 
+            &my_addr, balance);
         eth_coins.push(eth_coin);
     }
     wallet.coins.append(&mut eth_coins);
@@ -52,16 +53,10 @@ fn app(
             if exchange.settings.has_balances {
                 println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
                 let balances = exchange.api.balances(&my_addr, &exchange.settings);
-                for balance in balances {
-                    exchange_coins.push(wallet::WalletCoin {
-                        ticker_symbol: balance.0.to_string(),
-                        contract: "none".to_string(),
-                        source: exchange.settings.name.clone(),
-                        amounts: vec![types::Offer {
-                            base_qty: balance.1,
-                            quote: 1.0,
-                        }],
-                    });
+                for (symbol, balance) in balances {
+                    let exchange_coin = wallet::WalletCoin::build(&symbol,
+                        "none", &exchange.settings.name, balance);
+                    exchange_coins.push(exchange_coin);
                 }
             }
             wallet.coins.append(&mut exchange_coins);
