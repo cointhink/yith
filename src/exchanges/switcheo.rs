@@ -286,7 +286,7 @@ impl exchange::Api for Switcheo {
             .collect()
     }
 
-    fn deposit(
+    fn withdrawl(
         &self,
         privkey: &str,
         exchange: &config::ExchangeSettings,

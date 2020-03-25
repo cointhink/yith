@@ -87,15 +87,6 @@ pub struct OrderError {
     pub code: i32,
 }
 
-impl OrderError {
-    pub fn new(msg: &str, code: i32) -> OrderError {
-        OrderError {
-            msg: msg.to_string(),
-            code: code,
-        }
-    }
-}
-
 impl std::error::Error for OrderError {}
 
 impl std::fmt::Display for OrderError {
@@ -131,7 +122,7 @@ pub trait Api {
         vec![]
     }
 
-    fn deposit(
+    fn withdrawl(
         &self,
         privkey: &str,
         exchange: &config::ExchangeSettings,
