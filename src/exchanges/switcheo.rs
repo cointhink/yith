@@ -272,16 +272,15 @@ impl exchange::Api for Switcheo {
         balances
             .confirmed
             .iter()
-            .map(|(k, v)| {
+            .map(|(symbol, units)| {
                 match self.tokens.get(&types::Ticker {
-                    symbol: k.to_string(),
+                    symbol: symbol.to_string(),
                 }) {
                     Some(token) => {
-                        let f_bal = units_to_amount(v, token);
-                        println!("{} {} = {}", k, v, f_bal);
-                        (k.clone(), f_bal)
+                        let f_bal = units_to_amount(units, token);
+                        (symbol.clone(), f_bal)
                     }
-                    None => ("conversion-err".to_string(), 0.0),
+                    None => (format!("conversion-err {} {}", symbol, units), 0.0),
                 }
             })
             .collect()

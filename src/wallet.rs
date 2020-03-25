@@ -17,8 +17,7 @@ pub struct WalletCoin {
 }
 
 impl WalletCoin {
-    pub fn build(ticker: &str, contract: &str,  
-        name: &str, balance: f64) -> WalletCoin {
+    pub fn build(ticker: &str, contract: &str, name: &str, balance: f64) -> WalletCoin {
         WalletCoin {
             ticker_symbol: ticker.to_string(),
             contract: contract.to_string(),
