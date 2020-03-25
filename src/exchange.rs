@@ -97,6 +97,28 @@ impl std::fmt::Display for OrderError {
 
 type BalanceList = collections::HashMap<String, f64>;
 
+#[derive(Debug)]
+pub struct Market {
+    pub base: types::Ticker,
+    pub quote: types::Ticker,
+    pub quantity_decimals: f64,
+    pub price_decimals: f64,
+    pub source_name: String,
+}
+
+impl Market {
+    pub fn id(&self, seperator: &str) -> String {
+   format!("{}{}{}", self.base.symbol, seperator, self.quote.symbol)
+
+    }
+}
+
+impl fmt::Display for Market {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}/{}", self.base, self.quote)
+    }
+}
+
 pub trait Api {
     fn setup(&mut self);
     fn build(
@@ -104,7 +126,7 @@ pub trait Api {
         privkey: &str,
         askbid: &types::AskBid,
         exchange: &config::ExchangeSettings,
-        market: &types::Market,
+        market: &Market,
         offer: &types::Offer,
     ) -> Result<OrderSheet, Box<dyn error::Error>>;
 

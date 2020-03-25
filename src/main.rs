@@ -124,10 +124,9 @@ fn run_book(
     book: &types::Book,
     exchanges: &config::ExchangeList,
 ) -> Vec<String> {
-    book.offers[..1]
+    book.offers[..1] // first offer
         .iter()
         .map(|offer| {
-            // 1 offer limit
             println!("** {} {} {}", askbid, &book.market, offer);
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
@@ -162,19 +161,47 @@ fn run_offer(
     market: &types::Market,
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let most_quote = balance_limit(wallet, &market.quote, offer.cost());
-    let most_qty = most_quote / offer.quote;
-    let capped_offer = types::Offer {
-        base_qty: most_qty,
-        quote: offer.quote,
-    };
     let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
     let source_name = if exchange.settings.has_balances {
         &exchange.settings.name
     } else {
         &pub_key
     };
-    match wallet.find_coin_by_source_symbol(source_name, &market.quote.symbol) {
+
+    let mut quote_token = &market.quote;
+    let mut base_token = &market.base;
+    let mut qty = offer.base_qty;
+    let mut price = offer.quote;
+    let mut askbid_align = askbid;
+    let askbid_other = &askbid.otherside();
+    if market.swapped {
+        askbid_align = askbid_other;
+        quote_token = &market.base;
+        base_token = &market.quote;
+        let (swap_qty, swap_price) = offer.swap();
+        qty = swap_qty;
+        price = swap_price;
+        println!(
+            "unswapped {:#?} {} {}-{} {}@{}",
+            askbid_align, market.source.name, market.quote, market.base, qty, price
+        );
+    }
+
+    let most_quote = balance_limit(wallet, &quote_token, offer.cost());
+    let most_qty = most_quote / offer.quote;
+    let capped_offer = types::Offer {
+        base_qty: most_qty,
+        quote: offer.quote,
+    };
+    // unflipped market
+    let exmarket = exchange::Market {
+        base: types::Ticker{symbol: base_token.symbol.clone()},
+        quote: types::Ticker{symbol: quote_token.symbol.clone()},
+        quantity_decimals: market.quantity_decimals,
+        price_decimals: market.price_decimals,
+        source_name: market.source.name.clone(),
+    };
+    match wallet.find_coin_by_source_symbol(source_name, &quote_token.symbol) {
         Ok(coin) => match coin.base_total() > capped_offer.base_qty {
             true => {
                 println!(
@@ -186,9 +213,9 @@ fn run_offer(
                 );
                 match exchange.api.build(
                     &config.wallet_private_key,
-                    &askbid,
+                    &askbid_align,
                     &exchange.settings,
-                    market,
+                    &exmarket,
                     &capped_offer,
                 ) {
                     Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),

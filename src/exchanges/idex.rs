@@ -29,7 +29,7 @@ impl exchange::Api for Idex {
         privkey: &str,
         askbid: &types::AskBid,
         exchange: &config::ExchangeSettings,
-        market: &types::Market,
+        market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         Ok(exchange::OrderSheet::Idex(OrderSheet {

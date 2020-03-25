@@ -135,27 +135,16 @@ impl exchange::Api for Zeroex {
         privkey: &str,
         askbid: &types::AskBid,
         exchange: &config::ExchangeSettings,
-        market: &types::Market,
+        market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "0x build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
-        let market_id = make_market_id(market.swapped, &market.base, &market.quote);
         let qty = offer.base_qty;
         let price = offer.quote;
-        let mut ab = askbid;
-        let askbid_other = askbid.otherside();
-        if market.swapped {
-            ab = &askbid_other;
-            let (s_qty, s_price) = offer.swap();
-            println!(
-                "unswapped {:#?} {} {}-{} {}@{}",
-                ab, market.source.name, market.quote, market.base, s_qty, s_price
-            );
-        }
-        let side = match ab {
+        let side = match askbid {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
@@ -172,7 +161,7 @@ impl exchange::Api for Zeroex {
         let url = format!(
             "{}/markets/{}/order/limit",
             exchange.api_url.as_str(),
-            market_id
+            market.id("-")
         );
         println!("0x limit order build {}", url);
         println!("{:#?}", sheet);
@@ -250,13 +239,6 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let exg_hash = eth::hash_msg(&exg_with_header);
     let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     format!("0x{}02", hex::encode(&form_sig_bytes[..]))
-}
-
-pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
-    match swapped {
-        true => format!("{}-{}", quote.symbol, base.symbol),
-        false => format!("{}-{}", base.symbol, quote.symbol),
-    }
 }
 
 pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {

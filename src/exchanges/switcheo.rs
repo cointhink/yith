@@ -183,7 +183,7 @@ impl exchange::Api for Switcheo {
         privkey: &str,
         askbid: &types::AskBid,
         exchange: &config::ExchangeSettings,
-        market: &types::Market,
+        market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
@@ -193,7 +193,7 @@ impl exchange::Api for Switcheo {
 
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
-        let market_pair = make_market_pair(market.swapped, &market.base, &market.quote);
+        let market_pair = make_market_pair(market);
         let now_millis = time::now();
         let base_token_detail = self.tokens.get(&market.base).unwrap();
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
@@ -297,11 +297,8 @@ impl exchange::Api for Switcheo {
     }
 }
 
-pub fn make_market_pair(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
-    match swapped {
-        true => format!("{}_{}", quote.symbol, base.symbol),
-        false => format!("{}_{}", base.symbol, quote.symbol),
-    }
+pub fn make_market_pair(market: &exchange::Market) -> String {
+    format!("{}_{}", market.base.symbol, market.quote.symbol)
 }
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {

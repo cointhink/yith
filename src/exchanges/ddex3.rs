@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::types;
+use crate::exchanges::ddex::Ddex;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
@@ -97,6 +98,8 @@ pub struct OrderResponse {
 
 pub struct Ddex3 {}
 
+impl Ddex for Ddex3 {}
+
 impl exchange::Api for Ddex3 {
     fn setup(&mut self) {}
 
@@ -105,29 +108,17 @@ impl exchange::Api for Ddex3 {
         privkey: &str,
         askbid: &types::AskBid,
         exchange: &config::ExchangeSettings,
-        market: &types::Market,
+        market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
             "ddex3(hydro) build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
-        let market_id = make_market_id(market.swapped, &market.base, &market.quote);
-        let mut qty = offer.base_qty;
-        let mut price = offer.quote;
-        let mut askbid_align = askbid;
-        let askbid_other = askbid.otherside();
-        if market.swapped {
-            askbid_align = &askbid_other;
-            let (s_qty, s_price) = offer.swap();
-            println!(
-                "unswapped {:#?} {} {}-{} {}@{}",
-                askbid_align, market.source.name, market.quote, market.base, s_qty, s_price
-            );
-            qty = s_qty;
-            price = s_price;
-        }
-        let side = match askbid_align {
+        let market_id = self.make_market_id(market);
+        let qty = offer.base_qty;
+        let price = offer.quote;
+        let side = match askbid {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
@@ -272,12 +263,6 @@ fn build_token(privkey: &str, msg: &str) -> String {
     token
 }
 
-pub fn make_market_id(swapped: bool, base: &types::Ticker, quote: &types::Ticker) -> String {
-    match swapped {
-        true => format!("{}-{}", quote.symbol, base.symbol),
-        false => format!("{}-{}", base.symbol, quote.symbol),
-    }
-}
 
 #[cfg(test)]
 mod tests {
