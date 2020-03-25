@@ -1,4 +1,4 @@
-use lettre::{EmailAddress, Envelope, SendableEmail, SmtpClient, Transport};
+use lettre::{SmtpClient, Transport};
 use lettre_email::Email;
 
 pub fn send(to_addr: &str, subject: &str, body: &str) {

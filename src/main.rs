@@ -35,23 +35,16 @@ fn app(
 
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     println!("etherscan BALANCES for 0x{}", my_addr);
-    let mut new_coins = Vec::<wallet::WalletCoin>::new();
+    let mut eth_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
         let mut balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
         if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH_765cc2" {
             balance = eth::wei_to_eth(balance)
         }
-        new_coins.push(wallet::WalletCoin {
-            ticker_symbol: coin.ticker_symbol.clone(),
-            contract: coin.contract.clone(),
-            source: my_addr.clone(),
-            amounts: vec![types::Offer {
-                base_qty: balance,
-                quote: 1.0,
-            }],
-        });
+        let eth_coin = wallet::WalletCoin::build(coin, &my_addr, balance);
+        eth_coins.push(eth_coin);
     }
-    wallet.coins.append(&mut new_coins);
+    wallet.coins.append(&mut eth_coins);
     for exchange in &exchanges.exchanges {
         let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
         if exchange.settings.enabled {
@@ -74,6 +67,7 @@ fn app(
         }
     }
     println!("{}", wallet);
+
     for exchange in &exchanges.exchanges {
         if exchange.settings.enabled {
             let orders = exchange

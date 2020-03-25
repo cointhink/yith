@@ -178,7 +178,7 @@ impl Switcheo {
     pub fn units_to_amount(&self, units: &str, token: &TokenDetail) -> f64 {
         let unts = units.parse::<u128>().unwrap();
         let power = 10_u128.pow(token.decimals as u32);
-        (unts as f64 / power as f64)
+        unts as f64 / power as f64
     }
 }
 
@@ -284,7 +284,7 @@ impl exchange::Api for Switcheo {
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
-        let mut balances = resp.json::<BalanceResponse>().unwrap();
+        let balances = resp.json::<BalanceResponse>().unwrap();
         balances
             .confirmed
             .iter()

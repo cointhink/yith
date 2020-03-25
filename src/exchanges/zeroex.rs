@@ -5,7 +5,6 @@ use crate::eth;
 use crate::exchange;
 use crate::types;
 use chrono;
-use chrono::format::ParseError;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;

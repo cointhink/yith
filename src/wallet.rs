@@ -16,6 +16,20 @@ pub struct WalletCoin {
     pub amounts: Vec<types::Offer>,
 }
 
+impl WalletCoin {
+    pub fn build(coin: &WalletCoin, my_addr: &str, balance: f64) -> WalletCoin {
+        WalletCoin {
+            ticker_symbol: coin.ticker_symbol.clone(),
+            contract: coin.contract.clone(),
+            source: my_addr.to_string(),
+            amounts: vec![types::Offer {
+                base_qty: balance,
+                quote: 1.0,
+            }],
+        }
+    }
+}
+
 impl Wallet {
     pub fn load_file(filename: &str) -> Wallet {
         let file_ok = fs::read_to_string(filename);
@@ -72,7 +86,7 @@ impl fmt::Display for WalletCoin {
 
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "wallet:\n")?;
+        write!(f, "[wallet]\n")?;
         self.coins.iter().try_for_each(|c| write!(f, "{}\n", c))?;
         write!(f, "")
     }
