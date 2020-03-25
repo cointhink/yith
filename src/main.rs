@@ -6,6 +6,7 @@ mod exchange;
 mod exchanges;
 mod geth;
 mod redis;
+mod time;
 mod types;
 mod wallet;
 

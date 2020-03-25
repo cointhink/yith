@@ -1,6 +1,7 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::time;
 use crate::types;
 use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
@@ -9,7 +10,6 @@ use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pair {
@@ -87,6 +87,15 @@ pub enum BuySell {
     Buy,
     #[serde(rename = "sell")]
     Sell,
+}
+
+impl From<&types::AskBid> for BuySell {
+    fn from(askbid: &types::AskBid) -> Self {
+        match askbid {
+            types::AskBid::Ask => BuySell::Buy,
+            types::AskBid::Bid => BuySell::Sell,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -184,17 +193,8 @@ impl exchange::Api for Switcheo {
 
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
-        let side = match askbid {
-            types::AskBid::Ask => BuySell::Buy,
-            types::AskBid::Bid => BuySell::Sell,
-        };
-
         let market_pair = make_market_pair(market.swapped, &market.base, &market.quote);
-
-        let now_millis = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
+        let now_millis = time::now();
         let base_token_detail = self.tokens.get(&market.base).unwrap();
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
         let market_detail = self.pairs.get(&market_pair).unwrap();
@@ -210,7 +210,7 @@ impl exchange::Api for Switcheo {
                 base_token_detail.precision,
                 base_token_detail,
             ),
-            side: side,
+            side: askbid.into(),
             timestamp: now_millis,
             use_native_tokens: false,
         };
