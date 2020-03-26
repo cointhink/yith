@@ -176,7 +176,7 @@ fn run_offer(
     };
     let most_quote = balance_limit(wallet, check_ticker, check_amount);
     let most_qty = match askbid {
-        types::AskBid::Ask => most_quote/offer.quote,
+        types::AskBid::Ask => most_quote / offer.quote,
         types::AskBid::Bid => most_quote,
     };
     let capped_offer = types::Offer {
@@ -184,43 +184,31 @@ fn run_offer(
         quote: offer.quote,
     };
     match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
-        Ok(coin) => match coin.base_total() > check_amount {
-            true => {
+        Ok(coin) => {
+            let least = vec![coin.base_total(), check_amount]
+                .iter()
+                .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo });
+
+            if least < check_amount {
                 println!(
-                    "balance check {} {} at {} is sufficient for {}",
-                    coin.base_total(),
-                    check_ticker,
-                    source_name,
-                    check_amount
+                    "{} {} balance limited to {}",
+                    check_ticker, source_name, least
                 );
-                match exchange.api.build(
-                    &config.wallet_private_key,
-                    &askbid,
-                    &exchange.settings,
-                    &market,
-                    &capped_offer,
-                ) {
-                    Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
-                    Err(e) => Err(e),
-                }
             }
-            false => {
-                let exg_err = exchange::ExchangeError {
-                    msg: format!(
-                        "!{} {} insufficient balance at {} {}",
-                        check_amount, check_ticker, source_name, coin.base_total()
-                    ),
-                };
-                println!("{}", exg_err);
-                Err(Box::new(exg_err))
+            match exchange.api.build(
+                &config.wallet_private_key,
+                &askbid,
+                &exchange.settings,
+                &market,
+                &capped_offer,
+            ) {
+                Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
+                Err(e) => Err(e),
             }
-        },
+        }
         Err(e) => {
             let exg_err = exchange::ExchangeError {
-                msg: format!(
-                    "!{} not found in wallet for {}",
-                    check_ticker, source_name
-                ),
+                msg: format!("!{} not found in wallet for {}", check_ticker, source_name),
             };
             println!("{}", exg_err);
             Err(Box::new(exg_err))
