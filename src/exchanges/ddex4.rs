@@ -1,8 +1,8 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
-use crate::types;
 use crate::exchanges::ddex::Ddex;
+use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
@@ -138,7 +138,7 @@ impl exchange::Api for Ddex4 {
         let client = build_auth_client(exchange)?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
-        println!("Ddex4 order {}", url);
+        println!("Ddex4 {}", url);
         println!("{:#?}", &sheet);
 
         let headers = auth_header(privkey);

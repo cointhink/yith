@@ -35,7 +35,7 @@ impl fmt::Display for Pair {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum AskBid {
     #[serde(rename = "ask")]
     Ask,

@@ -108,8 +108,7 @@ pub struct Market {
 
 impl Market {
     pub fn id(&self, seperator: &str) -> String {
-   format!("{}{}{}", self.base.symbol, seperator, self.quote.symbol)
-
+        format!("{}{}{}", self.base.symbol, seperator, self.quote.symbol)
     }
 }
 

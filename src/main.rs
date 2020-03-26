@@ -168,40 +168,14 @@ fn run_offer(
         &pub_key
     };
 
-    let mut quote_token = &market.quote;
-    let mut base_token = &market.base;
-    let mut qty = offer.base_qty;
-    let mut price = offer.quote;
-    let mut askbid_align = askbid;
-    let askbid_other = &askbid.otherside();
-    if market.swapped {
-        askbid_align = askbid_other;
-        quote_token = &market.base;
-        base_token = &market.quote;
-        let (swap_qty, swap_price) = offer.swap();
-        qty = swap_qty;
-        price = swap_price;
-        println!(
-            "unswapped {:#?} {} {}@{}",
-            askbid_align, market, qty, price
-        );
-    }
-    let cost = qty*price;
-    let most_quote = balance_limit(wallet, &quote_token, cost);
-    let most_qty = most_quote / price;
+    let (askbid, market, offer) = unswap(askbid, market, offer);
+    let most_quote = balance_limit(wallet, &market.quote, offer.cost());
+    let most_qty = most_quote / offer.quote;
     let capped_offer = types::Offer {
         base_qty: most_qty,
-        quote: price,
+        quote: offer.quote,
     };
-    // market after flip
-    let exmarket = exchange::Market {
-        base: types::Ticker{symbol: base_token.symbol.clone()},
-        quote: types::Ticker{symbol: quote_token.symbol.clone()},
-        quantity_decimals: market.quantity_decimals,
-        price_decimals: market.price_decimals,
-        source_name: market.source.name.clone(),
-    };
-    match wallet.find_coin_by_source_symbol(source_name, &quote_token.symbol) {
+    match wallet.find_coin_by_source_symbol(source_name, &market.quote.symbol) {
         Ok(coin) => match coin.base_total() > capped_offer.base_qty {
             true => {
                 println!(
@@ -213,9 +187,9 @@ fn run_offer(
                 );
                 match exchange.api.build(
                     &config.wallet_private_key,
-                    &askbid_align,
+                    &askbid,
                     &exchange.settings,
-                    &exmarket,
+                    &market,
                     &capped_offer,
                 ) {
                     Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
@@ -244,6 +218,45 @@ fn run_offer(
             Err(Box::new(exg_err))
         }
     }
+}
+
+fn unswap(
+    askbid: &types::AskBid,
+    market: &types::Market,
+    offer: &types::Offer,
+) -> (types::AskBid, exchange::Market, types::Offer) {
+    let mut quote_token = &market.quote;
+    let mut base_token = &market.base;
+    let mut qty = offer.base_qty;
+    let mut price = offer.quote;
+    let mut askbid_align = *askbid; // enum questions
+    let askbid_other = askbid.otherside();
+    if market.swapped {
+        askbid_align = askbid_other;
+        quote_token = &market.base;
+        base_token = &market.quote;
+        let (swap_qty, swap_price) = offer.swap();
+        qty = swap_qty;
+        price = swap_price;
+        println!("unswapped {:#?} {} {}@{}", askbid_align, market, qty, price);
+    }
+    // market after flip
+    let exmarket = exchange::Market {
+        base: types::Ticker {
+            symbol: base_token.symbol.clone(),
+        },
+        quote: types::Ticker {
+            symbol: quote_token.symbol.clone(),
+        },
+        quantity_decimals: market.quantity_decimals,
+        price_decimals: market.price_decimals,
+        source_name: market.source.name.clone(),
+    };
+    let swoffer = types::Offer {
+        base_qty: qty,
+        quote: price,
+    };
+    (askbid_align, exmarket, swoffer)
 }
 
 fn wait_order(config: &config::Config, exchange: &config::Exchange) {
