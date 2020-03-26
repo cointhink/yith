@@ -182,18 +182,18 @@ fn run_offer(
         qty = swap_qty;
         price = swap_price;
         println!(
-            "unswapped {:#?} {} {}-{} {}@{}",
-            askbid_align, market.source.name, market.quote, market.base, qty, price
+            "unswapped {:#?} {} {}@{}",
+            askbid_align, market, qty, price
         );
     }
-
-    let most_quote = balance_limit(wallet, &quote_token, offer.cost());
-    let most_qty = most_quote / offer.quote;
+    let cost = qty*price;
+    let most_quote = balance_limit(wallet, &quote_token, cost);
+    let most_qty = most_quote / price;
     let capped_offer = types::Offer {
         base_qty: most_qty,
-        quote: offer.quote,
+        quote: price,
     };
-    // unflipped market
+    // market after flip
     let exmarket = exchange::Market {
         base: types::Ticker{symbol: base_token.symbol.clone()},
         quote: types::Ticker{symbol: quote_token.symbol.clone()},
@@ -264,7 +264,7 @@ fn balance_limit(wallet: &wallet::Wallet, ticker: &types::Ticker, amount: f64) -
         amount
     } else {
         println!(
-            "* {} balance capped at {:0.5} from {:0.5}",
+            "* {} capped at wallet limit {:0.5} from {:0.5}",
             ticker.symbol, wallet_coin_balance, amount
         );
         wallet_coin_balance

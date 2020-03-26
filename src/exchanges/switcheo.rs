@@ -231,8 +231,6 @@ impl exchange::Api for Switcheo {
         let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
         let status = resp.status();
         println!("switcheo result {:#?} {}", status, resp.url());
-        //let text = resp.text().unwrap();
-        //println!("{}", text);
         if status.is_success() {
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
