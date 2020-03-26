@@ -12,7 +12,7 @@ pub struct Config {
     pub proxy: Option<String>,
     pub etherscan_key: String,
     pub idex_key: String,
-    pub email: String,
+    pub email: Option<String>,
 }
 
 pub fn read_config(filename: &str) -> Config {

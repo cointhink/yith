@@ -101,8 +101,10 @@ fn run_order(
         format_runs(ask_runs),
         format_runs(bid_runs)
     );
-    let subject = format!("{}", order.pair);
-    email::send(&config.email, &subject, &run_out);
+    if let Some(email) = config.email.as_ref() {
+        let subject = format!("{}", order.pair);
+        email::send(email, &subject, &run_out);
+    }
 }
 
 fn run_books(
@@ -162,28 +164,34 @@ fn run_offer(
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
+    let (askbid, market, offer) = unswap(askbid, market, offer);
     let source_name = if exchange.settings.has_balances {
-        &exchange.settings.name
+        &market.source_name
     } else {
         &pub_key
     };
-
-    let (askbid, market, offer) = unswap(askbid, market, offer);
-    let most_quote = balance_limit(wallet, &market.quote, offer.cost());
-    let most_qty = most_quote / offer.quote;
+    let (check_ticker, check_amount) = match askbid {
+        types::AskBid::Ask => (&market.quote, offer.cost()),
+        types::AskBid::Bid => (&market.base, offer.base_qty),
+    };
+    let most_quote = balance_limit(wallet, check_ticker, check_amount);
+    let most_qty = match askbid {
+        types::AskBid::Ask => most_quote/offer.quote,
+        types::AskBid::Bid => most_quote,
+    };
     let capped_offer = types::Offer {
         base_qty: most_qty,
         quote: offer.quote,
     };
-    match wallet.find_coin_by_source_symbol(source_name, &market.quote.symbol) {
-        Ok(coin) => match coin.base_total() > capped_offer.base_qty {
+    match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
+        Ok(coin) => match coin.base_total() > check_amount {
             true => {
                 println!(
-                    "balance check {} at {} of {} is sufficient for {}",
+                    "balance check {} {} at {} is sufficient for {}",
                     coin.base_total(),
-                    exchange.settings.name,
-                    coin.base_total(),
-                    capped_offer.base_qty
+                    check_ticker,
+                    source_name,
+                    check_amount
                 );
                 match exchange.api.build(
                     &config.wallet_private_key,
@@ -199,8 +207,8 @@ fn run_offer(
             false => {
                 let exg_err = exchange::ExchangeError {
                     msg: format!(
-                        "{} {} insufficient balance for {}",
-                        exchange.settings.name, market.quote.symbol, capped_offer.base_qty
+                        "!{} {} insufficient balance at {} {}",
+                        check_amount, check_ticker, source_name, coin.base_total()
                     ),
                 };
                 println!("{}", exg_err);
@@ -210,8 +218,8 @@ fn run_offer(
         Err(e) => {
             let exg_err = exchange::ExchangeError {
                 msg: format!(
-                    "{} {} not found in wallet",
-                    exchange.settings.name, market.quote.symbol
+                    "!{} not found in wallet for {}",
+                    check_ticker, source_name
                 ),
             };
             println!("{}", exg_err);
