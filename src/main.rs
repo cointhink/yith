@@ -174,6 +174,7 @@ fn run_offer(
         types::AskBid::Ask => (&market.quote, offer.cost()),
         types::AskBid::Bid => (&market.base, offer.base_qty),
     };
+    let wallet_coin_limit = wallet.coin_limit(&ticker.symbol);
     let most_quote = balance_limit(wallet, check_ticker, check_amount);
     let most_qty = match askbid {
         types::AskBid::Ask => most_quote / offer.quote,

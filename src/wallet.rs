@@ -38,7 +38,7 @@ impl Wallet {
         wallet
     }
 
-    pub fn coin_amount(&self, name: &str) -> f64 {
+    pub fn coin_limit(&self, name: &str) -> f64 {
         match self.find_coin_by_symbol(name) {
             Ok(coin) => coin.amounts[0].base_qty,
             Err(_msg) => 0.0,
