@@ -197,6 +197,17 @@ pub struct BalanceConfirming {
     created_at: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignatureSheet {
+    makes: HashMap<String, String>,
+    fill_groups: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SignatureBody {
+    signatures: SignatureSheet
+}
+
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
@@ -275,9 +286,9 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
-            let build_success = resp.json::<Order>().unwrap();
-            println!("{:?}", build_success);
-            Ok(exchange::OrderSheet::Switcheo(sheet_sign))
+            let order = resp.json::<Order>().unwrap();
+            println!("{:?}", order);
+            Ok(exchange::OrderSheet::Switcheo(order))
         } else {
             let build_err = resp.json::<ResponseError>().unwrap();
             let order_error = exchange::OrderError {
@@ -294,7 +305,27 @@ impl exchange::Api for Switcheo {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        Ok(())
+        if let exchange::OrderSheet::Switcheo(order) = sheet {
+            let url = format!(
+                "{}/orders/{}/broadcast",
+                exchange.api_url.as_str(),
+                order.id
+            );
+            println!("{}", url);
+            let makes = HashMap::<String,String>::new();
+            let fill_groups = HashMap::<String,String>::new();
+            let sig_sheet = SignatureBody {
+                signatures: SignatureSheet { fill_groups: fill_groups, makes: makes}
+            };
+            let client = reqwest::blocking::Client::new();
+            let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
+            let status = resp.status();
+            if status.is_success() {}
+            println!("{} {:?}", resp.status(), resp.text());
+            Ok(())
+        } else {
+            Ok(())
+        }
     }
 
     fn balances<'a>(

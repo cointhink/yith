@@ -13,7 +13,7 @@ pub enum OrderSheet {
     Ddex3(exchanges::ddex3::OrderSheet),
     Ddex4(exchanges::ddex4::OrderSheet),
     Zeroex(exchanges::zeroex::OrderForm),
-    Switcheo(exchanges::switcheo::OrderSheetSign),
+    Switcheo(exchanges::switcheo::Order),
     Idex(exchanges::idex::OrderSheet),
 }
 
