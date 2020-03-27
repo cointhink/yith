@@ -170,32 +170,30 @@ fn run_offer(
     } else {
         &pub_key
     };
-    let (check_ticker, check_amount) = match askbid {
-        types::AskBid::Ask => (&market.quote, offer.cost()),
-        types::AskBid::Bid => (&market.base, offer.base_qty),
-    };
-    let wallet_coin_limit = wallet.coin_limit(&ticker.symbol);
-    let most_quote = balance_limit(wallet, check_ticker, check_amount);
-    let most_qty = match askbid {
-        types::AskBid::Ask => most_quote / offer.quote,
-        types::AskBid::Bid => most_quote,
-    };
-    let capped_offer = types::Offer {
-        base_qty: most_qty,
-        quote: offer.quote,
+    let check_ticker = match askbid {
+        types::AskBid::Ask => &market.quote,
+        types::AskBid::Bid => &market.base,
     };
     match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
         Ok(coin) => {
-            let least = vec![coin.base_total(), check_amount]
-                .iter()
-                .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo });
-
-            if least < check_amount {
+            let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
+            let offer_cost = offer.cost(askbid);
+            let amounts = vec![offer_cost, wallet_coin_limit, coin.base_total()];
+            let least_cost = minimum(amounts);
+            if least_cost < offer_cost {
                 println!(
                     "{} {} balance limited to {}",
-                    check_ticker, source_name, least
+                    check_ticker, source_name, least_cost
                 );
             }
+            let least_qty = match askbid {
+                types::AskBid::Ask => least_cost / offer.quote,
+                types::AskBid::Bid => least_cost,
+            };
+            let capped_offer = types::Offer {
+                base_qty: least_qty,
+                quote: offer.quote,
+            };
             match exchange.api.build(
                 &config.wallet_private_key,
                 &askbid,
@@ -268,17 +266,10 @@ fn wait_order(config: &config::Config, exchange: &config::Exchange) {
     }
 }
 
-fn balance_limit(wallet: &wallet::Wallet, ticker: &types::Ticker, amount: f64) -> f64 {
-    let wallet_coin_balance = wallet.coin_amount(&ticker.symbol);
-    if amount < wallet_coin_balance {
-        amount
-    } else {
-        println!(
-            "* {} capped at wallet limit {:0.5} from {:0.5}",
-            ticker.symbol, wallet_coin_balance, amount
-        );
-        wallet_coin_balance
-    }
+fn minimum(amounts: Vec<f64>) -> f64 {
+    amounts
+        .iter()
+        .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo })
 }
 
 fn format_runs(runs: Vec<Vec<String>>) -> String {

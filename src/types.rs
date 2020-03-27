@@ -70,8 +70,7 @@ pub struct Books {
 
 impl Books {
     pub fn cost_total(&self) -> f64 {
-        self.books.iter().map(|b: &Book| b.cost_total()).sum()
-        //self.books.iter().map(|b| 12.0).sum()
+        self.books.iter().map(|b: &Book| b.cost_total(self.askbid)).sum()
     }
 }
 
@@ -82,8 +81,8 @@ pub struct Book {
 }
 
 impl Book {
-    pub fn cost_total(&self) -> f64 {
-        self.offers.iter().map(|o| o.cost()).sum()
+    pub fn cost_total(&self, askbid: AskBid) -> f64 {
+        self.offers.iter().map(|o| o.cost(askbid)).sum()
     }
 }
 
@@ -147,7 +146,10 @@ impl Offer {
         (s_qty, s_quote)
     }
 
-    pub fn cost(&self) -> f64 {
-        self.base_qty * self.quote
+    pub fn cost(&self, askbid: AskBid) -> f64 {
+        match askbid {
+            AskBid::Ask => self.base_qty * self.quote,
+            AskBid::Bid => self.base_qty,
+        }
     }
 }
