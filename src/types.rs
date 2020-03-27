@@ -70,7 +70,10 @@ pub struct Books {
 
 impl Books {
     pub fn cost_total(&self) -> f64 {
-        self.books.iter().map(|b: &Book| b.cost_total(self.askbid)).sum()
+        self.books
+            .iter()
+            .map(|b: &Book| b.cost_total(self.askbid))
+            .sum()
     }
 }
 

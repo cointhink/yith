@@ -98,6 +98,15 @@ impl From<&types::AskBid> for BuySell {
     }
 }
 
+impl Into<exchange::BuySell> for BuySell {
+    fn into(self) -> exchange::BuySell {
+        match self {
+            BuySell::Buy => exchange::BuySell::Buy,
+            BuySell::Sell => exchange::BuySell::Sell,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheetSign {
     #[serde(flatten)]
@@ -127,10 +136,44 @@ pub struct OrderForm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct BuildSuccess {}
+pub enum OrderStatus {
+    #[serde(rename = "pending")]
+    Pending,
+    #[serde(rename = "open")]
+    Open,
+    #[serde(rename = "cancelled")]
+    Cancelled,
+    #[serde(rename = "completed")]
+    Completed,
+}
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct BuildError {
+pub struct Order {
+    id: String,
+    created_at: String,
+    order_status: OrderStatus,
+    side: BuySell,
+    price: String,
+    quantity: String,
+    pair: String,
+}
+
+impl Order {
+    fn into_exg(self, base_token: &TokenDetail, quote_token: &TokenDetail) -> exchange::Order {
+        exchange::Order {
+            id: self.id,
+            side: self.side.into(),
+            state: exchange::OrderState::Cancelled,
+            market: self.pair,
+            base_qty: units_to_amount(&self.quantity, base_token),
+            quote: units_to_amount(&self.price, quote_token),
+            create_date: 0,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ResponseError {
     error: String,
     #[serde(default)]
     error_message: String,
@@ -232,9 +275,11 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
+            let build_success = resp.json::<Order>().unwrap();
+            println!("{:?}", build_success);
             Ok(exchange::OrderSheet::Switcheo(sheet_sign))
         } else {
-            let build_err = resp.json::<BuildError>().unwrap();
+            let build_err = resp.json::<ResponseError>().unwrap();
             let order_error = exchange::OrderError {
                 msg: build_err.error,
                 code: build_err.error_code as i32,
@@ -293,10 +338,58 @@ impl exchange::Api for Switcheo {
     ) {
         let url = format!("{}/deposits", exchange.api_url.as_str());
     }
+
+    fn open_orders(
+        &self,
+        account: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Vec<exchange::Order> {
+        let url = format!(
+            "{}/orders?address=0x{}&contract_hashes={}",
+            exchange.api_url.as_str(),
+            account,
+            exchange.contract_address
+        );
+        println!("{}", url);
+        let client = reqwest::blocking::Client::new();
+        let resp = client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        if status.is_success() {
+            let orders = resp.json::<Vec<Order>>().unwrap();
+            println!("switcheo raw orders {:?}", orders);
+            let shortlist = Vec::<exchange::Order>::new();
+            orders.into_iter().fold(shortlist, |mut m, o| {
+                let (base_name, quote_name) = split_market_pair(&o.pair);
+                match self.tokens.get(&types::Ticker {
+                    symbol: base_name.to_string(),
+                }) {
+                    Some(base_token) => {
+                        match self.tokens.get(&types::Ticker {
+                            symbol: quote_name.to_string(),
+                        }) {
+                            Some(quote_token) => m.push(o.into_exg(base_token, quote_token)),
+                            None => (),
+                        }
+                    }
+                    None => (),
+                }
+                m
+            })
+        } else {
+            let build_err = resp.json::<ResponseError>().unwrap();
+            println!("{:?}", build_err);
+            vec![] // bad
+        }
+    }
 }
 
 pub fn make_market_pair(market: &exchange::Market) -> String {
     format!("{}_{}", market.base.symbol, market.quote.symbol)
+}
+
+pub fn split_market_pair(pair: &str) -> (String, String) {
+    let parts: Vec<&str> = pair.split("_").collect();
+    (parts[0].to_string(), parts[1].to_string())
 }
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {

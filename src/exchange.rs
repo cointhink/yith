@@ -140,6 +140,7 @@ pub trait Api {
     }
 
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
+        println!("warning {} has no open_orders call", exchange.name);
         vec![]
     }
 

@@ -194,6 +194,7 @@ fn run_offer(
                 base_qty: least_qty,
                 quote: offer.quote,
             };
+            println!("final offer {}", capped_offer);
             match exchange.api.build(
                 &config.wallet_private_key,
                 &askbid,
