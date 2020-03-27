@@ -286,8 +286,10 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
-            let order = resp.json::<Order>().unwrap();
-            println!("{:?}", order);
+            //let order = resp.json::<Order>().unwrap();
+            let json = resp.text().unwrap();
+            println!("{}", json);
+            let order = serde_json::from_str(&json).unwrap();
             Ok(exchange::OrderSheet::Switcheo(order))
         } else {
             let build_err = resp.json::<ResponseError>().unwrap();
