@@ -170,6 +170,7 @@ impl exchange::Api for Ddex4 {
 
     fn submit(
         &self,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {

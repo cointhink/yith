@@ -357,9 +357,12 @@ impl exchange::Api for Switcheo {
 
     fn submit(
         &self,
+        privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let privbytes = &hex::decode(privkey).unwrap();
+        let secret_key = SecretKey::from_slice(privbytes).unwrap();
         if let exchange::OrderSheet::Switcheo(order) = sheet {
             let url = format!(
                 "{}/orders/{}/broadcast",
@@ -368,7 +371,7 @@ impl exchange::Api for Switcheo {
             );
             println!("{}", url);
             let makes = HashMap::<String, String>::new();
-            let fill_groups = HashMap::<String, String>::new();
+            let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
                     fill_groups: fill_groups,
@@ -376,6 +379,8 @@ impl exchange::Api for Switcheo {
                 },
             };
             let client = reqwest::blocking::Client::new();
+            let json = serde_json::to_string(&sig_sheet).unwrap();
+            println!("switcheo submit {}", json);
             let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
             let status = resp.status();
             if status.is_success() {}
@@ -470,6 +475,14 @@ impl exchange::Api for Switcheo {
             vec![] // bad
         }
     }
+}
+
+pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
+    fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
+        let json = serde_json::to_string(fillg).unwrap();
+        memo.insert(fillg.id.clone(), sign(&json, key));
+        memo
+    })
 }
 
 pub fn make_market_pair(market: &exchange::Market) -> String {

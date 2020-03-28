@@ -190,6 +190,7 @@ impl exchange::Api for Zeroex {
 
     fn submit(
         &self,
+        privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {

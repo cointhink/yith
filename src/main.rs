@@ -201,7 +201,11 @@ fn run_offer(
                 &market,
                 &capped_offer,
             ) {
-                Ok(sheet) => exchange.api.submit(&exchange.settings, sheet),
+                Ok(sheet) => {
+                    exchange
+                        .api
+                        .submit(&config.wallet_private_key, &exchange.settings, sheet)
+                }
                 Err(e) => Err(e),
             }
         }

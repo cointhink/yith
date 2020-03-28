@@ -39,6 +39,7 @@ impl exchange::Api for Idex {
 
     fn submit(
         &self,
+        privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {

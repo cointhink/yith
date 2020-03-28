@@ -131,6 +131,7 @@ pub trait Api {
 
     fn submit(
         &self,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet: OrderSheet,
     ) -> Result<(), Box<dyn error::Error>>;
