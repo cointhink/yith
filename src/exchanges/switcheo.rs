@@ -191,11 +191,11 @@ pub struct FillGroupTransaction {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FillGroup {
     address: String,
-    id: String,
     external: bool,
     fee_amount: String,
     fee_asset_id: String,
     fill_ids: Vec<String>,
+    id: String,
     txn: FillGroupTransaction,
 }
 
@@ -495,6 +495,7 @@ pub fn split_market_pair(pair: &str) -> (String, String) {
 }
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
+    println!("sign {}", json);
     let msg_hash = eth::ethsign_hash_msg(&json.as_bytes().to_vec());
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
