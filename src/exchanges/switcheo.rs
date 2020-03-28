@@ -150,35 +150,20 @@ pub enum OrderStatus {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FillGroupTransactionScriptParamsArgs {
+    fee_asset_id: String,
+    fee_amount: String,
+    filler: Option<String>,
+    maker: Option<String>,
+    nonce: u64,
     offer_asset_id: String,
     offer_amount: String,
     want_asset_id: String,
     want_amount: String,
-    fee_asset_id: String,
-    fee_amount: String,
-    nonce: u64,
-    maker: Option<String>,
-    filler: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FillGroupTransactionScriptParams {
     args: FillGroupTransactionScriptParamsArgs,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FillGroupTransaction {
-    script_params: FillGroupTransactionScriptParams,
-    hash: String,
-    message: String,
-    sha256: String,
-    #[serde(rename = "typedPayload")]
-    typed_payload: String,
-    #[serde(rename = "chainId")]
-    chain_id: String,
-    #[serde(rename = "offerHash")]
-    offer_hash: Option<String>,
-    matches: Option<Vec<FillTaker>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -189,14 +174,29 @@ pub struct FillTaker {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct FillGroupTransaction {
+    #[serde(rename = "chainId")]
+    chain_id: String,
+    hash: String,
+    matches: Option<Vec<FillTaker>>,
+    message: String,
+    #[serde(rename = "offerHash")]
+    offer_hash: Option<String>,
+    script_params: FillGroupTransactionScriptParams,
+    sha256: String,
+    #[serde(rename = "typedPayload")]
+    typed_payload: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FillGroup {
-    id: String,
     address: String,
-    fill_ids: Vec<String>,
-    txn: FillGroupTransaction,
+    id: String,
+    external: bool,
     fee_amount: String,
     fee_asset_id: String,
-    external: bool,
+    fill_ids: Vec<String>,
+    txn: FillGroupTransaction,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
