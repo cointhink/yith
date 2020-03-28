@@ -148,6 +148,58 @@ pub enum OrderStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FillGroupTransactionScriptParamsArgs {
+    offer_asset_id: String,
+    offer_amount: String,
+    want_asset_id: String,
+    want_amount: String,
+    fee_asset_id: String,
+    fee_amount: String,
+    nonce: u64,
+    maker: Option<String>,
+    filler: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FillGroupTransactionScriptParams {
+    args: FillGroupTransactionScriptParamsArgs,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FillGroupTransaction {
+    script_params: FillGroupTransactionScriptParams,
+    hash: String,
+    message: String,
+    sha256: String,
+    #[serde(rename = "typedPayload")]
+    typed_payload: String,
+    #[serde(rename = "chainId")]
+    chain_id: String,
+    #[serde(rename = "offerHash")]
+    offer_hash: Option<String>,
+    matches: Option<Vec<FillTaker>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FillTaker {
+    offer_hash: String,
+    take_amount: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FillGroup {
+    id: String,
+    address: String,
+    fill_ids: Vec<String>,
+    txn: FillGroupTransaction,
+    fee_amount: String,
+    fee_asset_id: String,
+    external: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
     id: String,
     created_at: String,
@@ -156,6 +208,7 @@ pub struct Order {
     price: String,
     quantity: String,
     pair: String,
+    fill_groups: Vec<FillGroup>,
 }
 
 impl Order {
@@ -205,7 +258,7 @@ pub struct SignatureSheet {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignatureBody {
-    signatures: SignatureSheet
+    signatures: SignatureSheet,
 }
 
 pub struct Switcheo {
@@ -314,10 +367,13 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let makes = HashMap::<String,String>::new();
-            let fill_groups = HashMap::<String,String>::new();
+            let makes = HashMap::<String, String>::new();
+            let fill_groups = HashMap::<String, String>::new();
             let sig_sheet = SignatureBody {
-                signatures: SignatureSheet { fill_groups: fill_groups, makes: makes}
+                signatures: SignatureSheet {
+                    fill_groups: fill_groups,
+                    makes: makes,
+                },
             };
             let client = reqwest::blocking::Client::new();
             let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
