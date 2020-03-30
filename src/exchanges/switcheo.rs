@@ -174,7 +174,7 @@ trait Idable {
 
 impl Idable for Fill {
     fn id(&self) -> String {
-        self.id()
+        self.id.clone()
     }
 }
 
@@ -232,7 +232,7 @@ pub struct FillGroup {
 
 impl Idable for FillGroup {
     fn id(&self) -> String {
-        self.id()
+        self.id.clone()
     }
 }
 

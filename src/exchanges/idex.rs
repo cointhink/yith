@@ -1,10 +1,7 @@
 use crate::config;
-use crate::eth;
 use crate::exchange;
 use crate::types;
-use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {

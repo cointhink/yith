@@ -32,8 +32,6 @@ fn app(
     redis: redis::Redis,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
-    let order: types::Order;
-
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
     println!("etherscan BALANCES for 0x{}", my_addr);
     let mut eth_coins = Vec::<wallet::WalletCoin>::new();
@@ -137,7 +135,7 @@ fn run_book(
                         let out =
                             match run_offer(config, askbid, &exchange, offer, &book.market, wallet)
                             {
-                                Ok(zip) => {
+                                Ok(()) => {
                                     wait_order(config, &exchange);
                                     "ok".to_string()
                                 }
@@ -209,7 +207,7 @@ fn run_offer(
                 Err(e) => Err(e),
             }
         }
-        Err(e) => {
+        Err(_e) => {
             let exg_err = exchange::ExchangeError {
                 msg: format!("!{} not found in wallet for {}", check_ticker, source_name),
             };
