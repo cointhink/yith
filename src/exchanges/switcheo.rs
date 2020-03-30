@@ -148,6 +148,37 @@ pub enum OrderStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Fill {
+    id: String,
+    offer_hash: String,
+    offer_asset_id: String,
+    want_asset_id: String,
+    fill_amount: String,
+    want_amount: String,
+    filled_amount: Option<String>,
+    fee_asset_id: String,
+    fee_amount: String,
+    maker_fee_amount: u128,
+    price: String,
+    txn: Option<String>,
+    status: OrderStatus,
+    created_at: String,
+    transaction_hash: Option<String>,
+    burn_maker_fees: bool,
+    contract_invocations: Option<String>,
+}
+
+trait Idable {
+    fn id(&self) -> String;
+}
+
+impl Idable for Fill {
+    fn id(&self) -> String {
+        self.id()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FillGroupTransactionScriptParamsArgs {
     fee_asset_id: String,
@@ -199,15 +230,27 @@ pub struct FillGroup {
     txn: FillGroupTransaction,
 }
 
+impl Idable for FillGroup {
+    fn id(&self) -> String {
+        self.id()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
     id: String,
+    blockchain: String,
     created_at: String,
+    contract_hash: String,
+    address: String,
+    broadcast_cutoff_at: String,
+    scheduled_cancellation_at: Option<String>,
     order_status: OrderStatus,
     side: BuySell,
     price: String,
     quantity: String,
     pair: String,
+    fills: Vec<Fill>,
     fill_groups: Vec<FillGroup>,
 }
 
@@ -370,7 +413,7 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let makes = HashMap::<String, String>::new();
+            let makes = fill_sigs(order.fills, &secret_key);
             let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
@@ -477,7 +520,16 @@ impl exchange::Api for Switcheo {
     }
 }
 
+// todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
+    fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
+        let json = serde_json::to_string(fillg).unwrap();
+        memo.insert(fillg.id.clone(), sign(&json, key));
+        memo
+    })
+}
+
+pub fn fill_sigs(fgs: Vec<Fill>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
         let json = serde_json::to_string(fillg).unwrap();
         memo.insert(fillg.id.clone(), sign(&json, key));
