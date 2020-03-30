@@ -45,7 +45,7 @@ impl Wallet {
         }
     }
 
-    pub fn find_coin_by_symbol(&self, symbol: &str) -> Result<&WalletCoin, &'static str> {
+    pub fn find_coin_by_symbol(&self, symbol: &str) -> Result<&WalletCoin, WalletError> {
         self.find_coin_by_source_symbol("limit", symbol)
     }
 
@@ -53,13 +53,13 @@ impl Wallet {
         &self,
         source: &str,
         symbol: &str,
-    ) -> Result<&WalletCoin, &'static str> {
+    ) -> Result<&WalletCoin, WalletError> {
         for coin in &self.coins {
             if coin.ticker_symbol == symbol && coin.source == source {
                 return Ok(&coin);
             }
         }
-        Err("not found")
+        Err(WalletError {})
     }
 }
 
@@ -89,5 +89,14 @@ impl fmt::Display for Wallet {
         write!(f, "[wallet]\n")?;
         self.coins.iter().try_for_each(|c| write!(f, "{}\n", c))?;
         write!(f, "")
+    }
+}
+
+#[derive(Debug)]
+pub struct WalletError {}
+impl std::error::Error for WalletError {}
+impl fmt::Display for WalletError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "WalletError is here!")
     }
 }
