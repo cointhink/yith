@@ -296,6 +296,7 @@ pub struct BalanceConfirming {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SignatureSheet {
     makes: HashMap<String, String>,
+    fills: HashMap<String, String>,
     fill_groups: HashMap<String, String>,
 }
 
@@ -413,12 +414,14 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let makes = fill_sigs(order.fills, &secret_key);
+            let makes = fill_sigs(vec![], &secret_key);
+            let fills = fill_sigs(vec![], &secret_key);
             let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
                     fill_groups: fill_groups,
                     makes: makes,
+                    fills: fills,
                 },
             };
             let client = reqwest::blocking::Client::new();
@@ -530,12 +533,11 @@ pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, S
 
 pub fn fill_sigs(fgs: Vec<Fill>, key: &SecretKey) -> HashMap<String, String> {
     let sigs = HashMap::new();
-    // fgs.iter().fold(sigs, |mut memo, fillg| {
-    //     let json = serde_json::to_string(fillg).unwrap();
-    //     memo.insert(fillg.id.clone(), sign(&json, key));
-    //     memo
-    // })
-    sigs
+    fgs.iter().fold(sigs, |mut memo, fillg| {
+        let json = serde_json::to_string(fillg).unwrap();
+        memo.insert(fillg.id.clone(), sign(&json, key));
+        memo
+    })
 }
 
 pub fn make_market_pair(market: &exchange::Market) -> String {
