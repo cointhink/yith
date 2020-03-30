@@ -523,18 +523,19 @@ impl exchange::Api for Switcheo {
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let json = serde_json::to_string(fillg).unwrap();
-        memo.insert(fillg.id.clone(), sign(&json, key));
+        memo.insert(fillg.id.clone(), sign(&fillg.txn.sha256, key));
         memo
     })
 }
 
 pub fn fill_sigs(fgs: Vec<Fill>, key: &SecretKey) -> HashMap<String, String> {
-    fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let json = serde_json::to_string(fillg).unwrap();
-        memo.insert(fillg.id.clone(), sign(&json, key));
-        memo
-    })
+    let sigs = HashMap::new();
+    // fgs.iter().fold(sigs, |mut memo, fillg| {
+    //     let json = serde_json::to_string(fillg).unwrap();
+    //     memo.insert(fillg.id.clone(), sign(&json, key));
+    //     memo
+    // })
+    sigs
 }
 
 pub fn make_market_pair(market: &exchange::Market) -> String {
