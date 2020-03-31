@@ -252,6 +252,7 @@ pub struct Order {
     pair: String,
     fills: Vec<Fill>,
     fill_groups: Vec<FillGroup>,
+    makes: Vec<FillGroup>,
 }
 
 impl Order {
@@ -414,8 +415,8 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let makes = fill_sigs(vec![], &secret_key);
             let fills = fill_sigs(vec![], &secret_key);
+            let makes = fillgroup_sigs(order.makes, &secret_key);
             let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
@@ -526,7 +527,11 @@ impl exchange::Api for Switcheo {
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        memo.insert(fillg.id.clone(), sign(&fillg.txn.sha256, key));
+        let sha_bytes = hex::decode(&fillg.txn.sha256[2..]).unwrap();
+        let sig_bytes = eth::sign_bytes(&sha_bytes, key);
+        let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
+
+        memo.insert(fillg.id.clone(), sigsha);
         memo
     })
 }
@@ -550,7 +555,6 @@ pub fn split_market_pair(pair: &str) -> (String, String) {
 }
 
 pub fn sign<'a>(json: &String, secret_key: &SecretKey) -> String {
-    println!("sign {}", json);
     let msg_hash = eth::ethsign_hash_msg(&json.as_bytes().to_vec());
     let sig_bytes = eth::sign_bytes(&msg_hash, &secret_key);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
@@ -647,6 +651,17 @@ mod tests {
         };
         let amt = units_to_amount("123456789", &token);
         assert_eq!(amt, 1.23456789)
+    }
+
+    #[test]
+    fn test_fillgroup_sigs() {
+        let sha256 = "b64c9ca323f29f9de97212bc108361aa9d28bc2feccafd9bd6caf5e40a4cc7e7";
+        let sha_bytes = hex::decode(sha256).unwrap();
+        let privkey_bytes = &hex::decode(privkey).unwrap();
+        let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
+        let sig_bytes = eth::sign_bytes(&sha_bytes, &secret_key);
+        let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
+        assert_eq!(sigsha, "0xee4bcd2862de81ce2a4d2ef8a7739844896c4d3098c9e6dcee0ba36efc62aa5a629e6e5ae004f2acd14e1c9d9f6d25a8b2dbb45311a205669706ad19b97e94e01b");
     }
 }
 

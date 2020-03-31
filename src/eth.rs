@@ -68,11 +68,6 @@ pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
 }
 
 pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
-    println!(
-        "signvrs hash {} key {}",
-        hex::encode(&msg_hash),
-        &secret_key
-    );
     let secp = Secp256k1::new();
     let secp_msg = Message::from_slice(&msg_hash).unwrap();
     let signature = secp.sign_recoverable(&secp_msg, secret_key);
