@@ -193,8 +193,27 @@ pub struct FillGroupTransactionScriptParamsArgs {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MakeGroupTransactionScriptParamsArgs {
+    fee_asset_id: String,
+    fee_amount: u128,
+    filler: Option<String>,
+    maker: Option<String>,
+    nonce: u64,
+    offer_asset_id: String,
+    offer_amount: String,
+    want_asset_id: String,
+    want_amount: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FillGroupTransactionScriptParams {
     args: FillGroupTransactionScriptParamsArgs,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MakeGroupTransactionScriptParams {
+    args: MakeGroupTransactionScriptParamsArgs,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -220,6 +239,21 @@ pub struct FillGroupTransaction {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct MakeGroupTransaction {
+    #[serde(rename = "chainId")]
+    chain_id: String,
+    hash: String,
+    matches: Option<Vec<FillTaker>>,
+    message: String,
+    #[serde(rename = "offerHash")]
+    offer_hash: Option<String>,
+    script_params: MakeGroupTransactionScriptParams,
+    sha256: String,
+    #[serde(rename = "typedPayload")]
+    typed_payload: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FillGroup {
     address: String,
     external: bool,
@@ -228,6 +262,20 @@ pub struct FillGroup {
     fill_ids: Vec<String>,
     id: String,
     txn: FillGroupTransaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MakeGroup {
+    id: String,
+    offer_asset_id: String,
+    offer_amount: String,
+    want_asset_id: String,
+    want_amount: String,
+    price: String,
+    status: OrderStatus,
+    fee_amount: u128,
+    fee_asset_id: String,
+    txn: MakeGroupTransaction,
 }
 
 impl Idable for FillGroup {
@@ -252,7 +300,7 @@ pub struct Order {
     pair: String,
     fills: Vec<Fill>,
     fill_groups: Vec<FillGroup>,
-    makes: Vec<FillGroup>,
+    makes: Vec<MakeGroup>,
 }
 
 impl Order {
@@ -415,23 +463,22 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let fills = fill_sigs(vec![], &secret_key);
-            let makes = fillgroup_sigs(order.makes, &secret_key);
+            let makes = makes_sigs(order.makes, &secret_key);
             let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
                     fill_groups: fill_groups,
                     makes: makes,
-                    fills: fills,
+                    fills: HashMap::new(),
                 },
             };
             let client = reqwest::blocking::Client::new();
             let json = serde_json::to_string(&sig_sheet).unwrap();
             println!("switcheo submit {}", json);
-            let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
-            let status = resp.status();
-            if status.is_success() {}
-            println!("{} {:?}", resp.status(), resp.text());
+            // let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
+            // let status = resp.status();
+            // if status.is_success() {}
+            // println!("{} {:?}", resp.status(), resp.text());
             Ok(())
         } else {
             Ok(())
@@ -536,11 +583,13 @@ pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, S
     })
 }
 
-pub fn fill_sigs(fgs: Vec<Fill>, key: &SecretKey) -> HashMap<String, String> {
-    let sigs = HashMap::new();
-    fgs.iter().fold(sigs, |mut memo, fillg| {
-        let json = serde_json::to_string(fillg).unwrap();
-        memo.insert(fillg.id.clone(), sign(&json, key));
+pub fn makes_sigs(fgs: Vec<MakeGroup>, key: &SecretKey) -> HashMap<String, String> {
+    fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
+        let sha_bytes = hex::decode(&fillg.txn.sha256[2..]).unwrap();
+        let sig_bytes = eth::sign_bytes(&sha_bytes, key);
+        let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
+
+        memo.insert(fillg.id.clone(), sigsha);
         memo
     })
 }

@@ -116,7 +116,6 @@ impl fmt::Display for Market {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Source {
     pub name: String,
-    pub url: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
