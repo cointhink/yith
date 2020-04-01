@@ -9,6 +9,7 @@ use num_traits::cast::FromPrimitive;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -264,6 +265,18 @@ pub struct FillGroup {
     txn: FillGroupTransaction,
 }
 
+impl Display for FillGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "fillgroup: {}", self.address)
+    }
+}
+
+impl Idable for FillGroup {
+    fn id(&self) -> String {
+        self.id.clone()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct MakeGroup {
     id: String,
@@ -278,9 +291,13 @@ pub struct MakeGroup {
     txn: MakeGroupTransaction,
 }
 
-impl Idable for FillGroup {
-    fn id(&self) -> String {
-        self.id.clone()
+impl Display for MakeGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "makegroup: {}@{} cost:{}",
+            self.offer_amount, self.want_amount, self.price
+        )
     }
 }
 
@@ -432,10 +449,15 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
-            //let order = resp.json::<Order>().unwrap();
             let json = resp.text().unwrap();
             println!("{}", json);
-            let order = serde_json::from_str(&json).unwrap();
+            let order = serde_json::from_str::<Order>(&json).unwrap();
+            for fillg in &order.fill_groups {
+                println!("{}", fillg);
+            }
+            for make in &order.makes {
+                println!("{}", make);
+            }
             Ok(exchange::OrderSheet::Switcheo(order))
         } else {
             let build_err = resp.json::<ResponseError>().unwrap();
