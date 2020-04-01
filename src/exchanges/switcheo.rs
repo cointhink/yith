@@ -493,11 +493,14 @@ impl exchange::Api for Switcheo {
             let client = reqwest::blocking::Client::new();
             let json = serde_json::to_string(&sig_sheet).unwrap();
             println!("switcheo submit {}", json);
-            // let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
-            // let status = resp.status();
-            // if status.is_success() {}
-            // println!("{} {:?}", resp.status(), resp.text());
-            Ok(())
+            let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
+            let status = resp.status();
+            println!("{} {:?}", resp.status(), resp.text());
+            if status.is_success() {
+                Ok(())
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         }
@@ -668,8 +671,8 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
 
 pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {
     let qty = units_to_amount(&fill.fill_amount, base_token);
-    let price = units_to_amount(&fill.want_amount, quote_token);
-    format!("fill: {}@{} cost:{}", qty, price, fill.price)
+    let cost = units_to_amount(&fill.want_amount, quote_token);
+    format!("fill: {}@{} cost:{}", qty, fill.price, cost)
 }
 
 pub fn makegroup_display(
@@ -678,8 +681,8 @@ pub fn makegroup_display(
     quote_token: &TokenDetail,
 ) -> String {
     let qty = units_to_amount(&mg.offer_amount, base_token);
-    let price = units_to_amount(&mg.want_amount, quote_token);
-    format!("makegroup: {}@{} cost:{}", qty, price, mg.price)
+    let cost = units_to_amount(&mg.want_amount, quote_token);
+    format!("makegroup: {}@{} cost:{}", qty, mg.price, cost)
 }
 
 #[cfg(test)]
