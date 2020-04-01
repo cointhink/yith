@@ -291,16 +291,6 @@ pub struct MakeGroup {
     txn: MakeGroupTransaction,
 }
 
-impl Display for MakeGroup {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "makegroup: {}@{} cost:{}",
-            self.offer_amount, self.want_amount, self.price
-        )
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
     id: String,
@@ -414,14 +404,14 @@ impl exchange::Api for Switcheo {
         let now_millis = time::now();
         let base_token_detail = self.tokens.get(&market.base).unwrap();
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
-        let market_detail = self.pairs.get(&market_pair).unwrap();
+        let pair = self.pairs.get(&market_pair).unwrap();
 
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: amount_to_units(offer.quote, market_detail.precision, quote_token_detail),
+            price: float_precision_string(offer.quote, pair.precision),
             quantity: amount_to_units(
                 offer.base_qty,
                 base_token_detail.precision,
@@ -450,13 +440,19 @@ impl exchange::Api for Switcheo {
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
             let json = resp.text().unwrap();
-            println!("{}", json);
+            //println!("{}", json);
             let order = serde_json::from_str::<Order>(&json).unwrap();
-            for fillg in &order.fill_groups {
-                println!("{}", fillg);
+            for fill in &order.fills {
+                println!(
+                    "{}",
+                    fill_display(fill, base_token_detail, quote_token_detail)
+                );
             }
             for make in &order.makes {
-                println!("{}", make);
+                println!(
+                    "{}",
+                    makegroup_display(make, base_token_detail, quote_token_detail)
+                );
             }
             Ok(exchange::OrderSheet::Switcheo(order))
         } else {
@@ -593,6 +589,20 @@ impl exchange::Api for Switcheo {
     }
 }
 
+pub fn float_precision_string(num: f64, precision: i32) -> String {
+    // if its dumb and it works it aint dumb
+    match precision {
+        2 => format!("{:0.2}", num),
+        3 => format!("{:0.3}", num),
+        4 => format!("{:0.4}", num),
+        5 => format!("{:0.5}", num),
+        6 => format!("{:0.6}", num),
+        7 => format!("{:0.7}", num),
+        8 => format!("{:0.2}", num),
+        _ => "float_precison_string err".to_string(),
+    }
+}
+
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
@@ -654,6 +664,22 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
         .with_scale(scale as i64);
     let (qty_int, exp) = big_dec.into_bigint_and_exponent();
     qty_int
+}
+
+pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {
+    let qty = units_to_amount(&fill.fill_amount, base_token);
+    let price = units_to_amount(&fill.want_amount, quote_token);
+    format!("fill: {}@{} cost:{}", qty, price, fill.price)
+}
+
+pub fn makegroup_display(
+    mg: &MakeGroup,
+    base_token: &TokenDetail,
+    quote_token: &TokenDetail,
+) -> String {
+    let qty = units_to_amount(&mg.offer_amount, base_token);
+    let price = units_to_amount(&mg.want_amount, quote_token);
+    format!("makegroup: {}@{} cost:{}", qty, price, mg.price)
 }
 
 #[cfg(test)]
