@@ -144,6 +144,10 @@ pub trait Api {
         vec![]
     }
 
+    fn order_status(&self, order_id: &str, exchange: &config::ExchangeSettings) -> OrderState {
+        OrderState::Open
+    }
+
     fn withdrawl(
         &self,
         privkey: &str,

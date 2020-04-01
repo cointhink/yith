@@ -497,6 +497,8 @@ impl exchange::Api for Switcheo {
             let status = resp.status();
             println!("{} {:?}", resp.status(), resp.text());
             if status.is_success() {
+                // wait for success
+                // withdrawl
                 Ok(())
             } else {
                 Ok(())
@@ -546,6 +548,22 @@ impl exchange::Api for Switcheo {
         token: types::Ticker,
     ) {
         let url = format!("{}/deposits", exchange.api_url.as_str());
+    }
+
+    fn order_status(&self, order_id: &str, exchange: &config::ExchangeSettings) -> exchange::OrderState {
+        let url = format!(
+            "{}/orders/{}",
+            exchange.api_url.as_str(),
+            order_id
+        );
+        println!("{}", url);
+        let client = reqwest::blocking::Client::new();
+        let resp = client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        if status.is_success() {
+        }
+        println!("{:?}", resp.text());
+        exchange::OrderState::Open
     }
 
     fn open_orders(
