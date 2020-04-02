@@ -1,6 +1,7 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::exchange::Api;
 use crate::time;
 use crate::types;
 use bigdecimal::BigDecimal;
@@ -137,6 +138,17 @@ pub struct OrderForm {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FillStatus {
+    Pending,
+    Confirming,
+    Success,
+    Canceling,
+    Cancelled,
+    Expired
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub enum OrderStatus {
     #[serde(rename = "pending")]
     Pending,
@@ -146,6 +158,17 @@ pub enum OrderStatus {
     Cancelled,
     #[serde(rename = "completed")]
     Completed,
+}
+
+impl Into<exchange::OrderState> for OrderStatus {
+    fn into(self) -> exchange::OrderState {
+        match self {
+            OrderStatus::Pending => exchange::OrderState::Pending,
+            OrderStatus::Open => exchange::OrderState::Open,
+            OrderStatus::Cancelled => exchange::OrderState::Cancelled,
+            OrderStatus::Completed => exchange::OrderState::Filled,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -162,7 +185,7 @@ pub struct Fill {
     maker_fee_amount: u128,
     price: String,
     txn: Option<String>,
-    status: OrderStatus,
+    status: FillStatus,
     created_at: String,
     transaction_hash: Option<String>,
     burn_maker_fees: bool,
@@ -262,7 +285,7 @@ pub struct FillGroup {
     fee_asset_id: String,
     fill_ids: Vec<String>,
     id: String,
-    txn: FillGroupTransaction,
+    txn: Option<FillGroupTransaction>,
 }
 
 impl Display for FillGroup {
@@ -285,7 +308,7 @@ pub struct MakeGroup {
     want_asset_id: String,
     want_amount: String,
     price: String,
-    status: OrderStatus,
+    status: FillStatus,
     fee_amount: u128,
     fee_asset_id: String,
     txn: MakeGroupTransaction,
@@ -378,6 +401,12 @@ impl Switcheo {
         Switcheo {
             tokens: tokens,
             pairs: pairs,
+        }
+    }
+
+    pub fn wait_on_ids(&self, ids: Vec<String>, exchange: &config::ExchangeSettings) {
+        for id in ids {
+            let status = self.order_status(&id, exchange);
         }
     }
 }
@@ -498,6 +527,8 @@ impl exchange::Api for Switcheo {
             println!("{} {:?}", resp.status(), resp.text());
             if status.is_success() {
                 // wait for success
+                let order_ids = gather_ids(sig_sheet.signatures);
+                self.wait_on_ids(order_ids, exchange);
                 // withdrawl
                 Ok(())
             } else {
@@ -550,20 +581,22 @@ impl exchange::Api for Switcheo {
         let url = format!("{}/deposits", exchange.api_url.as_str());
     }
 
-    fn order_status(&self, order_id: &str, exchange: &config::ExchangeSettings) -> exchange::OrderState {
-        let url = format!(
-            "{}/orders/{}",
-            exchange.api_url.as_str(),
-            order_id
-        );
+    fn order_status(
+        &self,
+        order_id: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::OrderState {
+        let url = format!("{}/orders/{}", exchange.api_url.as_str(), order_id);
         println!("{}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         if status.is_success() {
+            let order = resp.json::<Order>().unwrap();
+            order.order_status.into()
+        } else {
+            exchange::OrderState::Cancelled
         }
-        println!("{:?}", resp.text());
-        exchange::OrderState::Open
     }
 
     fn open_orders(
@@ -610,6 +643,17 @@ impl exchange::Api for Switcheo {
     }
 }
 
+pub fn gather_ids(sigsheet: SignatureSheet) -> Vec<String> {
+    let mut ids = vec![];
+    for pair in sigsheet.fill_groups {
+        ids.push(pair.0);
+    }
+    for pair in sigsheet.makes {
+        ids.push(pair.0);
+    }
+    ids
+}
+
 pub fn float_precision_string(num: f64, precision: i32) -> String {
     // if its dumb and it works it aint dumb
     match precision {
@@ -627,7 +671,7 @@ pub fn float_precision_string(num: f64, precision: i32) -> String {
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let sha_bytes = hex::decode(&fillg.txn.sha256[2..]).unwrap();
+        let sha_bytes = hex::decode(&fillg.txn.as_ref().unwrap().sha256[2..]).unwrap();
         let sig_bytes = eth::sign_bytes(&sha_bytes, key);
         let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
 
