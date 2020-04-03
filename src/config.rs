@@ -33,7 +33,7 @@ impl fmt::Display for Exchange {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExchangeSettings {
     pub name: String,
     pub enabled: bool,
@@ -45,7 +45,7 @@ pub struct ExchangeSettings {
     pub taker_fee: f64,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum ExchangeProtocol {
     #[serde(rename = "0x")]
     ZeroexOpen,
@@ -87,12 +87,12 @@ pub fn read_exchanges(filename: &str) -> ExchangeList {
     let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml).unwrap();
     let elist: Vec<Exchange> = vec![];
     let mut list = ExchangeList { exchanges: elist };
-    for settings in exchange_settings {
+    for settings in exchange_settings.into_iter() {
         let api: Box<dyn exchange::Api> = match settings.protocol {
             ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
             ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3 {}),
             ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
-            ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new()),
+            ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new(settings.clone())),
             ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex {}),
         };
         list.exchanges.push(Exchange {

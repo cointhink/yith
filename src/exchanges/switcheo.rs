@@ -388,10 +388,13 @@ pub struct SignatureBody {
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
+    settings: config::ExchangeSettings
 }
 
 impl Switcheo {
-    pub fn new() -> Switcheo {
+    fn settings(&self) -> &config::ExchangeSettings { &self.settings }
+
+    pub fn new(settings: config::ExchangeSettings) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
         println!(
@@ -402,10 +405,11 @@ impl Switcheo {
         Switcheo {
             tokens: tokens,
             pairs: pairs,
+            settings: settings,
         }
     }
 
-    pub fn wait_on_ids(&self, ids: Vec<String>, exchange: &config::ExchangeSettings) {
+    pub fn wait_on_ids(&self, ids: Vec<String>) {
         let cache = HashMap::<String, cell::Cell<Option<exchange::OrderState>>>::new();
         let mut stats = ids.into_iter().fold(cache, |mut m, i| {
             let c = cell::Cell::new(Option::<exchange::OrderState>::None);
@@ -422,7 +426,7 @@ impl Switcheo {
                     },
                 };
                 if refresh {
-                    let status = self.order_status(&id, exchange);
+                    let status = self.order_status(&id);
                     cell.set(Some(status));
                     //println!("waiting {} = {:?}", id, status);
                 }
@@ -562,7 +566,7 @@ impl exchange::Api for Switcheo {
             if status.is_success() {
                 // wait for success
                 let order_ids = gather_ids(sig_sheet.signatures);
-                self.wait_on_ids(order_ids, exchange);
+                self.wait_on_ids(order_ids);
                 // withdrawl
                 Ok(())
             } else {
@@ -618,9 +622,8 @@ impl exchange::Api for Switcheo {
     fn order_status(
         &self,
         order_id: &str,
-        exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
-        let url = format!("{}/orders/{}", exchange.api_url.as_str(), order_id);
+        let url = format!("{}/orders/{}", self.settings().api_url.as_str(), order_id);
         println!("{}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
