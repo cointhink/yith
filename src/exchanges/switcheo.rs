@@ -161,8 +161,8 @@ pub enum OrderStatus {
     Completed,
 }
 
-impl Into<exchange::OrderState> for OrderStatus {
-    fn into(self) -> exchange::OrderState {
+impl  OrderStatus {
+    fn finto(&self) -> exchange::OrderState {
         match self {
             OrderStatus::Pending => exchange::OrderState::Pending,
             OrderStatus::Open => exchange::OrderState::Open,
@@ -388,11 +388,13 @@ pub struct SignatureBody {
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
-    settings: config::ExchangeSettings
+    settings: config::ExchangeSettings,
 }
 
 impl Switcheo {
-    fn settings(&self) -> &config::ExchangeSettings { &self.settings }
+    fn settings(&self) -> &config::ExchangeSettings {
+        &self.settings
+    }
 
     pub fn new(settings: config::ExchangeSettings) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
@@ -406,6 +408,22 @@ impl Switcheo {
             tokens: tokens,
             pairs: pairs,
             settings: settings,
+        }
+    }
+
+    pub fn wait_on_order(&self, order: &Order) {
+        let mut status: exchange::OrderState = order.order_status.finto();
+        loop {
+            let refresh = match status {
+                exchange::OrderState::Pending => true,
+                _ => false,
+            };
+            if refresh {
+                status = self.order_status(&order.id);
+                time::sleep(1000);
+            } else {
+                break;
+            }
         }
     }
 
@@ -548,8 +566,8 @@ impl exchange::Api for Switcheo {
                 order.id
             );
             println!("{}", url);
-            let makes = makes_sigs(order.makes, &secret_key);
-            let fill_groups = fillgroup_sigs(order.fill_groups, &secret_key);
+            let makes = makes_sigs(&order.makes, &secret_key);
+            let fill_groups = fillgroup_sigs(&order.fill_groups, &secret_key);
             let sig_sheet = SignatureBody {
                 signatures: SignatureSheet {
                     fill_groups: fill_groups,
@@ -565,8 +583,8 @@ impl exchange::Api for Switcheo {
             println!("{} {:?}", resp.status(), resp.text());
             if status.is_success() {
                 // wait for success
-                let order_ids = gather_ids(sig_sheet.signatures);
-                self.wait_on_ids(order_ids);
+                //let order_ids = gather_ids(sig_sheet.signatures);
+                self.wait_on_order(&order);
                 // withdrawl
                 Ok(())
             } else {
@@ -619,10 +637,7 @@ impl exchange::Api for Switcheo {
         let url = format!("{}/deposits", exchange.api_url.as_str());
     }
 
-    fn order_status(
-        &self,
-        order_id: &str,
-    ) -> exchange::OrderState {
+    fn order_status(&self, order_id: &str) -> exchange::OrderState {
         let url = format!("{}/orders/{}", self.settings().api_url.as_str(), order_id);
         println!("{}", url);
         let client = reqwest::blocking::Client::new();
@@ -630,7 +645,7 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         if status.is_success() {
             let order = resp.json::<Order>().unwrap();
-            order.order_status.into()
+            order.order_status.finto()
         } else {
             exchange::OrderState::Cancelled
         }
@@ -706,7 +721,7 @@ pub fn float_precision_string(num: f64, precision: i32) -> String {
 }
 
 // todo: use Itable trait and dyn box sized voodoo
-pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
+pub fn fillgroup_sigs(fgs: &Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
         let sha_bytes = hex::decode(&fillg.txn.as_ref().unwrap().sha256[2..]).unwrap();
         let sig_bytes = eth::sign_bytes(&sha_bytes, key);
@@ -717,7 +732,7 @@ pub fn fillgroup_sigs(fgs: Vec<FillGroup>, key: &SecretKey) -> HashMap<String, S
     })
 }
 
-pub fn makes_sigs(fgs: Vec<MakeGroup>, key: &SecretKey) -> HashMap<String, String> {
+pub fn makes_sigs(fgs: &Vec<MakeGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
         let sha_bytes = hex::decode(&fillg.txn.sha256[2..]).unwrap();
         let sig_bytes = eth::sign_bytes(&sha_bytes, key);
