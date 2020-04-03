@@ -175,7 +175,7 @@ impl  OrderStatus {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Fill {
     id: String,
-    offer_hash: String,
+    offer_hash: Option<String>,
     offer_asset_id: String,
     want_asset_id: String,
     fill_amount: String,
@@ -411,17 +411,19 @@ impl Switcheo {
         }
     }
 
-    pub fn wait_on_order(&self, order: &Order) {
-        let mut status: exchange::OrderState = order.order_status.finto();
+    pub fn wait_on_order(&self, order_id: &str, first_status: exchange::OrderState) {
+        let mut status: exchange::OrderState = first_status;
         loop {
             let refresh = match status {
                 exchange::OrderState::Pending => true,
                 _ => false,
             };
             if refresh {
-                status = self.order_status(&order.id);
+                println!("checking again {} {:?}", order_id, status);
+                status = self.order_status(order_id);
                 time::sleep(1000);
             } else {
+                println!("status good! {} {:?}", order_id, status);
                 break;
             }
         }
@@ -584,7 +586,7 @@ impl exchange::Api for Switcheo {
             if status.is_success() {
                 // wait for success
                 //let order_ids = gather_ids(sig_sheet.signatures);
-                self.wait_on_order(&order);
+                self.wait_on_order(&order.id, order.order_status.finto());
                 // withdrawl
                 Ok(())
             } else {
