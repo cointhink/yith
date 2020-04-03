@@ -161,7 +161,7 @@ pub enum OrderStatus {
     Completed,
 }
 
-impl  OrderStatus {
+impl OrderStatus {
     fn finto(&self) -> exchange::OrderState {
         match self {
             OrderStatus::Pending => exchange::OrderState::Pending,

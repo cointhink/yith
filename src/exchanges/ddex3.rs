@@ -96,6 +96,13 @@ pub struct OrderResponse {
     data: Option<OrderData>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OrderPlace {
+    id: String,
+    signature: String,
+    method: u8,
+}
+
 pub struct Ddex3 {}
 
 impl Ddex for Ddex3 {}
@@ -132,7 +139,7 @@ impl exchange::Api for Ddex3 {
             amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
         };
 
-        let client = build_auth_client(exchange)?;
+        let client = build_http_client(exchange)?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
         println!("Ddex3 {}", url);
@@ -173,6 +180,21 @@ impl exchange::Api for Ddex3 {
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("HYDRO order! {:#?}", sheet);
+        let order_place = OrderPlace {
+            id: "".to_string(),
+            signature: "".to_string(),
+            method: 0,
+        };
+        let client = build_http_client(exchange)?;
+        let url = format!("{}/orders/sync", exchange.api_url.as_str());
+        println!("{}", url);
+        let headers = auth_header(private_key);
+        let resp = client
+            .post(&url)
+            .headers(headers)
+            .json(&order_place)
+            .send()?;
+        println!("{:#?} {}", resp.status(), resp.url());
         Ok(())
     }
 
@@ -181,7 +203,7 @@ impl exchange::Api for Ddex3 {
         private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
-        let client = reqwest::blocking::Client::new();
+        let client = build_http_client(exchange)?;
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("{}", url);
         let headers = auth_header(private_key);
@@ -204,22 +226,14 @@ impl exchange::Api for Ddex3 {
     }
 }
 
-pub fn build_auth_client(
+pub fn build_http_client(
     exchange: &config::ExchangeSettings,
 ) -> reqwest::Result<reqwest::blocking::Client> {
     let headers = header::HeaderMap::new();
-    let bldr = reqwest::blocking::Client::builder()
+    reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
-        .default_headers(headers);
-    // let bldr = match exchange.proxy_url {
-    //     Some(proxy_url) => {
-    //         println!("PROXY {}", proxy_url);
-    //         let proxy = reqwest::Proxy::all(&proxy_url)?;
-    //         bldr.proxy(proxy)
-    //     }
-    //     None => bldr,
-    // };
-    bldr.build()
+        .default_headers(headers)
+        .build()
 }
 
 fn auth_header(privkey: &str) -> header::HeaderMap {
