@@ -772,6 +772,7 @@ pub fn amount_to_units(amount: f64, precision: i32, token: &TokenDetail) -> Stri
 }
 
 pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
+    //thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }', src/exchanges/switcheo.rs:775:16
     let unts = units.parse::<u128>().unwrap();
     let power = 10_u128.pow(token.decimals as u32);
     unts as f64 / power as f64

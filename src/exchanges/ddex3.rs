@@ -28,7 +28,7 @@ pub enum LimitMarket {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OrderSheet {
+pub struct MarketOrderSheet {
     market_id: String,
     side: BuySell,
     order_type: LimitMarket,
@@ -40,7 +40,55 @@ pub struct OrderSheet {
 pub struct BuildResponse {
     status: i64,
     desc: String,
+    data: Option<BuildData>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuildData {
+    order: OrderSheet,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderSheet {
+    id: String,
+    market_id: String,
+    side: BuySell,
+    price: String,
+    amount: String,
+    makerFeeRate: String,
+    takerFeeRate: String,
+    asMakerFeeRate: String,
+    asTakerFeeRate: String,
+    makerRebateRate: String,
+    gasFeeAmount: String,
+    r#type: String,
+}
+
+/*    "order": {
+      "id": "0x9b976813b83eb076a32f167a9dfcbc69a6df3f83bf524992313fe0601b27c9fd",
+      "marketId": "BOMB-WETH",
+      "side": "buy",
+      "price": "0.0016510",
+      "amount": "12",
+      "json": {
+        "trader": "0x9b827e7ee9f127a24eb5243e839007c417c8ac18",
+        "relayer": "0x49497a4d914ae91d34ce80030fe620687bf333fd",
+        "baseToken": "0x1c95b093d6c236d3ef7c796fe33f9cc6b8606714",
+        "quoteToken": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "baseTokenAmount": "12",
+        "quoteTokenAmount": "19812000000000000",
+        "gasTokenAmount": "950000000000000",
+        "data": "0x02000004d6acf6ab0064012c000002778e201379eefc00000000000000000000"
+      },
+      "makerFeeRate": "0.00100",
+      "takerFeeRate": "0.00300",
+      "asMakerFeeRate": "0.00100",
+      "asTakerFeeRate": "0.00300",
+      "makerRebateRate": "0",
+      "gasFeeAmount": "0.00095",
+      "type": "limit"
+*/
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -130,7 +178,7 @@ impl exchange::Api for Ddex3 {
             types::AskBid::Bid => BuySell::Sell,
         };
 
-        let sheet = OrderSheet {
+        let sheet = MarketOrderSheet {
             market_id: market_id,
             side: side,
             order_type: LimitMarket::Limit,
@@ -150,7 +198,9 @@ impl exchange::Api for Ddex3 {
         let resp = client.post(&url).headers(headers).json(&sheet).send()?;
         let status = resp.status();
         println!("{:#?} {}", resp.status(), resp.url());
-        let body = resp.json::<BuildResponse>().unwrap();
+        let json = resp.text().unwrap();
+        println!("{}", json);
+        let body = serde_json::from_str::<BuildResponse>(&json).unwrap();
         if status.is_success() {
             if body.status > 0 {
                 let err_msg = format!("{} {}", &body.status, &body.desc);
@@ -161,7 +211,17 @@ impl exchange::Api for Ddex3 {
                 println!("ERR: {}", order_error);
                 Err(Box::new(order_error))
             } else {
-                Ok(exchange::OrderSheet::Ddex3(sheet))
+                println!("{:?}", body.data);
+                if let Some(order_build) = body.data {
+                    Ok(exchange::OrderSheet::Ddex3(order_build.order))
+                } else {
+                    let order_error = exchange::OrderError {
+                        msg: body.desc,
+                        code: body.status as i32,
+                    };
+                    println!("ERR: {}", order_error);
+                    Err(Box::new(order_error))
+                }
             }
         } else {
             let order_error = exchange::OrderError {
@@ -203,7 +263,7 @@ impl exchange::Api for Ddex3 {
         private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
-        let client = build_http_client(exchange)?;
+        let client = build_http_client(exchange).unwrap();
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("{}", url);
         let headers = auth_header(private_key);
