@@ -9,6 +9,7 @@ use num_bigint::BigInt;
 use num_traits::cast::FromPrimitive;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
+use std::cell;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
@@ -145,7 +146,7 @@ pub enum FillStatus {
     Success,
     Canceling,
     Cancelled,
-    Expired
+    Expired,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -405,8 +406,41 @@ impl Switcheo {
     }
 
     pub fn wait_on_ids(&self, ids: Vec<String>, exchange: &config::ExchangeSettings) {
-        for id in ids {
-            let status = self.order_status(&id, exchange);
+        let cache = HashMap::<String, cell::Cell<Option<exchange::OrderState>>>::new();
+        let mut stats = ids.into_iter().fold(cache, |mut m, i| {
+            let c = cell::Cell::new(Option::<exchange::OrderState>::None);
+            m.insert(i, c);
+            m
+        });
+        loop {
+            stats.iter_mut().for_each(|(id, cell)| {
+                let refresh = match cell.get_mut() {
+                    None => true,
+                    Some(os) => match os {
+                        exchange::OrderState::Pending | exchange::OrderState::Open => true,
+                        _ => false,
+                    },
+                };
+                if refresh {
+                    let status = self.order_status(&id, exchange);
+                    cell.set(Some(status));
+                    //println!("waiting {} = {:?}", id, status);
+                }
+            });
+            if stats
+                .iter_mut()
+                .any(|(id, status_opt)| match status_opt.get_mut() {
+                    None => true,
+                    Some(os) => match os {
+                        exchange::OrderState::Pending | exchange::OrderState::Open => true,
+                        _ => false,
+                    },
+                })
+            {
+                time::sleep(1000);
+            } else {
+                break;
+            }
         }
     }
 }
