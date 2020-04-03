@@ -35,6 +35,13 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
     sized_output
 }
 
+pub fn ethsign<'a>(json: &String, secret_key: &SecretKey) -> String {
+    let msg_hash = ethsign_hash_msg(&json.as_bytes().to_vec());
+    let sig_bytes = sign_bytes(&msg_hash, &secret_key);
+    format!("0x{}", hex::encode(sig_bytes.to_vec()))
+}
+
+
 pub fn ethsign_hash_msg(msg: &Vec<u8>) -> [u8; 32] {
     let mut full_msg = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len())
         .as_bytes()

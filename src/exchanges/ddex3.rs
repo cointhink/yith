@@ -237,25 +237,36 @@ impl exchange::Api for Ddex3 {
         &self,
         private_key: &str,
         exchange: &config::ExchangeSettings,
-        sheet: exchange::OrderSheet,
+        sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        println!("HYDRO order! {:#?}", sheet);
-        let order_place = OrderPlace {
-            id: "".to_string(),
-            signature: "".to_string(),
-            method: 0,
-        };
-        let client = build_http_client(exchange)?;
-        let url = format!("{}/orders/sync", exchange.api_url.as_str());
-        println!("{}", url);
-        let headers = auth_header(private_key);
-        let resp = client
-            .post(&url)
-            .headers(headers)
-            .json(&order_place)
-            .send()?;
-        println!("{:#?} {}", resp.status(), resp.url());
-        Ok(())
+        if let exchange::OrderSheet::Ddex3(sheet) = sheet_opt {
+            println!("HYDRO order! {:#?}", sheet);
+            let privbytes = &hex::decode(private_key).unwrap();
+            let secret_key = SecretKey::from_slice(privbytes).unwrap();
+            let order_place = OrderPlace {
+                id: eth::ethsign(&sheet.id, &secret_key),
+                signature: "".to_string(),
+                method: 0,
+            };
+            let client = build_http_client(exchange)?;
+            let url = format!("{}/orders/sync", exchange.api_url.as_str());
+            println!("{}", url);
+            let headers = auth_header(private_key);
+            let resp = client
+                .post(&url)
+                .headers(headers)
+                .json(&order_place)
+                .send()?;
+            println!("{:#?} {} {:?}", resp.status(),url, resp.text());
+            Ok(())
+        } else {
+            let order_error = exchange::OrderError {
+                msg: "wrong order type passed to submit".to_string(),
+                code: 12 as i32,
+            };
+            println!("ERR: {}", order_error);
+            Err(Box::new(order_error))
+        }
     }
 
     fn open_orders(
