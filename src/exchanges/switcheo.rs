@@ -419,9 +419,10 @@ impl Switcheo {
                 _ => false,
             };
             if refresh {
+                println!("waiting");
+                time::sleep(1000);
                 println!("checking again {} {:?}", order_id, status);
                 status = self.order_status(order_id);
-                time::sleep(1000);
             } else {
                 println!("status good! {} {:?}", order_id, status);
                 break;
