@@ -35,57 +35,92 @@ fn app(
     redis: redis::Redis,
     args: Vec<String>,
 ) -> Result<u32, redis::Error> {
-    let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    println!("etherscan BALANCES for 0x{}", my_addr);
-    let mut eth_coins = Vec::<wallet::WalletCoin>::new();
-    for coin in wallet.coins.iter() {
-        let mut balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
+    if args.len() >= 2 {
+        if args[1] == "balances" {
+            let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+            println!("etherscan BALANCES for 0x{}", my_addr);
+            let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
+            wallet.coins.append(&mut eth_coins);
+            for exchange in exchanges.enabled() {
+                let mut exchange_coins = exchange_coins(&my_addr, exchange);
+                wallet.coins.append(&mut exchange_coins);
+            }
+            println!("{}", wallet);
+        }
+        if args[1] == "run" {
+            let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+            println!("etherscan BALANCES for 0x{}", my_addr);
+            let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
+            wallet.coins.append(&mut eth_coins);
+            for exchange in exchanges.enabled() {
+                let mut exchange_coins = exchange_coins(&my_addr, exchange);
+                wallet.coins.append(&mut exchange_coins);
+            }
+            println!("{}", wallet);
+
+            for exchange in exchanges.enabled() {
+                let orders = exchange
+                    .api
+                    .open_orders(&config.wallet_private_key, &exchange.settings);
+                println!("{} ORDERS {:?}", exchange.settings.name, orders);
+            }
+            println!("");
+
+            let order = if args.len() >= 3 {
+                let arb_filename = args[2].clone();
+                println!("loading {}", arb_filename);
+                types::Order::from_file(arb_filename)
+            } else {
+                let mut client = redis::rdsetup(&config.redis_url)?;
+                redis.rd_next(&mut client)
+            };
+
+            println!(
+                "{}/{} Cost {:0.5} Profit {:0.5} {}",
+                order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
+            );
+            run_order(config, &mut wallet, &order, &exchanges);
+        }
+    } else {
+        help();
+    }
+    Ok(0)
+}
+
+fn help() {
+    println!("yith <run|balances|orders>");
+}
+
+fn exchange_coins(my_addr: &str, exchange: &config::Exchange) -> Vec<wallet::WalletCoin> {
+    let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
+    if exchange.settings.has_balances {
+        println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
+        let balances = exchange.api.balances(&my_addr, &exchange.settings);
+        for (symbol, balance) in balances {
+            let exchange_coin =
+                wallet::WalletCoin::build(&symbol, "none", &exchange.settings.name, balance);
+            exchange_coins.push(exchange_coin);
+        }
+    }
+    exchange_coins
+}
+
+fn etherscan_coins(
+    my_addr: &str,
+    wallet_coins: &Vec<wallet::WalletCoin>,
+    api_key: &str,
+) -> Vec<wallet::WalletCoin> {
+    let mut coins = Vec::<wallet::WalletCoin>::new();
+    for coin in wallet_coins.iter() {
+        let mut balance = etherscan::balance(my_addr, &coin.contract, api_key);
         if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH" {
             balance = eth::wei_to_eth(balance)
         }
         let eth_coin =
             wallet::WalletCoin::build(&coin.ticker_symbol, &coin.contract, &my_addr, balance);
-        eth_coins.push(eth_coin);
+        coins.push(eth_coin);
     }
-    wallet.coins.append(&mut eth_coins);
-    for exchange in exchanges.enabled() {
-        let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
-        if exchange.settings.has_balances {
-            println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
-            let balances = exchange.api.balances(&my_addr, &exchange.settings);
-            for (symbol, balance) in balances {
-                let exchange_coin =
-                    wallet::WalletCoin::build(&symbol, "none", &exchange.settings.name, balance);
-                exchange_coins.push(exchange_coin);
-            }
-            wallet.coins.append(&mut exchange_coins);
-        }
-    }
-    println!("{}", wallet);
-
-    for exchange in exchanges.enabled() {
-        let orders = exchange
-            .api
-            .open_orders(&config.wallet_private_key, &exchange.settings);
-        println!("{} ORDERS {:?}", exchange.settings.name, orders);
-    }
-    println!("");
-
-    let order = if args.len() == 2 {
-        let arb_filename = args[1].clone();
-        println!("loading {}", arb_filename);
-        types::Order::from_file(arb_filename)
-    } else {
-        let mut client = redis::rdsetup(&config.redis_url)?;
-        redis.rd_next(&mut client)
-    };
-
-    println!(
-        "{}/{} Cost {:0.5} Profit {:0.5} {}",
-        order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
-    );
-    run_order(config, &mut wallet, &order, &exchanges);
-    Ok(0)
+    coins
 }
 
 fn run_order(

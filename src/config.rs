@@ -80,7 +80,10 @@ impl ExchangeList {
     }
 }
 
-pub fn read_exchanges(filename: &str, config: &Config) -> Result<ExchangeList, Box<dyn std::error::Error>> {
+pub fn read_exchanges(
+    filename: &str,
+    config: &Config,
+) -> Result<ExchangeList, Box<dyn std::error::Error>> {
     let yaml = fs::read_to_string(filename)?;
     let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml)?;
     let elist: Vec<Exchange> = vec![];
