@@ -56,12 +56,12 @@ pub struct OrderSheet {
     side: BuySell,
     price: String,
     amount: String,
-    makerFeeRate: String,
-    takerFeeRate: String,
-    asMakerFeeRate: String,
-    asTakerFeeRate: String,
-    makerRebateRate: String,
-    gasFeeAmount: String,
+    maker_fee_rate: String,
+    taker_fee_rate: String,
+    as_maker_fee_rate: String,
+    as_taker_fee_rate: String,
+    maker_rebate_rate: String,
+    gas_fee_amount: String,
     r#type: String,
 }
 
@@ -145,8 +145,9 @@ pub struct OrderResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderPlace {
-    id: String,
+    order_id: String,
     signature: String,
     method: u8,
 }
@@ -244,7 +245,7 @@ impl exchange::Api for Ddex3 {
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
             let order_place = OrderPlace {
-                id: sheet.id.clone(),
+                order_id: sheet.id.clone(),
                 signature: eth::ethsign(&sheet.id, &secret_key),
                 method: 0,
             };
