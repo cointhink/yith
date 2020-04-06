@@ -244,9 +244,10 @@ impl exchange::Api for Ddex3 {
             println!("HYDRO order! {:#?}", sheet);
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
+            let signature = eth::ethsign_vrs(&sheet.id, &secret_key);
             let order_place = OrderPlace {
                 order_id: sheet.id.clone(),
-                signature: eth::ethsign(&sheet.id, &secret_key),
+                signature: signature,
                 method: 0,
             };
             println!("{:?}", order_place);
