@@ -3,8 +3,8 @@ use crate::exchange;
 use crate::types;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
 use std::collections::HashMap;
+use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -19,31 +19,31 @@ pub struct OrderSheet {
     blockchain: String,
 }
 
-pub struct Idex {
-    settings: config::ExchangeSettings,
-    api_key: String,
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceResponse {
     #[serde(flatten)]
     balances: HashMap<String, String>,
 }
 
+pub struct Idex {
+    settings: config::ExchangeSettings,
+    client: reqwest::blocking::Client,
+}
 
 impl Idex {
-    pub fn new(settings: config::ExchangeSettings, config: &config::Config) -> Idex {
+    pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Idex {
+        let client = Idex::build_http_client(api_key).unwrap();
         Idex {
             settings: settings,
-            api_key: config.idex_key.clone(),
+            client: client,
         }
     }
 
-    pub fn build_http_client(&self) -> reqwest::Result<reqwest::blocking::Client> {
+    pub fn build_http_client(api_key: &str) -> reqwest::Result<reqwest::blocking::Client> {
         let mut headers = header::HeaderMap::new();
         headers.insert(
             "API-Key",
-            header::HeaderValue::from_str(&self.api_key).unwrap(), //boom
+            header::HeaderValue::from_str(api_key).unwrap(), //boom
         );
         reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -63,7 +63,6 @@ impl exchange::Api for Idex {
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
-        let client = self.build_http_client();
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             blockchain: "eth".to_string(),
         }))
@@ -88,12 +87,16 @@ impl exchange::Api for Idex {
             exchange.api_url.as_str(),
             public_addr
         );
-        let client = self.build_http_client().unwrap();
-        let resp = client.get(url.as_str()).send().unwrap();
+        let resp = self.client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         let response = resp.json::<BalanceResponse>().unwrap();
-        response.balances.iter().map(|(symbol, strval)| {
-                    let f64 = strval.parse::<f64>().unwrap();
-(symbol.clone(), f64)}).collect()
+        response
+            .balances
+            .iter()
+            .map(|(symbol, strval)| {
+                let f64 = strval.parse::<f64>().unwrap();
+                (symbol.clone(), f64)
+            })
+            .collect()
     }
 }

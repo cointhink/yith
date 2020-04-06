@@ -95,9 +95,10 @@ pub fn read_exchanges(filename: &str, config: &Config) -> ExchangeList {
             ExchangeProtocol::Switcheo => {
                 Box::new(exchanges::switcheo::Switcheo::new(settings.clone()))
             }
-            ExchangeProtocol::Idex => {
-                Box::new(exchanges::idex::Idex::new(settings.clone(), &config))
-            }
+            ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
+                settings.clone(),
+                &config.idex_key,
+            )),
         };
         list.exchanges.push(Exchange {
             api: api,
