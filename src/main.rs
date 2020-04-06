@@ -37,7 +37,7 @@ fn app(
     let mut eth_coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet.coins.iter() {
         let mut balance = etherscan::balance(&my_addr, &coin.contract, &config.etherscan_key);
-        if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH_765cc2" {
+        if &coin.ticker_symbol == "ETH" || &coin.ticker_symbol == "WETH" {
             balance = eth::wei_to_eth(balance)
         }
         let eth_coin =

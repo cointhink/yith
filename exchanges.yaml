@@ -1,7 +1,7 @@
 ---
   -
     name: idex
-    enabled: false
+    enabled: true
     has_balances: true
     protocol: idex
     contract_address: 0x
