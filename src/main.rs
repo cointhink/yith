@@ -14,13 +14,13 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let config_filename = "config.yaml";
     let config = config::read_config(config_filename)
-        .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c));
+        .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c.to_string()));
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename, &config)
-        .unwrap_or_else(|c| panic!("{} {:?}", exchanges_filename, c));
+        .unwrap_or_else(|c| panic!("{} {:?}", exchanges_filename, c.to_string()));
     let wallet_filename = "wallet.yaml";
     let wallet = wallet::Wallet::load_file(wallet_filename)
-        .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c));
+        .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c.to_string()));
     println!("Yith. {:#?} ", config_filename);
     let redis = redis::Redis {
         url: &config.redis_url,
