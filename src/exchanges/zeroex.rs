@@ -224,6 +224,7 @@ impl exchange::Api for Zeroex {
         orders
             .iter()
             .map(|native_order| native_order.to_exchange_order())
+            .filter(|order| order.state != exchange::OrderState::Cancelled)
             .collect()
     }
 }

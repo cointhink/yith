@@ -54,7 +54,7 @@ impl fmt::Display for BuySell {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum OrderState {
     Pending,
     Open,
