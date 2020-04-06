@@ -5,8 +5,8 @@ use crate::types;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::time::Duration;
 use std::fs;
+use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {

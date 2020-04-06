@@ -257,8 +257,21 @@ impl exchange::Api for Ddex3 {
                 .headers(headers)
                 .json(&order_place)
                 .send()?;
-            println!("{:#?} {} {:?}", resp.status(), url, resp.text());
-            Ok(())
+            let status = resp.status();
+            let json = resp.text().unwrap();
+            println!("{}", json);
+            let response = serde_json::from_str::<BuildResponse>(&json).unwrap();
+            println!("{:#?} {} {:?}", status, url, json);
+            if response.status == 0 {
+                Ok(())
+            } else {
+                let order_error = exchange::OrderError {
+                    msg: response.desc,
+                    code: response.status as i32,
+                };
+                println!("ERR: {}", order_error);
+                Err(Box::new(order_error))
+            }
         } else {
             let order_error = exchange::OrderError {
                 msg: "wrong order type passed to submit".to_string(),
