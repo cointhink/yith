@@ -81,7 +81,7 @@ impl ExchangeList {
     }
 }
 
-pub fn read_exchanges(filename: &str) -> ExchangeList {
+pub fn read_exchanges(filename: &str, config: &Config) -> ExchangeList {
     let file_ok = fs::read_to_string(filename);
     let yaml = file_ok.unwrap();
     let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml).unwrap();
@@ -95,7 +95,9 @@ pub fn read_exchanges(filename: &str) -> ExchangeList {
             ExchangeProtocol::Switcheo => {
                 Box::new(exchanges::switcheo::Switcheo::new(settings.clone()))
             }
-            ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex {}),
+            ExchangeProtocol::Idex => {
+                Box::new(exchanges::idex::Idex::new(settings.clone(), &config))
+            }
         };
         list.exchanges.push(Exchange {
             api: api,

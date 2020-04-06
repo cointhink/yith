@@ -257,7 +257,7 @@ impl exchange::Api for Ddex3 {
                 .headers(headers)
                 .json(&order_place)
                 .send()?;
-            println!("{:#?} {} {:?}", resp.status(),url, resp.text());
+            println!("{:#?} {} {:?}", resp.status(), url, resp.text());
             Ok(())
         } else {
             let order_error = exchange::OrderError {

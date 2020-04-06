@@ -41,7 +41,6 @@ pub fn ethsign<'a>(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-
 pub fn ethsign_hash_msg(msg: &Vec<u8>) -> [u8; 32] {
     let mut full_msg = format!("\u{0019}Ethereum Signed Message:\n{}", msg.len())
         .as_bytes()

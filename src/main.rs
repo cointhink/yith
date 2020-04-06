@@ -15,7 +15,7 @@ fn main() {
     let config_filename = "config.yaml";
     let config = config::read_config(config_filename);
     let exchanges_filename = "exchanges.yaml";
-    let exchanges = config::read_exchanges(exchanges_filename);
+    let exchanges = config::read_exchanges(exchanges_filename, &config);
     let wallet_filename = "wallet.yaml";
     let wallet = wallet::Wallet::load_file(wallet_filename);
     println!("Yith. {:#?} ", config_filename);
