@@ -15,11 +15,10 @@ pub struct Config {
     pub email: Option<String>,
 }
 
-pub fn read_config(filename: &str) -> Config {
-    let file_ok = fs::read_to_string(filename);
-    let yaml = file_ok.unwrap();
-    let config: Config = serde_yaml::from_str(&yaml).unwrap();
-    config
+pub fn read_config(filename: &str) -> Result<Config, Box<dyn std::error::Error>> {
+    let yaml = fs::read_to_string(filename)?;
+    let config: Config = serde_yaml::from_str(&yaml)?;
+    Ok(config)
 }
 
 pub struct Exchange {
@@ -81,10 +80,9 @@ impl ExchangeList {
     }
 }
 
-pub fn read_exchanges(filename: &str, config: &Config) -> ExchangeList {
-    let file_ok = fs::read_to_string(filename);
-    let yaml = file_ok.unwrap();
-    let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml).unwrap();
+pub fn read_exchanges(filename: &str, config: &Config) -> Result<ExchangeList, Box<dyn std::error::Error>> {
+    let yaml = fs::read_to_string(filename)?;
+    let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml)?;
     let elist: Vec<Exchange> = vec![];
     let mut list = ExchangeList { exchanges: elist };
     for settings in exchange_settings.into_iter() {
@@ -105,5 +103,5 @@ pub fn read_exchanges(filename: &str, config: &Config) -> ExchangeList {
             settings: settings,
         });
     }
-    list
+    Ok(list)
 }

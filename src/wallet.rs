@@ -31,11 +31,10 @@ impl WalletCoin {
 }
 
 impl Wallet {
-    pub fn load_file(filename: &str) -> Wallet {
-        let file_ok = fs::read_to_string(filename);
-        let yaml = file_ok.unwrap();
-        let wallet: Wallet = serde_yaml::from_str(&yaml).unwrap();
-        wallet
+    pub fn load_file(filename: &str) -> Result<Wallet, Box<dyn std::error::Error>> {
+        let yaml = fs::read_to_string(filename)?;
+        let wallet: Wallet = serde_yaml::from_str(&yaml)?;
+        Ok(wallet)
     }
 
     pub fn coin_limit(&self, name: &str) -> f64 {
