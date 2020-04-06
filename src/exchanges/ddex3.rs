@@ -244,10 +244,11 @@ impl exchange::Api for Ddex3 {
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
             let order_place = OrderPlace {
-                id: eth::ethsign(&sheet.id, &secret_key),
-                signature: "".to_string(),
+                id: sheet.id.clone(),
+                signature: eth::ethsign(&sheet.id, &secret_key),
                 method: 0,
             };
+            println!("{:?}", order_place);
             let client = build_http_client(exchange)?;
             let url = format!("{}/orders/sync", exchange.api_url.as_str());
             println!("{}", url);
