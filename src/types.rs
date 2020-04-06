@@ -93,7 +93,9 @@ impl Book {
 pub struct Market {
     pub source: Source,
     pub base: Ticker,
+    pub base_contract: String,
     pub quote: Ticker,
+    pub quote_contract: String,
     pub swapped: bool,
     pub quantity_decimals: f64,
     pub price_decimals: f64,

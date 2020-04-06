@@ -1,10 +1,12 @@
 use crate::config;
+use crate::eth;
 use crate::exchange;
 use crate::types;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::time::Duration;
+use std::fs;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -15,8 +17,15 @@ pub enum BuySell {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
-    blockchain: String,
+    token_buy: String,
+    amount_buy: String,
+    token_sell: String,
+    amount_sell: String,
+    address: String,
+    nonce: String,
+    expires: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -25,17 +34,42 @@ pub struct BalanceResponse {
     balances: HashMap<String, String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenDetail {
+    name: String,
+    address: String,
+    decimals: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenList {
+    #[serde(flatten)]
+    tokens: HashMap<String, TokenDetail>,
+}
+
+impl TokenList {
+    pub fn read_tokens(filename: &str) -> TokenList {
+        let file_ok = fs::read_to_string(filename);
+        let yaml = file_ok.unwrap();
+        let tokens = serde_yaml::from_str(&yaml).unwrap();
+        TokenList { tokens: tokens }
+    }
+}
+
 pub struct Idex {
     settings: config::ExchangeSettings,
     client: reqwest::blocking::Client,
+    tokens: TokenList,
 }
 
 impl Idex {
     pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Idex {
         let client = Idex::build_http_client(api_key).unwrap();
+        let tokens = TokenList::read_tokens("notes/idex-tokens.json");
         Idex {
             settings: settings,
             client: client,
+            tokens: tokens,
         }
     }
 
@@ -63,8 +97,15 @@ impl exchange::Api for Idex {
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
+        let address = eth::privkey_to_addr(privkey);
         Ok(exchange::OrderSheet::Idex(OrderSheet {
-            blockchain: "eth".to_string(),
+            token_buy: market.base_contract.clone(),
+            amount_buy: "1".to_string(),
+            token_sell: market.quote_contract.clone(),
+            amount_sell: "1".to_string(),
+            address: address,
+            nonce: "0".to_string(),
+            expires: 0,
         }))
     }
 

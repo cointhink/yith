@@ -100,7 +100,9 @@ type BalanceList = collections::HashMap<String, f64>;
 #[derive(Debug)]
 pub struct Market {
     pub base: types::Ticker,
+    pub base_contract: String,
     pub quote: types::Ticker,
+    pub quote_contract: String,
     pub quantity_decimals: f64,
     pub price_decimals: f64,
     pub source_name: String,

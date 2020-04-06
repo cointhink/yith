@@ -223,7 +223,9 @@ fn unswap(
     offer: &types::Offer,
 ) -> (types::AskBid, exchange::Market, types::Offer) {
     let mut quote_token = &market.quote;
+    let mut quote_contract = &market.quote_contract;
     let mut base_token = &market.base;
+    let mut base_contract = &market.base_contract;
     let mut qty = offer.base_qty;
     let mut price = offer.quote;
     let mut askbid_align = *askbid; // enum questions
@@ -231,7 +233,9 @@ fn unswap(
     if market.swapped {
         askbid_align = askbid_other;
         quote_token = &market.base;
+        quote_contract = &market.base_contract;
         base_token = &market.quote;
+        base_contract = &market.quote_contract;
         let (swap_qty, swap_price) = offer.swap();
         qty = swap_qty;
         price = swap_price;
@@ -242,9 +246,11 @@ fn unswap(
         base: types::Ticker {
             symbol: base_token.symbol.clone(),
         },
+        base_contract: base_contract.clone(),
         quote: types::Ticker {
             symbol: quote_token.symbol.clone(),
         },
+        quote_contract: quote_contract.clone(),
         quantity_decimals: market.quantity_decimals,
         price_decimals: market.price_decimals,
         source_name: market.source.name.clone(),
