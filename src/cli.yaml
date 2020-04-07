@@ -13,6 +13,10 @@ subcommands:
     - run:
         about: wait/execute order
         version: "1.0"
+        args:
+            - arb_file:
+                help: order file
+                index: 1
     - order:
         about: manual order
         version: "1.0"

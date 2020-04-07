@@ -1,5 +1,3 @@
-use clap::App;
-
 mod config;
 mod email;
 mod eth;
@@ -39,33 +37,14 @@ fn app(
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     if let Some(matches) = opts.subcommand_matches("balances") {
-        let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-        println!("etherscan BALANCES for 0x{}", my_addr);
-        let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
-        wallet.coins.append(&mut eth_coins);
-        for exchange in exchanges.enabled() {
-            let mut exchange_coins = exchange_coins(&my_addr, exchange);
-            wallet.coins.append(&mut exchange_coins);
-        }
+        load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
     }
     if let Some(matches) = opts.subcommand_matches("run") {
-        let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-        println!("etherscan BALANCES for 0x{}", my_addr);
-        let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
-        wallet.coins.append(&mut eth_coins);
-        for exchange in exchanges.enabled() {
-            let mut exchange_coins = exchange_coins(&my_addr, exchange);
-            wallet.coins.append(&mut exchange_coins);
-        }
+        load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
 
-        for exchange in exchanges.enabled() {
-            let orders = exchange
-                .api
-                .open_orders(&config.wallet_private_key, &exchange.settings);
-            println!("{} ORDERS {:?}", exchange.settings.name, orders);
-        }
+        show_orders(&exchanges, &config.wallet_private_key);
         println!("");
 
         let order = if let Some(arb_filename) = matches.subcommand_matches("order") {
@@ -84,14 +63,122 @@ fn app(
         run_order(config, &mut wallet, &order, &exchanges);
     }
     if let Some(matches) = opts.subcommand_matches("order") {
-        println!("{} {} {}{}@{}{}", matches.value_of("exchange").unwrap(),
-            matches.value_of("side").unwrap(),
-            matches.value_of("quantity").unwrap(),
-            matches.value_of("base_token").unwrap(),
-            matches.value_of("price").unwrap(),
-            matches.value_of("quote_token").unwrap())
+        load_wallet(&mut wallet.coins, &exchanges, &config);
+        println!("{}", wallet);
+
+        let order = build_order(matches);
+        run_order(config, &mut wallet, &order, &exchanges);
     }
     Ok(0)
+}
+
+fn load_wallet(
+    coins: &mut Vec<wallet::WalletCoin>,
+    exchanges: &config::ExchangeList,
+    config: &config::Config,
+) {
+    let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+    println!("etherscan BALANCES for 0x{}", my_addr);
+    let mut eth_coins = etherscan_coins(&my_addr, coins, &config.etherscan_key);
+    coins.append(&mut eth_coins);
+    for exchange in exchanges.enabled() {
+        let mut exchange_coins = exchange_coins(&my_addr, exchange);
+        coins.append(&mut exchange_coins);
+    }
+}
+
+fn show_orders(exchanges: &config::ExchangeList, private_key: &str) {
+    for exchange in exchanges.enabled() {
+        let orders = exchange.api.open_orders(private_key, &exchange.settings);
+        println!("{} ORDERS {:?}", exchange.settings.name, orders);
+    }
+}
+
+fn build_order(matches: &clap::ArgMatches) -> types::Order {
+    let exchange = matches.value_of("exchange").unwrap();
+    let side = matches.value_of("side").unwrap();
+    let quantity_str = matches.value_of("quantity").unwrap();
+    let quantity = quantity_str.parse::<f64>().unwrap();
+    let base_symbol = matches.value_of("base_token").unwrap();
+    let ask_base = types::Ticker { symbol: base_symbol.to_string() };
+    let bid_base = types::Ticker { symbol: base_symbol.to_string() };
+    let price_str = matches.value_of("price").unwrap();
+    let price = price_str.parse::<f64>().unwrap();
+    let quote_symbol = matches.value_of("quote_token").unwrap();
+    let ask_quote = types::Ticker { symbol: quote_symbol.to_string() };
+    let bid_quote = types::Ticker { symbol: quote_symbol.to_string() };
+    println!(
+        "{} {} {}{}@{}{}",
+        exchange, side, quantity, base_symbol, price, quote_symbol
+    );
+
+    let pair = types::Pair {
+        base: base_symbol.to_string(),
+        quote: quote_symbol.to_string(),
+    };
+    let offer = types::Offer {
+        base_qty: quantity,
+        quote: price,
+    };
+    let ask_source = types::Source {
+        name: exchange.to_string()
+    };
+    let bid_source = types::Source {
+        name: exchange.to_string()
+    };
+    let ask_market = types::Market {
+        source: ask_source,
+        base: ask_base,
+        base_contract: "".to_string(),
+        quote: ask_quote,
+        quote_contract: "".to_string(),
+        min_order_size: "0".to_string(),
+        price_decimals: 0.0,
+        quantity_decimals: 0.0,
+        swapped: false,
+    };
+    let bid_market = types::Market {
+        source: bid_source,
+        base: bid_base,
+        base_contract: "".to_string(),
+        quote: bid_quote,
+        quote_contract: "".to_string(),
+        min_order_size: "0".to_string(),
+        price_decimals: 0.0,
+        quantity_decimals: 0.0,
+        swapped: false,
+    };
+    let ask_book = types::Book {
+        market: ask_market,
+        offers: vec![]
+    };
+    let bid_book = types::Book {
+        market: bid_market,
+        offers: vec![]
+    };
+    let mut asks = types::Books {
+        askbid: types::AskBid::Ask,
+        books: vec![ask_book],
+    };
+    let mut bids = types::Books {
+        askbid: types::AskBid::Bid,
+        books: vec![bid_book],
+    };
+    match side {
+        "buy" => asks.books[0].offers.push(offer),
+        "sell" => bids.books[0].offers.push(offer),
+        _ => {}
+    }
+
+    types::Order {
+        id: "manual".to_string(),
+        pair: pair,
+        cost: quantity * price,
+        profit: 0.0,
+        avg_price: 0.0,
+        ask_books: asks,
+        bid_books: bids,
+    }
 }
 
 fn exchange_coins(my_addr: &str, exchange: &config::Exchange) -> Vec<wallet::WalletCoin> {
@@ -143,6 +230,8 @@ fn run_order(
     if let Some(email) = config.email.as_ref() {
         let subject = format!("{}", order.pair);
         email::send(email, &subject, &run_out);
+    } else {
+        println!("{}", run_out);
     }
 }
 
@@ -152,8 +241,9 @@ fn run_books(
     books: &types::Books,
     exchanges: &config::ExchangeList,
 ) -> Vec<Vec<String>> {
-    books.books[..1]
+    books.books
         .iter()
+        .take(1) // first offer
         .map(|book| run_book(config, wallet, &books.askbid, book, exchanges))
         .collect::<Vec<Vec<String>>>()
 }
@@ -165,8 +255,9 @@ fn run_book(
     book: &types::Book,
     exchanges: &config::ExchangeList,
 ) -> Vec<String> {
-    book.offers[..1] // first offer
+    book.offers
         .iter()
+        .take(1)  // first offer
         .map(|offer| {
             println!("** {} {} {}", askbid, &book.market, offer);
             let exchange_name = &book.market.source.name;
