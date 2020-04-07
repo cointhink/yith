@@ -1,3 +1,5 @@
+use clap::App;
+
 mod config;
 mod email;
 mod eth;
@@ -11,7 +13,8 @@ mod types;
 mod wallet;
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
+    let opt_yaml = clap::load_yaml!("cli.yaml");
+    let opt_matches = clap::App::from_yaml(opt_yaml).get_matches();
     let config_filename = "config.yaml";
     let config = config::read_config(config_filename)
         .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c.to_string()));
@@ -21,11 +24,11 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let wallet = wallet::Wallet::load_file(wallet_filename)
         .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c.to_string()));
-    println!("Yith. {:#?} ", config_filename);
+    println!("Yith {:#?} ", config_filename);
     let redis = redis::Redis {
         url: &config.redis_url,
     };
-    app(&config, wallet, exchanges, redis, args).unwrap();
+    app(&config, wallet, exchanges, redis, opt_matches).unwrap();
 }
 
 fn app(
@@ -33,62 +36,55 @@ fn app(
     mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
     redis: redis::Redis,
-    args: Vec<String>,
-) -> Result<u32, redis::Error> {
-    if args.len() >= 2 {
-        if args[1] == "balances" {
-            let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-            println!("etherscan BALANCES for 0x{}", my_addr);
-            let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
-            wallet.coins.append(&mut eth_coins);
-            for exchange in exchanges.enabled() {
-                let mut exchange_coins = exchange_coins(&my_addr, exchange);
-                wallet.coins.append(&mut exchange_coins);
-            }
-            println!("{}", wallet);
+    opts: clap::ArgMatches,
+) -> Result<u32, Box<dyn std::error::Error>> {
+    //let opts = config::cmd_opts()?.get_matches();
+    if let Some(matches) = opts.subcommand_matches("balances") {
+        let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+        println!("etherscan BALANCES for 0x{}", my_addr);
+        let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
+        wallet.coins.append(&mut eth_coins);
+        for exchange in exchanges.enabled() {
+            let mut exchange_coins = exchange_coins(&my_addr, exchange);
+            wallet.coins.append(&mut exchange_coins);
         }
-        if args[1] == "run" {
-            let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-            println!("etherscan BALANCES for 0x{}", my_addr);
-            let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
-            wallet.coins.append(&mut eth_coins);
-            for exchange in exchanges.enabled() {
-                let mut exchange_coins = exchange_coins(&my_addr, exchange);
-                wallet.coins.append(&mut exchange_coins);
-            }
-            println!("{}", wallet);
-
-            for exchange in exchanges.enabled() {
-                let orders = exchange
-                    .api
-                    .open_orders(&config.wallet_private_key, &exchange.settings);
-                println!("{} ORDERS {:?}", exchange.settings.name, orders);
-            }
-            println!("");
-
-            let order = if args.len() >= 3 {
-                let arb_filename = args[2].clone();
-                println!("loading {}", arb_filename);
-                types::Order::from_file(arb_filename)
-            } else {
-                let mut client = redis::rdsetup(&config.redis_url)?;
-                redis.rd_next(&mut client)
-            };
-
-            println!(
-                "{}/{} Cost {:0.5} Profit {:0.5} {}",
-                order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
-            );
-            run_order(config, &mut wallet, &order, &exchanges);
+        println!("{}", wallet);
+    }
+    if let Some(matches) = opts.subcommand_matches("run") {
+        let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+        println!("etherscan BALANCES for 0x{}", my_addr);
+        let mut eth_coins = etherscan_coins(&my_addr, &wallet.coins, &config.etherscan_key);
+        wallet.coins.append(&mut eth_coins);
+        for exchange in exchanges.enabled() {
+            let mut exchange_coins = exchange_coins(&my_addr, exchange);
+            wallet.coins.append(&mut exchange_coins);
         }
-    } else {
-        help();
+        println!("{}", wallet);
+
+        for exchange in exchanges.enabled() {
+            let orders = exchange
+                .api
+                .open_orders(&config.wallet_private_key, &exchange.settings);
+            println!("{} ORDERS {:?}", exchange.settings.name, orders);
+        }
+        println!("");
+
+        let order = if let Some(arb_filename) = matches.subcommand_matches("order") {
+            let arb_filename = arb_filename.value_of("arb").unwrap();
+            println!("loading {}", arb_filename);
+            types::Order::from_file(arb_filename.to_string())
+        } else {
+            let mut client = redis::rdsetup(&config.redis_url)?;
+            redis.rd_next(&mut client)
+        };
+
+        println!(
+            "{}/{} Cost {:0.5} Profit {:0.5} {}",
+            order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
+        );
+        run_order(config, &mut wallet, &order, &exchanges);
     }
     Ok(0)
-}
-
-fn help() {
-    println!("yith <run|balances|orders>");
 }
 
 fn exchange_coins(my_addr: &str, exchange: &config::Exchange) -> Vec<wallet::WalletCoin> {

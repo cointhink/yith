@@ -1,0 +1,20 @@
+name: myapp
+version: "1.0"
+args:
+    - config:
+        long: config
+        value_name: FILE
+        help: Sets a custom config file
+        takes_value: true
+    - verbose:
+        short: v
+        multiple: true
+        help: Sets the level of verbosity
+subcommands:
+    - balances:
+        about: list balances
+        version: "1.0"
+    - run:
+        about: wait/execute order
+        version: "1.0"
+

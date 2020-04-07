@@ -108,3 +108,13 @@ pub fn read_exchanges(
     }
     Ok(list)
 }
+
+// pub fn cmd_opts() -> Result<clap::ArgMatches + 'static, Box<dyn std::error::Error>> {
+//     let yaml = fs::read_to_string("cli.yaml")?;
+//     let app = App::from_yaml(serde_yaml::from_str(yaml)?);
+//     Ok(app.get_matches())
+// }
+// pub fn cmd_opts() -> Result<clap::App<'static, 'static>, Box<dyn std::error::Error>> {
+//     let yaml = clap::load_yaml!("cli.yaml"); // src/cli.yaml
+//     Ok(App::from_yaml(yaml))
+// }

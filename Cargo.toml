@@ -25,3 +25,4 @@ chrono = "0.4"
 num-bigint = "0.2"
 bigdecimal = "0.1"
 num-traits = "0.2"
+clap = {version = "2.32", features = ["yaml"]}
