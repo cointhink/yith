@@ -103,19 +103,19 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
     let quantity = quantity_str.parse::<f64>().unwrap();
     let base_symbol = matches.value_of("base_token").unwrap();
     let ask_base = types::Ticker {
-        symbol: base_symbol.to_string(),
+        symbol: base_symbol.to_uppercase(),
     };
     let bid_base = types::Ticker {
-        symbol: base_symbol.to_string(),
+        symbol: base_symbol.to_uppercase(),
     };
     let price_str = matches.value_of("price").unwrap();
     let price = price_str.parse::<f64>().unwrap();
     let quote_symbol = matches.value_of("quote_token").unwrap();
     let ask_quote = types::Ticker {
-        symbol: quote_symbol.to_string(),
+        symbol: quote_symbol.to_uppercase(),
     };
     let bid_quote = types::Ticker {
-        symbol: quote_symbol.to_string(),
+        symbol: quote_symbol.to_uppercase(),
     };
     println!(
         "{} {} {}{}@{}{}",

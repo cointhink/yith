@@ -6,6 +6,7 @@ use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::str::FromStr;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -152,7 +153,54 @@ pub struct OrderPlace {
     method: u8,
 }
 
-pub struct Ddex3 {}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PairList {
+    pairs: Vec<Pair>,
+}
+
+impl PairList {
+    pub fn from_file(filename: &str) -> PairList {
+        let file_ok = fs::read_to_string(filename);
+        let yaml = file_ok.unwrap();
+        let pairs = serde_yaml::from_str::<Vec<Pair>>(&yaml).unwrap();
+        PairList { pairs: pairs }
+    }
+
+    pub fn get(&self, market: &str) -> Option<&Pair> {
+        let mut result: Option<&Pair> = None;
+        for pair in &self.pairs {
+            result = match &pair.id {
+                market => Some(&pair),
+                _ => None,
+            }
+        }
+        result
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Pair {
+    id: String,
+    price_decimals: i32,
+    amount_decimals: i32,
+}
+
+pub struct Ddex3 {
+    pairs: PairList,
+    settings: config::ExchangeSettings,
+}
+
+impl Ddex3 {
+    pub fn new(settings: config::ExchangeSettings) -> Ddex3 {
+        let pairs = PairList::from_file("notes/ddex3-pairs.json");
+        println!("ddex3 loaded {} pairs", pairs.pairs.len());
+        Ddex3 {
+            pairs: pairs,
+            settings: settings,
+        }
+    }
+}
 
 impl Ddex for Ddex3 {}
 
@@ -179,20 +227,20 @@ impl exchange::Api for Ddex3 {
             types::AskBid::Bid => BuySell::Sell,
         };
 
+        let pair = self.pairs.get(&market_id).unwrap();
         let sheet = MarketOrderSheet {
             market_id: market_id,
             side: side,
             order_type: LimitMarket::Limit,
             //wallet_type: "trading",
-            price: format!("{:.width$}", price, width = market.price_decimals as usize),
-            amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
+            price: format!("{:.width$}", price, width = pair.price_decimals as usize),
+            amount: format!("{:.width$}", qty, width = pair.amount_decimals as usize),
         };
 
         let client = build_http_client(exchange)?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
         println!("Ddex3 {}", url);
-        println!("{:#?}", &sheet);
 
         let headers = auth_header(privkey);
         println!("{}", serde_json::to_string(&sheet).unwrap());

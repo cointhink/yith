@@ -31,7 +31,7 @@ pub struct Pair {
 
 impl fmt::Display for Pair {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}/{}", self.base, self.quote)
+        write!(f, "{}-{}", self.base, self.quote)
     }
 }
 
