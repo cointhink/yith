@@ -260,7 +260,6 @@ impl exchange::Api for Ddex3 {
                 println!("ERR: {}", order_error);
                 Err(Box::new(order_error))
             } else {
-                println!("{:?}", body.data);
                 if let Some(order_build) = body.data {
                     Ok(exchange::OrderSheet::Ddex3(order_build.order))
                 } else {
@@ -298,7 +297,6 @@ impl exchange::Api for Ddex3 {
                 signature: signature,
                 method: 0,
             };
-            println!("{:?}", order_place);
             let client = build_http_client(exchange)?;
             let url = format!("{}/orders/sync", exchange.api_url.as_str());
             println!("{}", url);
@@ -310,9 +308,8 @@ impl exchange::Api for Ddex3 {
                 .send()?;
             let status = resp.status();
             let json = resp.text().unwrap();
-            println!("{}", json);
             let response = serde_json::from_str::<BuildResponse>(&json).unwrap();
-            println!("{:#?} {} {:?}", status, url, json);
+            println!("{:#?} {} {}", status, url, json);
             if response.status == 0 {
                 Ok(())
             } else {

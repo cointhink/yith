@@ -240,8 +240,6 @@ fn run_order(
     if let Some(email) = config.email.as_ref() {
         let subject = format!("{}", order.pair);
         email::send(email, &subject, &run_out);
-    } else {
-        println!("{}", run_out);
     }
 }
 
