@@ -13,9 +13,9 @@ mod types;
 mod wallet;
 
 fn main() {
-    let opt_yaml = clap::load_yaml!("cli.yaml");
+    let opt_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
     let opt_matches = clap::App::from_yaml(opt_yaml).get_matches();
-    let config_filename = "config.yaml";
+    let config_filename = opt_matches.value_of("config").unwrap_or("config.yaml");
     let config = config::read_config(config_filename)
         .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c.to_string()));
     let exchanges_filename = "exchanges.yaml";
@@ -38,7 +38,6 @@ fn app(
     redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
-    //let opts = config::cmd_opts()?.get_matches();
     if let Some(matches) = opts.subcommand_matches("balances") {
         let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
         println!("etherscan BALANCES for 0x{}", my_addr);
