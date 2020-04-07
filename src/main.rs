@@ -47,13 +47,15 @@ fn app(
         show_orders(&exchanges, &config.wallet_private_key);
         println!("");
 
-        let order = if let Some(arb_filename) = matches.subcommand_matches("order") {
-            let arb_filename = arb_filename.value_of("arb").unwrap();
-            println!("loading {}", arb_filename);
-            types::Order::from_file(arb_filename.to_string())
-        } else {
-            let mut client = redis::rdsetup(&config.redis_url)?;
-            redis.rd_next(&mut client)
+        let order = match matches.value_of("arb_file") {
+            Some(filename) => {
+                println!("loading {}", filename);
+                types::Order::from_file(filename.to_string())
+            }
+            None => {
+                let mut client = redis::rdsetup(&config.redis_url)?;
+                redis.rd_next(&mut client)
+            }
         };
 
         println!(
@@ -100,13 +102,21 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
     let quantity_str = matches.value_of("quantity").unwrap();
     let quantity = quantity_str.parse::<f64>().unwrap();
     let base_symbol = matches.value_of("base_token").unwrap();
-    let ask_base = types::Ticker { symbol: base_symbol.to_string() };
-    let bid_base = types::Ticker { symbol: base_symbol.to_string() };
+    let ask_base = types::Ticker {
+        symbol: base_symbol.to_string(),
+    };
+    let bid_base = types::Ticker {
+        symbol: base_symbol.to_string(),
+    };
     let price_str = matches.value_of("price").unwrap();
     let price = price_str.parse::<f64>().unwrap();
     let quote_symbol = matches.value_of("quote_token").unwrap();
-    let ask_quote = types::Ticker { symbol: quote_symbol.to_string() };
-    let bid_quote = types::Ticker { symbol: quote_symbol.to_string() };
+    let ask_quote = types::Ticker {
+        symbol: quote_symbol.to_string(),
+    };
+    let bid_quote = types::Ticker {
+        symbol: quote_symbol.to_string(),
+    };
     println!(
         "{} {} {}{}@{}{}",
         exchange, side, quantity, base_symbol, price, quote_symbol
@@ -121,10 +131,10 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
         quote: price,
     };
     let ask_source = types::Source {
-        name: exchange.to_string()
+        name: exchange.to_string(),
     };
     let bid_source = types::Source {
-        name: exchange.to_string()
+        name: exchange.to_string(),
     };
     let ask_market = types::Market {
         source: ask_source,
@@ -150,11 +160,11 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
     };
     let ask_book = types::Book {
         market: ask_market,
-        offers: vec![]
+        offers: vec![],
     };
     let bid_book = types::Book {
         market: bid_market,
-        offers: vec![]
+        offers: vec![],
     };
     let mut asks = types::Books {
         askbid: types::AskBid::Ask,
@@ -241,7 +251,8 @@ fn run_books(
     books: &types::Books,
     exchanges: &config::ExchangeList,
 ) -> Vec<Vec<String>> {
-    books.books
+    books
+        .books
         .iter()
         .take(1) // first offer
         .map(|book| run_book(config, wallet, &books.askbid, book, exchanges))
@@ -257,7 +268,7 @@ fn run_book(
 ) -> Vec<String> {
     book.offers
         .iter()
-        .take(1)  // first offer
+        .take(1) // first offer
         .map(|offer| {
             println!("** {} {} {}", askbid, &book.market, offer);
             let exchange_name = &book.market.source.name;
