@@ -169,10 +169,10 @@ impl PairList {
     pub fn get(&self, market: &str) -> Option<&Pair> {
         let mut result: Option<&Pair> = None;
         for pair in &self.pairs {
-            result = match &pair.id {
-                market => Some(&pair),
-                _ => None,
-            }
+            if pair.id == market {
+                result = Some(&pair);
+                break
+            };
         }
         result
     }
