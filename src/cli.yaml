@@ -13,4 +13,31 @@ subcommands:
     - run:
         about: wait/execute order
         version: "1.0"
-
+    - order:
+        about: manual order
+        version: "1.0"
+        args:
+            - exchange:
+                help: exchange name
+                required: true
+                index: 1
+            - side:
+                help: side
+                required: true
+                index: 2
+            - quantity:
+                help: quantity
+                required: true
+                index: 3
+            - base_token:
+                help: base_token
+                required: true
+                index: 4
+            - price:
+                help: price
+                required: true
+                index: 5
+            - quote_token:
+                help: quote_token
+                required: true
+                index: 6

@@ -83,6 +83,14 @@ fn app(
         );
         run_order(config, &mut wallet, &order, &exchanges);
     }
+    if let Some(matches) = opts.subcommand_matches("order") {
+        println!("{} {} {}{}@{}{}", matches.value_of("exchange").unwrap(),
+            matches.value_of("side").unwrap(),
+            matches.value_of("quantity").unwrap(),
+            matches.value_of("base_token").unwrap(),
+            matches.value_of("price").unwrap(),
+            matches.value_of("quote_token").unwrap())
+    }
     Ok(0)
 }
 
