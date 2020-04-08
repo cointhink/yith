@@ -412,11 +412,11 @@ impl Switcheo {
         }
     }
 
-    pub fn wait_on_order(&self, order_id: &str, first_status: exchange::OrderState) {
+    pub fn wait_on_order(&self, order_id: &str, first_status: exchange::OrderState) -> exchange::OrderState {
         let mut status: exchange::OrderState = first_status;
         loop {
             let refresh = match status {
-                exchange::OrderState::Pending => true,
+                exchange::OrderState::Pending | exchange::OrderState::Open => true,
                 _ => false,
             };
             if refresh {
@@ -429,6 +429,7 @@ impl Switcheo {
                 break;
             }
         }
+        status
     }
 
     pub fn wait_on_ids(&self, ids: Vec<String>) {
@@ -588,8 +589,26 @@ impl exchange::Api for Switcheo {
             if status.is_success() {
                 // wait for success
                 //let order_ids = gather_ids(sig_sheet.signatures);
-                self.wait_on_order(&order.id, order.order_status.finto());
-                // withdrawl
+                let id_status = self.wait_on_order(&order.id, order.order_status.finto());
+                match id_status {
+                    exchange::OrderState::Filled => {
+                        println!("order filled!");
+                        let (base_symbol, quote_symbol) = split_market_pair(&order.pair);
+                        let token_symbol = match order.side {
+                            BuySell::Buy => base_symbol,
+                            BuySell::Sell => base_symbol,
+                        };
+                        let token = types::Ticker { symbol: token_symbol };
+                        let qty = order.quantity.parse::<f64>().unwrap();
+                        self.withdrawl(privkey, exchange, qty, token);
+                    },
+                    exchange::OrderState::Cancelled => {
+                        println!("order cancelled!");
+                    },
+                    _ => {
+                        println!("order whatnow!");
+                    },
+                }
                 Ok(())
             } else {
                 Ok(())
