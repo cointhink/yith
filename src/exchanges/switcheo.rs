@@ -336,7 +336,7 @@ pub struct Order {
 
 impl Order {
     fn into_exg(self, base_token: &TokenDetail, quote_token: &TokenDetail) -> exchange::Order {
-        let date = chrono::NaiveDateTime::parse_from_str(self.created_at.as_str(), "%+").unwrap();
+        let date = chrono::DateTime::parse_from_str(self.created_at.as_str(), "%+").unwrap();
         exchange::Order {
             id: self.id,
             side: self.side.into(),
