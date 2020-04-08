@@ -404,8 +404,14 @@ pub struct WithdrawlRequestSigned {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawalTransaction {
+    sha256: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WithdrawlResponse {
     id: String,
+    transaction: WithdrawalTransaction,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -741,10 +747,9 @@ impl exchange::Api for Switcheo {
         let resp = serde_json::from_str::<WithdrawlResponse>(&json).unwrap();
         let withdrawal_execute = WithdrawalExecute {
             id: resp.id,
-            timestamp: time::now()
+            timestamp: time::now(),
         };
-        let sign_json = serde_json::to_string(&withdrawal_execute).unwrap();
-        let signature = eth::ethsign(&sign_json, &secret_key);
+        let signature = sha_hex_sign(&resp.transaction.sha256, &secret_key);
         let withdrawal_execute_signed = WithdrawalExecuteSigned {
             withdrawal_execute: withdrawal_execute,
             signature: signature,
@@ -851,10 +856,7 @@ pub fn float_precision_string(num: f64, precision: i32) -> String {
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: &Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let sha_bytes = hex::decode(&fillg.txn.as_ref().unwrap().sha256[2..]).unwrap();
-        let sig_bytes = eth::sign_bytes(&sha_bytes, key);
-        let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
-
+        let sigsha = sha_hex_sign(&fillg.txn.as_ref().unwrap().sha256, key);
         memo.insert(fillg.id.clone(), sigsha);
         memo
     })
@@ -862,13 +864,15 @@ pub fn fillgroup_sigs(fgs: &Vec<FillGroup>, key: &SecretKey) -> HashMap<String, 
 
 pub fn makes_sigs(fgs: &Vec<MakeGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let sha_bytes = hex::decode(&fillg.txn.as_ref().unwrap().sha256[2..]).unwrap();
-        let sig_bytes = eth::sign_bytes(&sha_bytes, key);
-        let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
-
+        let sigsha = sha_hex_sign(&fillg.txn.as_ref().unwrap().sha256, key);
         memo.insert(fillg.id.clone(), sigsha);
         memo
     })
+}
+pub fn sha_hex_sign(sha_hex: &str, key: &SecretKey) -> String {
+    let sha_bytes = hex::decode(&sha_hex[2..]).unwrap();
+    let sig_bytes = eth::sign_bytes(&sha_bytes, key);
+    format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
 pub fn make_market_pair(market: &exchange::Market) -> String {

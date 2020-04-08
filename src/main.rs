@@ -47,10 +47,17 @@ fn app(
         let exchange = exchanges.find_by_name(matches.value_of("exchange").unwrap());
         let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
         let symbol = matches.value_of("token").unwrap();
-        let token = types::Ticker { symbol: symbol.to_uppercase() };
+        let token = types::Ticker {
+            symbol: symbol.to_uppercase(),
+        };
         match exchange {
             Some(exchange) => {
-                exchange.api.withdrawl(&config.wallet_private_key, &exchange.settings, amount, token);
+                exchange.api.withdrawl(
+                    &config.wallet_private_key,
+                    &exchange.settings,
+                    amount,
+                    token,
+                );
             }
             None => println!("exchange not found"),
         }
