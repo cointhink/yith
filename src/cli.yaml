@@ -13,6 +13,22 @@ subcommands:
     - open:
         about: list open orders
         version: "1.0"
+    - withdrawl:
+        about: withdrawl
+        version: "1.0"
+        args:
+            - exchange:
+                help: exchange name
+                required: true
+                index: 1
+            - amount:
+                help: amount
+                required: true
+                index: 2
+            - token:
+                help: token
+                required: true
+                index: 3
     - run:
         about: wait/execute order
         version: "1.0"

@@ -43,6 +43,18 @@ fn app(
     if let Some(matches) = opts.subcommand_matches("open") {
         show_orders(&exchanges, &config.wallet_private_key);
     }
+    if let Some(matches) = opts.subcommand_matches("withdrawl") {
+        let exchange = exchanges.find_by_name(matches.value_of("exchange").unwrap());
+        let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
+        let symbol = matches.value_of("token").unwrap();
+        let token = types::Ticker { symbol: symbol.to_uppercase() };
+        match exchange {
+            Some(exchange) => {
+                exchange.api.withdrawl(&config.wallet_private_key, &exchange.settings, amount, token);
+            }
+            None => println!("exchange not found"),
+        }
+    }
 
     if let Some(matches) = opts.subcommand_matches("run") {
         load_wallet(&mut wallet.coins, &exchanges, &config);

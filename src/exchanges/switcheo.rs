@@ -403,6 +403,11 @@ pub struct WithdrawlRequestSigned {
     address: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawlResponse {
+    id: String,
+}
+
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
@@ -693,18 +698,14 @@ impl exchange::Api for Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
-        let units = amount_to_units(
-                amount,
-                token_detail.precision,
-                token_detail,
-            );
+        let units = amount_to_units(amount, token_detail.precision, token_detail);
         let withdrawl_request = WithdrawlRequest {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
             amount: units,
             timestamp: time::now(),
             contract_hash: exchange.contract_address.clone(),
-        };  
+        };
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
         let signature = eth::ethsign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
@@ -713,12 +714,23 @@ impl exchange::Api for Switcheo {
             address: address,
             signature: signature,
         };
-        let url = format!("{}/deposits", exchange.api_url.as_str());
+        let url = format!("{}/withdrawals", exchange.api_url.as_str());
         let client = reqwest::blocking::Client::new();
-        let resp = client.post(url.as_str()).json(&withdrawl_request_sign).send().unwrap();
+        let resp = client
+            .post(url.as_str())
+            .json(&withdrawl_request_sign)
+            .send()
+            .unwrap();
         let status = resp.status();
-        println!("switcheo withdrawl request {:#?} {}", status, resp.url());
-        println!("{}", resp.text().unwrap());
+        println!("switcheo withdrawal request {:#?} {}", status, resp.url());
+        let json = resp.text().unwrap();
+        println!("{}", json);
+        let resp = serde_json::from_str::<WithdrawlResponse>(&json).unwrap();
+        let url = format!(
+            "{}/withdrawals/{}/broadcast",
+            exchange.api_url.as_str(),
+            resp.id
+        );
     }
 
     fn order_status(&self, order_id: &str) -> exchange::OrderState {
