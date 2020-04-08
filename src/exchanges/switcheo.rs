@@ -336,6 +336,7 @@ pub struct Order {
 
 impl Order {
     fn into_exg(self, base_token: &TokenDetail, quote_token: &TokenDetail) -> exchange::Order {
+        let date = chrono::NaiveDateTime::parse_from_str(self.created_at.as_str(), "%+").unwrap();
         exchange::Order {
             id: self.id,
             side: self.side.into(),
@@ -343,7 +344,7 @@ impl Order {
             market: self.pair,
             base_qty: units_to_amount(&self.quantity, base_token),
             quote: self.price.parse::<f64>().unwrap(),
-            create_date: 0,
+            create_date: date.to_string(),
         }
     }
 }

@@ -128,7 +128,7 @@ impl Order {
             market: "UNK".to_string(),
             base_qty: f64::from_str(self.amount.as_str()).unwrap(),
             quote: f64::from_str(self.price.as_str()).unwrap(),
-            create_date: date.timestamp(),
+            create_date: date.to_string(),
         }
     }
 }

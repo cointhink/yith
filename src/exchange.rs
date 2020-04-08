@@ -72,7 +72,7 @@ pub struct Order {
     pub market: String,
     pub base_qty: f64,
     pub quote: f64,
-    pub create_date: i64,
+    pub create_date: String,
 }
 
 impl fmt::Display for Order {

@@ -84,14 +84,19 @@ impl Order {
         let date =
             chrono::NaiveDateTime::parse_from_str(self.created_date.as_str(), "%Y-%m-%d %H:%M:%S")
                 .unwrap();
+        let market = format!(
+            "{}-{}",
+            &self.base_token_address[0..6],
+            &self.quote_token_address[0..6]
+        );
         exchange::Order {
             id: self.order_hash.clone(),
             side: side,
             state: state,
-            market: "UNK".to_string(),
+            market: market,
             base_qty: f64::from_str(self.remaining_base_token_amount.as_str()).unwrap(),
             quote: f64::from_str(self.price.as_str()).unwrap(),
-            create_date: date.timestamp(),
+            create_date: date.to_string(),
         }
     }
 }
@@ -224,7 +229,7 @@ impl exchange::Api for Zeroex {
         orders
             .iter()
             .map(|native_order| native_order.to_exchange_order())
-            .filter(|order| order.state != exchange::OrderState::Cancelled)
+            //.filter(|order| order.state != exchange::OrderState::Cancelled)
             .collect()
     }
 }
