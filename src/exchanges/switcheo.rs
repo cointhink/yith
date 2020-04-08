@@ -339,7 +339,7 @@ impl Order {
         exchange::Order {
             id: self.id,
             side: self.side.into(),
-            state: exchange::OrderState::Cancelled,
+            state: self.order_status.finto(),
             market: self.pair,
             base_qty: units_to_amount(&self.quantity, base_token),
             quote: self.price.parse::<f64>().unwrap(),

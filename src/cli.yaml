@@ -10,6 +10,9 @@ subcommands:
     - balances:
         about: list balances
         version: "1.0"
+    - open:
+        about: list open orders
+        version: "1.0"
     - run:
         about: wait/execute order
         version: "1.0"

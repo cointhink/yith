@@ -36,10 +36,14 @@ fn app(
     redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
-    if let Some(matches) = opts.subcommand_matches("balances") {
+    if let Some(matches) = opts.subcommand_matches("b") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
     }
+    if let Some(matches) = opts.subcommand_matches("open") {
+        show_orders(&exchanges, &config.wallet_private_key);
+    }
+
     if let Some(matches) = opts.subcommand_matches("run") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
@@ -92,7 +96,19 @@ fn load_wallet(
 fn show_orders(exchanges: &config::ExchangeList, private_key: &str) {
     for exchange in exchanges.enabled() {
         let orders = exchange.api.open_orders(private_key, &exchange.settings);
-        println!("{} ORDERS {:?}", exchange.settings.name, orders);
+        println!("{} {} ORDERS", exchange.settings.name, orders.len());
+        for order in orders {
+            println!(
+                "  {} {:0.4} {:?} {} {} {} {}",
+                order.id,
+                order.side,
+                order.state,
+                order.market,
+                order.base_qty,
+                order.quote,
+                order.create_date,
+            );
+        }
     }
 }
 
