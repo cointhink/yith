@@ -295,11 +295,11 @@ impl exchange::Api for Ddex3 {
             let order_place = OrderPlace {
                 order_id: sheet.id.clone(),
                 signature: signature,
-                method: 0,
+                method: 0, // web ddex uses method 1
             };
             let client = build_http_client(exchange)?;
             let url = format!("{}/orders/sync", exchange.api_url.as_str());
-            println!("{}", url);
+            println!("{} {:?}", url, order_place);
             let headers = auth_header(private_key);
             let resp = client
                 .post(&url)

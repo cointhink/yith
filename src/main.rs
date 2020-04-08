@@ -268,7 +268,7 @@ fn run_book(
         .iter()
         .take(1) // first offer
         .map(|offer| {
-            println!("** {} {} {}", askbid, &book.market, offer);
+            println!("** {} {} {} => {}{}", askbid, &book.market, offer, offer.cost(*askbid), &book.market.quote);
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
@@ -319,16 +319,16 @@ fn run_offer(
             let offer_cost = offer.cost(askbid);
             let amounts = vec![offer_cost, wallet_coin_limit, coin.base_total()];
             let least_cost = minimum(amounts);
-            if least_cost < offer_cost {
-                println!(
-                    "{} {} balance limited to {}",
-                    check_ticker, source_name, least_cost
-                );
-            }
             let least_qty = match askbid {
                 types::AskBid::Ask => least_cost / offer.quote,
                 types::AskBid::Bid => least_cost,
             };
+            if least_cost < offer_cost {
+                println!(
+                    "{} {} balance capped at {}. adj qty {}",
+                    check_ticker, source_name, least_cost, least_qty
+                );
+            }
             let capped_offer = types::Offer {
                 base_qty: least_qty,
                 quote: offer.quote,
