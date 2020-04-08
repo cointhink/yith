@@ -223,7 +223,7 @@ impl exchange::Api for Zeroex {
         );
         println!("{}", url);
         let resp = client.get(url.as_str()).send().unwrap();
-        println!("{:#?} {}", resp.status(), resp.url());
+        //println!("{:#?} {}", resp.status(), resp.url());
         let orders = resp.json::<Vec<Order>>().unwrap();
         //println!("{:#?}", orders);
         orders

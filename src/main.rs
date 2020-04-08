@@ -99,14 +99,14 @@ fn show_orders(exchanges: &config::ExchangeList, private_key: &str) {
         println!("{} {} ORDERS", exchange.settings.name, orders.len());
         for order in orders {
             println!(
-                "  {} {:0.4} {:?} {} {} {} {}",
+                "  {} {:?} {} {} {:.5}@{:.5} {}",
                 order.id,
-                order.side,
                 order.state,
+                order.side,
                 order.market,
                 order.base_qty,
                 order.quote,
-                order.create_date,
+                &order.create_date[0..10],
             );
         }
     }

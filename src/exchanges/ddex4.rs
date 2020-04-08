@@ -188,7 +188,7 @@ impl exchange::Api for Ddex4 {
         println!("{}", url);
         let headers = auth_header(private_key);
         let resp = client.get(url.as_str()).headers(headers).send().unwrap();
-        println!("{:#?} {}", resp.status(), resp.url());
+        //println!("{:#?} {}", resp.status(), resp.url());
         //println!("{:#?}", resp.text());
         let order_resp = resp.json::<OrderResponse>().unwrap();
         if order_resp.status < 0 {
