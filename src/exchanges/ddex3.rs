@@ -299,7 +299,7 @@ impl exchange::Api for Ddex3 {
             };
             let client = build_http_client(exchange)?;
             let url = format!("{}/orders/sync", exchange.api_url.as_str());
-            println!("{} {:?}", url, order_place);
+            println!("{} {}", url, serde_json::to_string(&order_place).unwrap());
             let headers = auth_header(private_key);
             let resp = client
                 .post(&url)
