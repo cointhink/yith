@@ -408,6 +408,19 @@ pub struct WithdrawlResponse {
     id: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawalExecute {
+    id: String,
+    timestamp: u128,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawalExecuteSigned {
+    #[serde(flatten)]
+    withdrawal_execute: WithdrawalExecute,
+    signature: String,
+}
+
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
@@ -726,11 +739,30 @@ impl exchange::Api for Switcheo {
         let json = resp.text().unwrap();
         println!("{}", json);
         let resp = serde_json::from_str::<WithdrawlResponse>(&json).unwrap();
+        let withdrawal_execute = WithdrawalExecute {
+            id: resp.id,
+            timestamp: time::now()
+        };
+        let sign_json = serde_json::to_string(&withdrawal_execute).unwrap();
+        let signature = eth::ethsign(&sign_json, &secret_key);
+        let withdrawal_execute_signed = WithdrawalExecuteSigned {
+            withdrawal_execute: withdrawal_execute,
+            signature: signature,
+        };
         let url = format!(
             "{}/withdrawals/{}/broadcast",
             exchange.api_url.as_str(),
-            resp.id
+            withdrawal_execute_signed.withdrawal_execute.id
         );
+        let resp = client
+            .post(url.as_str())
+            .json(&withdrawal_execute_signed)
+            .send()
+            .unwrap();
+        let status = resp.status();
+        println!("switcheo withdrawal execute {:#?} {}", status, resp.url());
+        let json = resp.text().unwrap();
+        println!("{}", json);
     }
 
     fn order_status(&self, order_id: &str) -> exchange::OrderState {
