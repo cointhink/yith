@@ -36,7 +36,7 @@ fn app(
     redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
-    if let Some(matches) = opts.subcommand_matches("b") {
+    if let Some(matches) = opts.subcommand_matches("balances") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
     }

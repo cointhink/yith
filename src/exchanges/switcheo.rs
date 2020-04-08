@@ -386,6 +386,23 @@ pub struct SignatureBody {
     signatures: SignatureSheet,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawlRequest {
+    amount: String,
+    asset_id: String,
+    blockchain: String,
+    contract_hash: String,
+    timestamp: u128,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawlRequestSigned {
+    #[serde(flatten)]
+    withdrawl_request: WithdrawlRequest,
+    signature: String,
+    address: String,
+}
+
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
@@ -412,7 +429,11 @@ impl Switcheo {
         }
     }
 
-    pub fn wait_on_order(&self, order_id: &str, first_status: exchange::OrderState) -> exchange::OrderState {
+    pub fn wait_on_order(
+        &self,
+        order_id: &str,
+        first_status: exchange::OrderState,
+    ) -> exchange::OrderState {
         let mut status: exchange::OrderState = first_status;
         loop {
             let refresh = match status {
@@ -596,18 +617,28 @@ impl exchange::Api for Switcheo {
                         let (base_symbol, quote_symbol) = split_market_pair(&order.pair);
                         let token_symbol = match order.side {
                             BuySell::Buy => base_symbol,
-                            BuySell::Sell => base_symbol,
+                            BuySell::Sell => quote_symbol,
                         };
-                        let token = types::Ticker { symbol: token_symbol };
-                        let qty = order.quantity.parse::<f64>().unwrap();
+                        let token = types::Ticker {
+                            symbol: token_symbol,
+                        };
+                        let token_detail = self.tokens.get(&token).unwrap();
+                        let base_qty = units_to_amount(&order.quantity, token_detail);
+                        let qty = match order.side {
+                            BuySell::Buy => base_qty,
+                            BuySell::Sell => {
+                                let price = order.price.parse::<f64>().unwrap();
+                                base_qty * price
+                            }
+                        };
                         self.withdrawl(privkey, exchange, qty, token);
-                    },
+                    }
                     exchange::OrderState::Cancelled => {
                         println!("order cancelled!");
-                    },
+                    }
                     _ => {
                         println!("order whatnow!");
-                    },
+                    }
                 }
                 Ok(())
             } else {
@@ -659,7 +690,35 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: types::Ticker,
     ) {
+        let privbytes = &hex::decode(privkey).unwrap();
+        let secret_key = SecretKey::from_slice(privbytes).unwrap();
+        let token_detail = self.tokens.get(&token).unwrap();
+        let units = amount_to_units(
+                amount,
+                token_detail.precision,
+                token_detail,
+            );
+        let withdrawl_request = WithdrawlRequest {
+            blockchain: "eth".to_string(),
+            asset_id: token_detail.hash.clone(),
+            amount: units,
+            timestamp: time::now(),
+            contract_hash: exchange.contract_address.clone(),
+        };  
+        let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
+        let signature = eth::ethsign(&sign_json, &secret_key);
+        let address = format!("0x{}", eth::privkey_to_addr(privkey));
+        let withdrawl_request_sign = WithdrawlRequestSigned {
+            withdrawl_request: withdrawl_request,
+            address: address,
+            signature: signature,
+        };
         let url = format!("{}/deposits", exchange.api_url.as_str());
+        let client = reqwest::blocking::Client::new();
+        let resp = client.post(url.as_str()).json(&withdrawl_request_sign).send().unwrap();
+        let status = resp.status();
+        println!("switcheo withdrawl request {:#?} {}", status, resp.url());
+        println!("{}", resp.text().unwrap());
     }
 
     fn order_status(&self, order_id: &str) -> exchange::OrderState {
