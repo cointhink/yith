@@ -171,7 +171,7 @@ impl PairList {
         for pair in &self.pairs {
             if pair.id == market {
                 result = Some(&pair);
-                break
+                break;
             };
         }
         result

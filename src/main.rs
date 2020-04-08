@@ -268,7 +268,14 @@ fn run_book(
         .iter()
         .take(1) // first offer
         .map(|offer| {
-            println!("** {} {} {} => {}{}", askbid, &book.market, offer, offer.cost(*askbid), &book.market.quote);
+            println!(
+                "** {} {} {} => {}{}",
+                askbid,
+                &book.market,
+                offer,
+                offer.cost(*askbid),
+                &book.market.quote
+            );
             let exchange_name = &book.market.source.name;
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {

@@ -312,7 +312,7 @@ pub struct MakeGroup {
     status: FillStatus,
     fee_amount: u128,
     fee_asset_id: String,
-    txn: MakeGroupTransaction,
+    txn: Option<MakeGroupTransaction>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -342,7 +342,7 @@ impl Order {
             state: exchange::OrderState::Cancelled,
             market: self.pair,
             base_qty: units_to_amount(&self.quantity, base_token),
-            quote: units_to_amount(&self.price, quote_token),
+            quote: self.price.parse::<f64>().unwrap(),
             create_date: 0,
         }
     }
@@ -612,7 +612,9 @@ impl exchange::Api for Switcheo {
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
         let status = resp.status();
-        let balances = resp.json::<BalanceResponse>().unwrap();
+        let json = resp.text().unwrap();
+        println!("{}", json);
+        let balances = serde_json::from_str::<BalanceResponse>(&json).unwrap();
         balances
             .confirmed
             .iter()
@@ -656,13 +658,14 @@ impl exchange::Api for Switcheo {
 
     fn open_orders(
         &self,
-        account: &str,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
+        let my_addr = eth::privkey_to_addr(private_key);
         let url = format!(
             "{}/orders?address=0x{}&contract_hashes={}",
             exchange.api_url.as_str(),
-            account,
+            my_addr,
             exchange.contract_address
         );
         println!("{}", url);
@@ -671,7 +674,6 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         if status.is_success() {
             let orders = resp.json::<Vec<Order>>().unwrap();
-            println!("switcheo raw orders {:?}", orders);
             let shortlist = Vec::<exchange::Order>::new();
             orders.into_iter().fold(shortlist, |mut m, o| {
                 let (base_name, quote_name) = split_market_pair(&o.pair);
@@ -737,7 +739,7 @@ pub fn fillgroup_sigs(fgs: &Vec<FillGroup>, key: &SecretKey) -> HashMap<String, 
 
 pub fn makes_sigs(fgs: &Vec<MakeGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {
-        let sha_bytes = hex::decode(&fillg.txn.sha256[2..]).unwrap();
+        let sha_bytes = hex::decode(&fillg.txn.as_ref().unwrap().sha256[2..]).unwrap();
         let sig_bytes = eth::sign_bytes(&sha_bytes, key);
         let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
 
