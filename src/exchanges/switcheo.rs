@@ -50,11 +50,11 @@ pub fn read_pairs(filename: &str) -> PairList {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenDetail {
-    symbol: String,
+    pub symbol: String,
     name: String,
     r#type: String,
     hash: String,
-    decimals: i32,
+    pub decimals: i32,
     transfer_decimals: i32,
     precision: i32,
     minimum_quantity: String,
@@ -64,7 +64,7 @@ pub struct TokenDetail {
 }
 
 pub struct TokenList {
-    tokens: HashMap<String, TokenDetail>,
+    pub tokens: HashMap<String, TokenDetail>,
 }
 
 pub fn read_tokens(filename: &str) -> TokenList {

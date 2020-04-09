@@ -1,8 +1,8 @@
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use tiny_keccak::{Hasher, Keccak};
 
-pub fn wei_to_eth(wei: f64) -> f64 {
-    wei / 10_f64.powi(18)
+pub fn wei_to_eth(wei: f64, decimals: i32) -> f64 {
+    wei / 10_f64.powi(decimals)
 }
 
 //pub fn privkey_to_privkeybytes(privkey: &str) -> [u8; 32] {
