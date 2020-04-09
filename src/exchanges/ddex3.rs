@@ -2,7 +2,6 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::exchanges::ddex::Ddex;
-use crate::time;
 use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};

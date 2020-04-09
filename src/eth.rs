@@ -1,6 +1,6 @@
-use crate::exchanges;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use tiny_keccak::{Hasher, Keccak};
+use std::convert::TryInto;
 
 pub fn wei_to_eth(wei: f64, decimals: i32) -> f64 {
     wei / 10_f64.powi(decimals)
@@ -44,8 +44,8 @@ pub fn ethsign(json: &String, secret_key: &SecretKey) -> String {
 
 pub fn ethsign_vrs(json: &Vec<u8>, secret_key: &SecretKey) -> String {
     let msg_hash = ethsign_hash_msg(json);
-    let sig_bytes = sign_bytes_vrs(&msg_hash, &secret_key);
-    format!("0x{}", hex::encode(sig_bytes.to_vec()))
+    let arr = sign_bytes_vrs_arr(&msg_hash, &secret_key);
+    format!("0x{}", hex::encode(arr[..].to_vec()))
 }
 
 pub fn ethsign_hash_msg(msg: &Vec<u8>) -> [u8; 32] {
@@ -80,22 +80,29 @@ pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     sig_sized_bytes
 }
 
-pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
+pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> (u8, [u8; 32], [u8; 32]) {
     let secp = Secp256k1::new();
     let secp_msg = Message::from_slice(&msg_hash).unwrap();
     let signature = secp.sign_recoverable(&secp_msg, secret_key);
     let (recovery_id, sig) = signature.serialize_compact();
-    let mut vec = Vec::with_capacity(65);
+
     // That number between 0 and 3 we call the recovery id, or recid.
     // Therefore, we return an extra byte, which also functions as a header byte,
     // by using 27+recid (for uncompressed recovered pubkeys)
     // or 31+recid (for compressed recovered pubkeys). -- Pieter Wuille
-    let v = recovery_id.to_i32() + 27;
-    vec.push(v as u8);
-    vec.extend_from_slice(&sig);
-    let mut sig_sized_bytes = [0u8; 65];
-    sig_sized_bytes.copy_from_slice(vec.as_slice());
-    sig_sized_bytes
+    let v = (recovery_id.to_i32() + 27) as u8;
+    let r : [u8; 32] = sig[0..32].try_into().unwrap();
+    let s : [u8; 32] = sig[32..64].try_into().unwrap();
+    (v,r,s)
+}
+
+pub fn sign_bytes_vrs_arr(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
+    let (v,r,s) = sign_bytes_vrs(&msg_hash, &secret_key);
+    let mut sig : [u8; 65] = [0; 65];
+    sig[0] = v;
+    sig[0..32].copy_from_slice(&r);
+    sig[32..64].copy_from_slice(&s);
+    sig
 }
 
 /*

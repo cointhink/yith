@@ -244,7 +244,7 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let eip191_header = hex::decode("1901").unwrap();
     let exg_with_header: Vec<u8> = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
     let exg_hash = eth::hash_msg(&exg_with_header);
-    let form_sig_bytes = eth::sign_bytes_vrs(&exg_hash, &secret_key);
+    let form_sig_bytes = eth::sign_bytes_vrs_arr(&exg_hash, &secret_key);
     format!("0x{}02", hex::encode(&form_sig_bytes[..]))
 }
 

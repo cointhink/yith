@@ -29,6 +29,15 @@ pub struct OrderSheet {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct OrderSheetSigned {
+    #[serde(flatten)]
+    order_sheet: OrderSheet,
+    v: String,
+    r: String,
+    s: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceResponse {
     #[serde(flatten)]
     balances: HashMap<String, String>,
@@ -115,6 +124,14 @@ impl exchange::Api for Idex {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        if let exchange::OrderSheet::Idex(order_sheet) = sheet {
+            let signed = OrderSheetSigned {
+                order_sheet: order_sheet,
+                v: "".to_string(),
+                r: "".to_string(),
+                s: "".to_string(),
+            };
+        };
         Ok(())
     }
 
