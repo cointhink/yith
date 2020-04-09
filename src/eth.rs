@@ -1,3 +1,4 @@
+use crate::exchanges;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use tiny_keccak::{Hasher, Keccak};
 
@@ -41,8 +42,8 @@ pub fn ethsign(json: &String, secret_key: &SecretKey) -> String {
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
-pub fn ethsign_vrs(json: &String, secret_key: &SecretKey) -> String {
-    let msg_hash = ethsign_hash_msg(&json.as_bytes().to_vec());
+pub fn ethsign_vrs(json: &Vec<u8>, secret_key: &SecretKey) -> String {
+    let msg_hash = ethsign_hash_msg(json);
     let sig_bytes = sign_bytes_vrs(&msg_hash, &secret_key);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
@@ -96,6 +97,42 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     sig_sized_bytes.copy_from_slice(vec.as_slice());
     sig_sized_bytes
 }
+
+/*
+web3 is giant
+pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {
+    const ETH_CHAIN_ID: u32 = 1;
+
+    println!("fullsign relayer {}", tx.relayer);
+    let relayer_bytes = hex::decode(tx.relayer[2..].as_bytes()).unwrap();
+    let to = Some(web3::types::H160::from_slice(&relayer_bytes));
+    let tx = ethereum_tx_sign::RawTransaction {
+        nonce: web3::types::U256::from(0),
+        to: to,
+        value: web3::types::U256::zero(),
+        gas_price: web3::types::U256::from(gas_price),
+        gas: web3::types::U256::from(tx.gas_token_amount.parse::<u128>().unwrap()),
+        data: hex::decode(&tx.data[2..].as_bytes()).unwrap(), //encoded ABI of the contract method 
+    };
+
+    /*
+    trader:0x9b827e7ee9f127a24eb5243e839007c417c8ac18
+    relayer:0x49497a4d914ae91d34ce80030fe620687bf333fd
+    baseToken:0x1c95b093d6c236d3ef7c796fe33f9cc6b8606714
+    quoteToken:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+    baseTokenAmount:5
+    quoteTokenAmount:11316000000000000
+    gasTokenAmount:1520000000000000
+    data:0x02000007b64089450064012c0
+    */
+    let mut keydata: [u8; 32] = Default::default();
+    keydata.copy_from_slice(&hex::decode(private_key).unwrap());
+    let private_key = web3::types::H256(keydata);
+    let sig_bytes = tx.sign(&private_key, &ETH_CHAIN_ID);
+    println!("sig_bytes len {}", sig_bytes.len());
+    sig_bytes
+}
+*/
 
 #[cfg(test)]
 mod tests {

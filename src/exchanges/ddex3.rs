@@ -66,6 +66,20 @@ pub struct OrderSheet {
     maker_rebate_rate: String,
     gas_fee_amount: String,
     r#type: String,
+    json: OrderTx,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderTx {
+    pub base_token: String,
+    pub base_token_amount: String,
+    pub data: String,
+    pub gas_token_amount: String,
+    pub quote_token: String,
+    pub quote_token_amount: String,
+    pub relayer: String,
+    pub trader: String,
 }
 
 /*    "order": {
@@ -291,10 +305,12 @@ impl exchange::Api for Ddex3 {
         sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Ddex3(sheet) = sheet_opt {
-            println!("HYDRO order! {:#?}", sheet);
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let signature = eth::ethsign_vrs(&sheet.id, &secret_key);
+            let signature = eth::ethsign_vrs(&sheet.id.as_bytes().to_vec(), &secret_key);
+            //let gas_price: u128 = 7 * 10_u128.pow(9);
+            //let encoded = eth::encode(private_key, gas_price, &sheet.json); // method:1
+            //let signature = eth::ethsign_vrs(&encoded, &secret_key);
             let order_place = OrderPlace {
                 order_id: sheet.id.clone(),
                 signature: signature,

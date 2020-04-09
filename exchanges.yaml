@@ -53,7 +53,6 @@
     enabled: true
     protocol: ddex3
     contract_address: 1234
-    #api_url: http://localhost:1550/
     api_url: https://api.ddex.io/v3
     taker_fee: 0.3
     maker_fee: 0.1
