@@ -953,7 +953,7 @@ mod tests {
         println!("privkey {} {}", &privkey, &json);
         let privkey_bytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
-        let signature = sign(&json.to_string(), &secret_key);
+        let signature = eth::ethsign(&json.to_string(), &secret_key);
         println!("json sign signature {}", signature);
         let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";
         assert_eq!(signature, good_sig)

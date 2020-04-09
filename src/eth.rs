@@ -100,8 +100,8 @@ pub fn sign_bytes_vrs_arr(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
     let (v,r,s) = sign_bytes_vrs(&msg_hash, &secret_key);
     let mut sig : [u8; 65] = [0; 65];
     sig[0] = v;
-    sig[0..32].copy_from_slice(&r);
-    sig[32..64].copy_from_slice(&s);
+    sig[1..33].copy_from_slice(&r);
+    sig[33..65].copy_from_slice(&s);
     sig
 }
 
@@ -194,7 +194,7 @@ mod tests {
         let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
         let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
-        let sig_bytes = sign_bytes_vrs(&hash_bytes, &private_key);
+        let sig_bytes = sign_bytes_vrs_arr(&hash_bytes, &private_key);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
     }
