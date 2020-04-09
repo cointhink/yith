@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::time::Duration;
+use secp256k1::SecretKey;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -125,6 +126,10 @@ impl exchange::Api for Idex {
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
+            let privbytes = &hex::decode(privkey).unwrap();
+            let secret_key = SecretKey::from_slice(privbytes).unwrap();
+            let json = "";
+            let sig = eth::sign_bytes_vrs(json.as_bytes(), &secret_key);
             let signed = OrderSheetSigned {
                 order_sheet: order_sheet,
                 v: "".to_string(),
