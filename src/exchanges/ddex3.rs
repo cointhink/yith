@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::exchanges::ddex::Ddex;
+use crate::time;
 use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -33,6 +34,7 @@ pub struct MarketOrderSheet {
     market_id: String,
     side: BuySell,
     order_type: LimitMarket,
+    expires: u64,
     price: String,
     amount: String,
 }
@@ -233,6 +235,7 @@ impl exchange::Api for Ddex3 {
             side: side,
             order_type: LimitMarket::Limit,
             //wallet_type: "trading",
+            expires: 3600, //1hr
             price: format!("{:.width$}", price, width = pair.price_decimals as usize),
             amount: format!("{:.width$}", qty, width = pair.amount_decimals as usize),
         };

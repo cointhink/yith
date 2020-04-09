@@ -536,7 +536,7 @@ impl exchange::Api for Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let market_pair = make_market_pair(market);
-        let now_millis = time::now();
+        let now_millis = time::now_millis();
         let base_token_detail = self.tokens.get(&market.base).unwrap();
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
         let pair = self.pairs.get(&market_pair).unwrap();
@@ -690,8 +690,10 @@ impl exchange::Api for Switcheo {
         let json = resp.text().unwrap();
         let balances = serde_json::from_str::<BalanceResponse>(&json).unwrap();
         if balances.confirming.len() > 0 {
-            println!("warning: switcheo confirming balances {:?}",
-                balances.confirming.keys())
+            println!(
+                "warning: switcheo confirming balances {:?}",
+                balances.confirming.keys()
+            )
         }
         balances
             .confirmed
@@ -725,7 +727,7 @@ impl exchange::Api for Switcheo {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
             amount: units,
-            timestamp: time::now(),
+            timestamp: time::now_millis(),
             contract_hash: exchange.contract_address.clone(),
         };
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
@@ -751,7 +753,7 @@ impl exchange::Api for Switcheo {
             let resp = serde_json::from_str::<WithdrawlResponse>(&json).unwrap();
             let withdrawal_execute = WithdrawalExecute {
                 id: resp.id,
-                timestamp: time::now(),
+                timestamp: time::now_millis(),
             };
             let signature = sha_hex_sign(&resp.transaction.sha256, &secret_key);
             let withdrawal_execute_signed = WithdrawalExecuteSigned {
