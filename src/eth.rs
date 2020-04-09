@@ -1,6 +1,6 @@
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
-use tiny_keccak::{Hasher, Keccak};
 use std::convert::TryInto;
+use tiny_keccak::{Hasher, Keccak};
 
 pub fn wei_to_eth(wei: f64, decimals: i32) -> f64 {
     wei / 10_f64.powi(decimals)
@@ -91,14 +91,14 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> (u8, [u8; 32],
     // by using 27+recid (for uncompressed recovered pubkeys)
     // or 31+recid (for compressed recovered pubkeys). -- Pieter Wuille
     let v = (recovery_id.to_i32() + 27) as u8;
-    let r : [u8; 32] = sig[0..32].try_into().unwrap();
-    let s : [u8; 32] = sig[32..64].try_into().unwrap();
-    (v,r,s)
+    let r: [u8; 32] = sig[0..32].try_into().unwrap();
+    let s: [u8; 32] = sig[32..64].try_into().unwrap();
+    (v, r, s)
 }
 
 pub fn sign_bytes_vrs_arr(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
-    let (v,r,s) = sign_bytes_vrs(&msg_hash, &secret_key);
-    let mut sig : [u8; 65] = [0; 65];
+    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
+    let mut sig: [u8; 65] = [0; 65];
     sig[0] = v;
     sig[1..33].copy_from_slice(&r);
     sig[33..65].copy_from_slice(&s);
@@ -119,7 +119,7 @@ pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx
         value: web3::types::U256::zero(),
         gas_price: web3::types::U256::from(gas_price),
         gas: web3::types::U256::from(tx.gas_token_amount.parse::<u128>().unwrap()),
-        data: hex::decode(&tx.data[2..].as_bytes()).unwrap(), //encoded ABI of the contract method 
+        data: hex::decode(&tx.data[2..].as_bytes()).unwrap(), //encoded ABI of the contract method
     };
 
     /*
