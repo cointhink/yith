@@ -181,7 +181,7 @@ impl PairList {
         PairList { pairs: pairs }
     }
 
-    pub fn get(&self, market: &str) -> Option<&Pair> {
+    pub fn get(&self, market: &str) -> Result<&Pair, &str> {
         let mut result: Option<&Pair> = None;
         for pair in &self.pairs {
             if pair.id == market {
@@ -189,7 +189,10 @@ impl PairList {
                 break;
             };
         }
-        result
+        match result {
+            Some(pair) => Ok(pair),
+            None => Err("ddex3 market not found")
+        }
     }
 }
 

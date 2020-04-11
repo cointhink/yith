@@ -4,9 +4,6 @@ use crate::exchange;
 use crate::exchange::Api;
 use crate::time;
 use crate::types;
-use bigdecimal::BigDecimal;
-use num_bigint::BigInt;
-use num_traits::cast::FromPrimitive;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::cell;
@@ -900,7 +897,7 @@ pub fn split_market_pair(pair: &str) -> (String, String) {
 }
 
 pub fn amount_to_units(amount: f64, precision: i32, token: &TokenDetail) -> String {
-    let qty_int = quantity_in_base_units(amount, precision, token.decimals);
+    let qty_int = exchange::quantity_in_base_units(amount, precision, token.decimals);
     let qty_str = qty_int.to_str_radix(10);
     println!(
         "{}^{} {}^{} => \"{}\"",
@@ -914,15 +911,6 @@ pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
     let unts = units.parse::<u128>().unwrap();
     let power = 10_u128.pow(token.decimals as u32);
     unts as f64 / power as f64
-}
-
-pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
-    let big_dec = BigDecimal::from_f64(qty)
-        .unwrap()
-        .with_scale(prec as i64) // truncates
-        .with_scale(scale as i64);
-    let (qty_int, exp) = big_dec.into_bigint_and_exponent();
-    qty_int
 }
 
 pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {

@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 use std::collections;
 use std::error;
 use std::fmt;
+use bigdecimal::BigDecimal;
+use num_bigint::BigInt;
+use num_traits::cast::FromPrimitive;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -159,4 +162,13 @@ pub trait Api {
         token: types::Ticker,
     ) {
     }
+}
+
+pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
+    let big_dec = BigDecimal::from_f64(qty)
+        .unwrap()
+        .with_scale(prec as i64) // truncates
+        .with_scale(scale as i64);
+    let (qty_int, exp) = big_dec.into_bigint_and_exponent();
+    qty_int
 }

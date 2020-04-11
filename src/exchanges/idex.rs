@@ -64,6 +64,10 @@ impl TokenList {
         let tokens = serde_yaml::from_str(&yaml).unwrap();
         TokenList { tokens: tokens }
     }
+
+    pub fn get(&self, symbol2: &str) -> &TokenDetail {
+        self.tokens.iter().find(|(symbol, detail)| *symbol == symbol2).unwrap().1
+    }
 }
 
 pub struct Idex {
@@ -108,11 +112,15 @@ impl exchange::Api for Idex {
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         let address = eth::privkey_to_addr(privkey);
+        let base_token = self.tokens.get(&market.base.symbol);
+        let quote_token = self.tokens.get(&market.base.symbol);
+        let base_qty = exchange::quantity_in_base_units(offer.base_qty, base_token.decimals, base_token.decimals);
+        let quote_qty = exchange::quantity_in_base_units(offer.cost(*askbid), base_token.decimals, base_token.decimals);
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             token_buy: market.base_contract.clone(),
-            amount_buy: "1".to_string(),
+            amount_buy: base_qty.to_str_radix(10),
             token_sell: market.quote_contract.clone(),
-            amount_sell: "1".to_string(),
+            amount_sell: quote_qty.to_str_radix(10),
             address: address,
             nonce: "0".to_string(),
             expires: 0,
