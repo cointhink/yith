@@ -309,9 +309,8 @@ impl exchange::Api for Ddex3 {
         if let exchange::OrderSheet::Ddex3(sheet) = sheet_opt {
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let id_hash = eth::ethsign_hash_msg(&sheet.id.as_bytes().to_vec());
+            let id_hash = eth::ethsign_hash_msg(&hex::decode(&sheet.id[2..]).unwrap());
             let (v, r, s) = eth::sign_bytes_vrs(&id_hash, &secret_key);
-            println!("ddex3 sig v {}", v);
             let sig_bytes = eth::sigparts_to_rsv(v, r, s);
             let signature = format!("0x{}", hex::encode(sig_bytes.to_vec()));
 

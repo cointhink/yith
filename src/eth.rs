@@ -93,6 +93,8 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> (u8, [u8; 32],
     // Therefore, we return an extra byte, which also functions as a header byte,
     // by using 27+recid (for uncompressed recovered pubkeys)
     // or 31+recid (for compressed recovered pubkeys). -- Pieter Wuille
+    // geth ethapi/api.go:1533
+    // signature[64] += 27 // Transform V from 0/1 to 27/28 according to the yellow paper
     let v = (recovery_id.to_i32() + 27) as u8;
     let r: [u8; 32] = sig[0..32].try_into().unwrap();
     let s: [u8; 32] = sig[32..64].try_into().unwrap();
