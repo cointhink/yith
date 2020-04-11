@@ -3,11 +3,11 @@ use crate::eth;
 use crate::exchange;
 use crate::types;
 use reqwest::header;
+use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::time::Duration;
-use secp256k1::SecretKey;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -66,7 +66,11 @@ impl TokenList {
     }
 
     pub fn get(&self, symbol2: &str) -> &TokenDetail {
-        self.tokens.iter().find(|(symbol, detail)| *symbol == symbol2).unwrap().1
+        self.tokens
+            .iter()
+            .find(|(symbol, detail)| *symbol == symbol2)
+            .unwrap()
+            .1
     }
 }
 
@@ -114,8 +118,16 @@ impl exchange::Api for Idex {
         let address = eth::privkey_to_addr(privkey);
         let base_token = self.tokens.get(&market.base.symbol);
         let quote_token = self.tokens.get(&market.base.symbol);
-        let base_qty = exchange::quantity_in_base_units(offer.base_qty, base_token.decimals, base_token.decimals);
-        let quote_qty = exchange::quantity_in_base_units(offer.cost(*askbid), base_token.decimals, base_token.decimals);
+        let base_qty = exchange::quantity_in_base_units(
+            offer.base_qty,
+            base_token.decimals,
+            base_token.decimals,
+        );
+        let quote_qty = exchange::quantity_in_base_units(
+            offer.cost(*askbid),
+            base_token.decimals,
+            base_token.decimals,
+        );
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             token_buy: market.base_contract.clone(),
             amount_buy: base_qty.to_str_radix(10),

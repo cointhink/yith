@@ -191,7 +191,7 @@ impl PairList {
         }
         match result {
             Some(pair) => Ok(pair),
-            None => Err("ddex3 market not found")
+            None => Err("ddex3 market not found"),
         }
     }
 }
@@ -309,7 +309,12 @@ impl exchange::Api for Ddex3 {
         if let exchange::OrderSheet::Ddex3(sheet) = sheet_opt {
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let signature = eth::ethsign_vrs(&sheet.id.as_bytes().to_vec(), &secret_key);
+            let id_hash = eth::ethsign_hash_msg(&sheet.id.as_bytes().to_vec());
+            let (v, r, s) = eth::sign_bytes_vrs(&id_hash, &secret_key);
+            println!("ddex3 sig v {}", v);
+            let sig_bytes = eth::sigparts_to_rsv(v, r, s);
+            let signature = format!("0x{}", hex::encode(sig_bytes.to_vec()));
+
             //let gas_price: u128 = 7 * 10_u128.pow(9);
             //let encoded = eth::encode(private_key, gas_price, &sheet.json); // method:1
             //let signature = eth::ethsign_vrs(&encoded, &secret_key);

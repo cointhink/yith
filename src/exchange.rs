@@ -1,13 +1,13 @@
 use crate::config;
 use crate::exchanges;
 use crate::types;
+use bigdecimal::BigDecimal;
+use num_bigint::BigInt;
+use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::collections;
 use std::error;
 use std::fmt;
-use bigdecimal::BigDecimal;
-use num_bigint::BigInt;
-use num_traits::cast::FromPrimitive;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -171,4 +171,21 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
         .with_scale(scale as i64);
     let (qty_int, exp) = big_dec.into_bigint_and_exponent();
     qty_int
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_quantity_in_base_units() {
+        let unit_q = quantity_in_base_units(1.1234, 2, 18);
+        assert_eq!(unit_q, 1120000000000000000_u64.into());
+        let unit_q = quantity_in_base_units(100.1234, 2, 18);
+        assert_eq!(unit_q, 100120000000000000000_u128.into());
+        let unit_q = quantity_in_base_units(0.234, 8, 8);
+        assert_eq!(unit_q, 23400000.into());
+        let unit_q = quantity_in_base_units(2.3, 1, 2);
+        assert_eq!(unit_q, 230.into());
+    }
 }

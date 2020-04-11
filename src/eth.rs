@@ -39,12 +39,15 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
 pub fn ethsign(json: &String, secret_key: &SecretKey) -> String {
     let msg_hash = ethsign_hash_msg(&json.as_bytes().to_vec());
     let sig_bytes = sign_bytes(&msg_hash, &secret_key);
+    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
+    let arr = sigparts_to_rsv(v, r, s);
     format!("0x{}", hex::encode(sig_bytes.to_vec()))
 }
 
 pub fn ethsign_vrs(json: &Vec<u8>, secret_key: &SecretKey) -> String {
     let msg_hash = ethsign_hash_msg(json);
-    let arr = sign_bytes_vrs_arr(&msg_hash, &secret_key);
+    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
+    let arr = sigparts_to_vrs(v, r, s);
     format!("0x{}", hex::encode(arr[..].to_vec()))
 }
 
@@ -96,12 +99,19 @@ pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> (u8, [u8; 32],
     (v, r, s)
 }
 
-pub fn sign_bytes_vrs_arr(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
-    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
+pub fn sigparts_to_vrs(v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
     let mut sig: [u8; 65] = [0; 65];
     sig[0] = v;
     sig[1..33].copy_from_slice(&r);
     sig[33..65].copy_from_slice(&s);
+    sig
+}
+
+pub fn sigparts_to_rsv(v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
+    let mut sig: [u8; 65] = [0; 65];
+    sig[0..32].copy_from_slice(&r);
+    sig[32..64].copy_from_slice(&s);
+    sig[64] = v;
     sig
 }
 
@@ -194,7 +204,8 @@ mod tests {
         let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
         let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
-        let sig_bytes = sign_bytes_vrs_arr(&hash_bytes, &private_key);
+        let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
+        let sig_bytes = sigparts_to_rsv(v, r, s);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
     }

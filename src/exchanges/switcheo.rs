@@ -967,18 +967,6 @@ mod tests {
     }
 
     #[test]
-    fn test_quantity_in_base_units() {
-        let unit_q = quantity_in_base_units(1.1234, 2, 18);
-        assert_eq!(unit_q, 1120000000000000000_u64.into());
-        let unit_q = quantity_in_base_units(100.1234, 2, 18);
-        assert_eq!(unit_q, 100120000000000000000_u128.into());
-        let unit_q = quantity_in_base_units(0.234, 8, 8);
-        assert_eq!(unit_q, 23400000.into());
-        let unit_q = quantity_in_base_units(2.3, 1, 2);
-        assert_eq!(unit_q, 230.into());
-    }
-
-    #[test]
     fn test_units_to_amount() {
         let token = TokenDetail {
             symbol: "BAT".to_string(),
