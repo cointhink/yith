@@ -4,10 +4,10 @@
     enabled: true
     has_balances: true
     protocol: idex
-    contract_address: 0x
+    contract_address: 0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208
     api_url: https://api.idex.market/
-    taker_fee: 0.0
-    maker_fee: 0.0
+    taker_fee: 0.2
+    maker_fee: 0.1
   -
     name: switcheo
     has_balances: true

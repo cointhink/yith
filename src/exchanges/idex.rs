@@ -164,6 +164,7 @@ impl exchange::Api for Idex {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
             let order_bytes = order_msg(&order_sheet, exchange);
+            println!("{}", order_bytes);
             let order_hash = eth::ethsign_hash_msg(&order_bytes.as_bytes().to_vec());
             let (v,r,s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
             let signed = OrderSheetSigned {
