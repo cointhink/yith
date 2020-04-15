@@ -148,7 +148,7 @@ impl exchange::Api for Idex {
             amount_buy: base_qty.to_str_radix(10),
             token_sell: quote_token.address.clone(), //market.quote_contract.clone(),
             amount_sell: quote_qty.to_str_radix(10),
-            address: format!("0x{}",address),
+            address: format!("0x{}", address),
             nonce: nonce_response.nonce.to_string(),
             expires: 0,
         }))
@@ -163,20 +163,17 @@ impl exchange::Api for Idex {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let order_bytes = order_msg(&order_sheet, exchange);
-            println!("{}", order_bytes);
-            let order_hash = eth::ethsign_hash_msg(&order_bytes.as_bytes().to_vec());
-            let (v,r,s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
+            let order_hash_bytes = order_msg(&order_sheet, exchange);
+            println!("{:?}", order_hash_bytes);
+            let order_hash = eth::ethsign_hash_msg(&order_hash_bytes);
+            let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
             let signed = OrderSheetSigned {
                 order_sheet: order_sheet,
                 v: v,
                 r: eth::hex(&r),
                 s: eth::hex(&s),
             };
-            let url = format!(
-                "{}/order",
-                exchange.api_url.as_str(),
-            );
+            let url = format!("{}/order", exchange.api_url.as_str(),);
             println!("{:?}", signed);
             let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
             let status = resp.status();
@@ -210,14 +207,46 @@ impl exchange::Api for Idex {
     }
 }
 
-pub fn order_msg(order: &OrderSheet, exchange: &config::ExchangeSettings) -> String {
-    format!("{}{}{}{}{}{}{}{}", 
-        exchange.contract_address,
-        order.token_buy,
-        order.amount_buy,
-        order.token_sell,
-        order.amount_sell,
-        order.expires,
-        order.nonce,
-        order.address)
+pub fn order_msg(order: &OrderSheet, exchange: &config::ExchangeSettings) -> Vec<u8> {
+    let expires = order.expires.to_string();
+    let parts: Vec<&str> = vec![
+        &exchange.contract_address,
+        &order.token_buy,
+        &order.amount_buy,
+        &order.token_sell,
+        &order.amount_sell,
+        &expires,
+        &order.nonce,
+        &order.address,
+    ];
+    let hashes = parts.iter().fold(Vec::<u8>::new(), |mut memo, str| {
+        memo.append(&mut eth::hash_msg(&str.as_bytes().to_vec())[..].to_vec());
+        memo
+    });
+    hashes
+}
+
+/*
+    "tokenBuy": "0xd6e8a328c5c9b6cc4c917a50ecbe0aeb663c666e",
+    "amountBuy": "1000000000000000000",
+    "tokenSell": "0x0000000000000000000000000000000000000000",
+    "amountSell": "20354156573527349",
+    "address": "0x2dbdcec64db33e673140fbd0ceef610a273b84db",
+    "nonce": "1544",
+    "expires": 100000,
+    "v": 28,
+    "r": "0xc6ddcbdf69d0e20fe879d2405b40ee417773c8a177a5d7f4461f2310565ac3d1",
+    "s": "0x497cdfedfde3308bb9d9e80ea2eabff43c7a15fef0eb164c265e3855a1bd9073"
+*/
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_token() {
+        let token = build_token(PRIVKEY, MSG_V3);
+        let good_token = format!("0x{}#{}#0x{}", GOOD_ADDR, MSG_V3, GOOD_SIG_V3);
+        //assert_eq!(token, good_token);
+    }
 }
