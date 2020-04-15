@@ -163,9 +163,9 @@ impl exchange::Api for Idex {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let order_hash_bytes = order_msg(&order_sheet, exchange);
+            let order_hash_bytes = order_params_hash(&order_sheet, exchange);
             println!("{:?}", order_hash_bytes);
-            let order_hash = eth::ethsign_hash_msg(&order_hash_bytes);
+            let order_hash = eth::ethsign_hash_msg(&order_hash_bytes[..].to_vec());
             let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
             let signed = OrderSheetSigned {
                 order_sheet: order_sheet,
@@ -207,23 +207,28 @@ impl exchange::Api for Idex {
     }
 }
 
-pub fn order_msg(order: &OrderSheet, exchange: &config::ExchangeSettings) -> Vec<u8> {
+pub fn order_params_hash(order: &OrderSheet, exchange: &config::ExchangeSettings) -> [u8; 32] {
     let expires = order.expires.to_string();
-    let parts: Vec<&str> = vec![
-        &exchange.contract_address,
-        &order.token_buy,
-        &order.amount_buy,
-        &order.token_sell,
+    let parts: Vec<Vec<u8>> = vec![
+        exchange.contract_address[2..].as_bytes().to_vec(),
+        order.token_buy[2..].as_bytes().to_vec(),
+        rlp_encode_int(order.amount_buy.parse::<u128>().unwrap()),
+        order.token_sell[2..].as_bytes().to_vec(),
         &order.amount_sell,
         &expires,
         &order.nonce,
-        &order.address,
+        order.address[2..].as_bytes().to_vec(),
     ];
-    let hashes = parts.iter().fold(Vec::<u8>::new(), |mut memo, str| {
-        memo.append(&mut eth::hash_msg(&str.as_bytes().to_vec())[..].to_vec());
+    let hashes = parts.iter_mut().fold(Vec::<u8>::new(), |mut memo, part| {
+        memo.append(part);
         memo
     });
-    hashes
+    eth::hash_msg(&hashes)
+}
+
+pub fn rlp_encode_int(num: u128) -> Vec<u8> {
+    let bytes = pad(int_to_bigendian(num), 32)
+    hex::encode(int)
 }
 
 /*

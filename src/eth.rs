@@ -102,6 +102,10 @@ pub fn hex(bytes: &[u8]) -> String {
     format!("0x{}", hex::encode(bytes))
 }
 
+pub fn dehex(bytes: &str) -> Vec<u8> {
+    hex::decode(bytes).unwrap()
+}
+
 /*
 web3 is giant
 pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {
