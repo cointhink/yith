@@ -117,6 +117,10 @@ pub fn sigparts_to_rsv(v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
     sig
 }
 
+pub fn hex(bytes: &[u8]) -> String {
+    format!("0x{}", hex::encode(bytes))
+}
+
 /*
 web3 is giant
 pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {

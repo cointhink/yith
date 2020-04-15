@@ -33,7 +33,7 @@ pub struct OrderSheet {
 pub struct OrderSheetSigned {
     #[serde(flatten)]
     order_sheet: OrderSheet,
-    v: String,
+    v: u8,
     r: String,
     s: String,
 }
@@ -149,12 +149,12 @@ impl exchange::Api for Idex {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
             let json = "";
-            let sig = eth::sign_bytes_vrs(json.as_bytes(), &secret_key);
+            let (v,r,s) = eth::sign_bytes_vrs(json.as_bytes(), &secret_key);
             let signed = OrderSheetSigned {
                 order_sheet: order_sheet,
-                v: "".to_string(),
-                r: "".to_string(),
-                s: "".to_string(),
+                v: v,
+                r: eth::hex(&r),
+                s: eth::hex(&s),
             };
         };
         Ok(())
