@@ -89,6 +89,7 @@ impl Idex {
     pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Idex {
         let client = Idex::build_http_client(api_key).unwrap();
         let tokens = TokenList::read_tokens("notes/idex-tokens.json");
+        println!("idex loaded {} tokens", tokens.tokens.len());
         Idex {
             settings: settings,
             client: client,
@@ -122,7 +123,7 @@ impl exchange::Api for Idex {
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         let address = eth::privkey_to_addr(privkey);
         let base_token = self.tokens.get(&market.base.symbol);
-        let quote_token = self.tokens.get(&market.base.symbol);
+        let quote_token = self.tokens.get(&market.quote.symbol);
         let base_qty = exchange::quantity_in_base_units(
             offer.base_qty,
             base_token.decimals,
@@ -143,9 +144,9 @@ impl exchange::Api for Idex {
         println!("{} {}", url, status);
         let nonce_response = resp.json::<NonceResponse>().unwrap();
         Ok(exchange::OrderSheet::Idex(OrderSheet {
-            token_buy: market.base_contract.clone(),
+            token_buy: base_token.address.clone(), //market.base_contract.clone(),
             amount_buy: base_qty.to_str_radix(10),
-            token_sell: market.quote_contract.clone(),
+            token_sell: quote_token.address.clone(), //market.quote_contract.clone(),
             amount_sell: quote_qty.to_str_radix(10),
             address: format!("0x{}",address),
             nonce: nonce_response.nonce.to_string(),
