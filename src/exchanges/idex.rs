@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::time::Duration;
+use std::cmp;
+use rlp;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum BuySell {
@@ -209,14 +211,14 @@ impl exchange::Api for Idex {
 
 pub fn order_params_hash(order: &OrderSheet, exchange: &config::ExchangeSettings) -> [u8; 32] {
     let expires = order.expires.to_string();
-    let parts: Vec<Vec<u8>> = vec![
+    let mut parts: Vec<Vec<u8>> = vec![
         exchange.contract_address[2..].as_bytes().to_vec(),
         order.token_buy[2..].as_bytes().to_vec(),
         rlp_encode_int(order.amount_buy.parse::<u128>().unwrap()),
         order.token_sell[2..].as_bytes().to_vec(),
-        &order.amount_sell,
-        &expires,
-        &order.nonce,
+        rlp_encode_int(order.amount_sell.parse::<u128>().unwrap()),
+        rlp_encode_int(expires.parse::<u128>().unwrap()),
+        rlp_encode_int(order.nonce.parse::<u128>().unwrap()),
         order.address[2..].as_bytes().to_vec(),
     ];
     let hashes = parts.iter_mut().fold(Vec::<u8>::new(), |mut memo, part| {
@@ -227,9 +229,18 @@ pub fn order_params_hash(order: &OrderSheet, exchange: &config::ExchangeSettings
 }
 
 pub fn rlp_encode_int(num: u128) -> Vec<u8> {
-    let bytes = pad(int_to_bigendian(num), 32)
-    hex::encode(int)
+    let num_bytes = rlp::encode(&(num as u64));
+    left_pad_null(num_bytes, 32)
 }
+
+pub fn left_pad_null(bytes: Vec<u8>, width: u8) -> Vec<u8> {
+    let mut padded = Vec::<u8>::new();
+    let bytes_len = bytes.len();
+    let left = (width as usize)- bytes_len;
+    for x in 0..left { padded.push(0) };
+    padded
+}
+
 
 /*
     "tokenBuy": "0xd6e8a328c5c9b6cc4c917a50ecbe0aeb663c666e",
