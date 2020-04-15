@@ -860,7 +860,7 @@ pub fn float_precision_string(num: f64, precision: i32) -> String {
         5 => format!("{:0.5}", num),
         6 => format!("{:0.6}", num),
         7 => format!("{:0.7}", num),
-        8 => format!("{:0.2}", num),
+        8 => format!("{:0.8}", num),
         _ => "float_precison_string err".to_string(),
     }
 }
