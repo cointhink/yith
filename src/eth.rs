@@ -38,16 +38,8 @@ pub fn pubkey_to_addr(pubkey_bytes: [u8; 65]) -> [u8; 20] {
 
 pub fn ethsign(json: &String, secret_key: &SecretKey) -> String {
     let msg_hash = ethsign_hash_msg(&json.as_bytes().to_vec());
-    let sig_bytes = sign_bytes(&msg_hash, &secret_key);
     let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
     let arr = sigparts_to_rsv(v, r, s);
-    format!("0x{}", hex::encode(sig_bytes.to_vec()))
-}
-
-pub fn ethsign_vrs(json: &Vec<u8>, secret_key: &SecretKey) -> String {
-    let msg_hash = ethsign_hash_msg(json);
-    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
-    let arr = sigparts_to_vrs(v, r, s);
     format!("0x{}", hex::encode(arr[..].to_vec()))
 }
 
@@ -68,19 +60,8 @@ pub fn hash_msg(msg: &Vec<u8>) -> [u8; 32] {
 }
 
 pub fn sign_bytes(msg_hash: &[u8], secret_key: &SecretKey) -> [u8; 65] {
-    let secp = Secp256k1::new();
-    let secp_msg = Message::from_slice(&msg_hash).unwrap();
-    let signature = secp.sign_recoverable(&secp_msg, secret_key);
-    let (recovery_id, sig) = signature.serialize_compact();
-    let mut vec = Vec::with_capacity(65);
-    vec.extend_from_slice(&sig);
-    // chainId + 27
-    let rec_id = recovery_id.to_i32() + 27;
-    // rsv form
-    vec.push(rec_id as u8);
-    let mut sig_sized_bytes = [0u8; 65];
-    sig_sized_bytes.copy_from_slice(vec.as_slice());
-    sig_sized_bytes
+    let (v, r, s) = sign_bytes_vrs(&msg_hash, &secret_key);
+    sigparts_to_rsv(v, r, s)
 }
 
 pub fn sign_bytes_vrs(msg_hash: &[u8], secret_key: &SecretKey) -> (u8, [u8; 32], [u8; 32]) {
@@ -211,7 +192,7 @@ mod tests {
         let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
         let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
         let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
-        let sig_bytes = sigparts_to_rsv(v, r, s);
+        let sig_bytes = sigparts_to_vrs(v, r, s);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
     }

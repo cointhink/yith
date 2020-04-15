@@ -20,11 +20,11 @@ pub enum BuySell {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
+    address: String,
     token_buy: String,
     amount_buy: String,
     token_sell: String,
     amount_sell: String,
-    address: String,
     nonce: String,
     expires: u64,
 }
@@ -42,6 +42,11 @@ pub struct OrderSheetSigned {
 pub struct BalanceResponse {
     #[serde(flatten)]
     balances: HashMap<String, String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NonceResponse {
+    nonce: String
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -128,13 +133,21 @@ impl exchange::Api for Idex {
             base_token.decimals,
             base_token.decimals,
         );
+        let url = format!(
+            "{}/returnNextNonce?address=0x{}",
+            exchange.api_url.as_str(),
+            address
+        );
+        let resp = self.client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        let nonce_response = resp.json::<NonceResponse>().unwrap();
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             token_buy: market.base_contract.clone(),
             amount_buy: base_qty.to_str_radix(10),
             token_sell: market.quote_contract.clone(),
             amount_sell: quote_qty.to_str_radix(10),
             address: address,
-            nonce: "0".to_string(),
+            nonce: nonce_response.nonce,
             expires: 0,
         }))
     }
@@ -148,8 +161,9 @@ impl exchange::Api for Idex {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let json = "";
-            let (v,r,s) = eth::sign_bytes_vrs(json.as_bytes(), &secret_key);
+            let order_bytes = order_msg(&order_sheet, exchange);
+            let order_hash = eth::ethsign_hash_msg(&order_bytes.as_bytes().to_vec());
+            let (v,r,s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
             let signed = OrderSheetSigned {
                 order_sheet: order_sheet,
                 v: v,
@@ -182,4 +196,16 @@ impl exchange::Api for Idex {
             })
             .collect()
     }
+}
+
+pub fn order_msg(order: &OrderSheet, exchange: &config::ExchangeSettings) -> String {
+    format!("{}{}{}{}{}{}{}{}", 
+        exchange.contract_address,
+        order.token_buy,
+        order.amount_buy,
+        order.token_sell,
+        order.amount_sell,
+        order.expires,
+        order.nonce,
+        order.address)
 }
