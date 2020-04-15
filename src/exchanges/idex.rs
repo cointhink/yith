@@ -46,7 +46,7 @@ pub struct BalanceResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NonceResponse {
-    nonce: String
+    nonce: u128, //docs wrong
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -140,14 +140,15 @@ impl exchange::Api for Idex {
         );
         let resp = self.client.get(url.as_str()).send().unwrap();
         let status = resp.status();
+        println!("{} {}", url, status);
         let nonce_response = resp.json::<NonceResponse>().unwrap();
         Ok(exchange::OrderSheet::Idex(OrderSheet {
             token_buy: market.base_contract.clone(),
             amount_buy: base_qty.to_str_radix(10),
             token_sell: market.quote_contract.clone(),
             amount_sell: quote_qty.to_str_radix(10),
-            address: address,
-            nonce: nonce_response.nonce,
+            address: format!("0x{}",address),
+            nonce: nonce_response.nonce.to_string(),
             expires: 0,
         }))
     }
@@ -170,6 +171,15 @@ impl exchange::Api for Idex {
                 r: eth::hex(&r),
                 s: eth::hex(&s),
             };
+            let url = format!(
+                "{}/order",
+                exchange.api_url.as_str(),
+            );
+            println!("{:?}", signed);
+            let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
+            let status = resp.status();
+            let json = resp.text();
+            println!("{} {} {:?}", url, status, json);
         };
         Ok(())
     }
