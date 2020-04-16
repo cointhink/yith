@@ -3,7 +3,6 @@ use crate::eth;
 use crate::exchange;
 use crate::types;
 use reqwest::header;
-use rlp;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -237,8 +236,10 @@ pub fn encode_addr(zstr: &str) -> Vec<u8> {
 pub fn encode_uint256(numstr: &str) -> Vec<u8> {
     // 256bits/32bytes
     let num = numstr.parse::<u128>().unwrap();
-    let rlp_bytes = rlp_encode_int(num);
-    hex::encode(rlp_bytes).as_bytes().to_vec()
+    let number = format!("{:x}", num);
+    //let rlp_bytes = num.to_be_bytes(); //rlp_encode_int(num);
+    //hex::encode(rlp_bytes).as_bytes().to_vec()
+    left_pad_zero(number.as_bytes().to_vec(), 64)
 }
 
 pub fn rlp_encode_int(num: u128) -> Vec<u8> {
@@ -254,13 +255,6 @@ pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
         padded.push(padding_char)
     }
     padded.append(&mut bytes.clone());
-    println!(
-        "leftpad bytes len {} width {} padded {} {:?}",
-        bytes.len(),
-        width,
-        padded.len(),
-        padded
-    );
     padded
 }
 
@@ -304,7 +298,8 @@ mod tests {
 
     #[test]
     fn test_encode_uint256() {
-        let idex_encoded = encode_uint256("1");
+        let number = "1";
+        let idex_encoded = hex::decode(encode_uint256(number)).unwrap();
         let hash = eth::hash_msg(&idex_encoded);
         let good_hash = "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6";
         assert_eq!(hex::encode(hash), good_hash[2..]);
