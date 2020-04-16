@@ -164,7 +164,7 @@ impl exchange::Api for Idex {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let order_hash_bytes = order_params_hash(&order_sheet, exchange);
+            let order_hash_bytes = order_params_hash(&order_sheet, &exchange.contract_address);
             let order_hash = eth::ethsign_hash_msg(&order_hash_bytes[..].to_vec());
             let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
             let signed = OrderSheetSigned {
@@ -207,10 +207,10 @@ impl exchange::Api for Idex {
     }
 }
 
-pub fn order_params_hash(order: &OrderSheet, exchange: &config::ExchangeSettings) -> [u8; 32] {
+pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32] {
     let expires = order.expires.to_string();
     let mut parts: Vec<Vec<u8>> = vec![
-        encode_addr(&exchange.contract_address),
+        encode_addr(contract_address),
         encode_addr(&order.token_buy),
         encode_uint256(&order.amount_buy),
         encode_addr(&order.token_sell),
@@ -224,12 +224,6 @@ pub fn order_params_hash(order: &OrderSheet, exchange: &config::ExchangeSettings
         memo
     });
     let hashes = hex::decode(&hash_hex).unwrap();
-    println!(
-        "params len {} {}. decoded len {}",
-        hash_hex.len(),
-        std::str::from_utf8(&hash_hex).unwrap(),
-        hashes.len()
-    );
     eth::hash_msg(&hashes)
 }
 
@@ -268,22 +262,64 @@ mod tests {
     static PRIVKEY_DDEX3: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
 
     #[test]
-    fn test_order_params() {
-        let address = eth::privkey_to_addr(PRIVKEY_DDEX3);
-        println!("{} {} ", PRIVKEY_DDEX3, address);
+    fn test_encode_addr() {
+      let idex_contract = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
+      let idex_encoded = encode_addr(idex_contract);
+      let hash = eth::hash_msg(&idex_encoded);
+      let good_hash = "0x9f13f88230a70de90ed5fa41ba35a5fb78bc55d11cc9406f17d314fb67047ac7";
+      assert_eq!(hex::encode(hash), good_hash[2..]);
+    }
 
-/*
-  "tokenBuy": "0x0000000000000000000000000000000000000000",
-  "amountBuy": "150000000000000000",
-  "tokenSell": "0xcdcfc0f66c522fd086a1b725ea3c0eeb9f9e8814",
-  "amountSell": "1000000000000000000000",
-  "address": "0xed6d484f5c289ec8c6b6f934ef6419230169f534",
-  "nonce": 123,
-  "expires": 100000,
-*/
+    fn test_encode_addr2() {
+      let idex_contract = "0x407D73d8a49eeb85D32Cf465507dd71d507100c1";
+      let idex_encoded = encode_addr(idex_contract);
+      let hash = eth::hash_msg(&idex_encoded);
+      let good_hash = "0x4e8ebbefa452077428f93c9520d3edd60594ff452a29ac7d2ccc11d47f3ab95b";
+      assert_eq!(hex::encode(hash), good_hash[2..]);
+    }
+
+    #[test]
+    fn test_order_params_hash() {
+        let address = eth::privkey_to_addr(PRIVKEY_DDEX3);
+
+        /*
+          "tokenBuy": "0x0000000000000000000000000000000000000000",
+          "amountBuy": "150000000000000000",
+          "tokenSell": "0xcdcfc0f66c522fd086a1b725ea3c0eeb9f9e8814",
+          "amountSell": "1000000000000000000000",
+          "address": "0xed6d484f5c289ec8c6b6f934ef6419230169f534",
+          "nonce": 123,
+          "expires": 100000,
+        */
+        let order_sheet = OrderSheet {
+            token_buy: "0x0000000000000000000000000000000000000000".to_string(), //market.base_contract.clone(),
+            amount_buy: "150000000000000000".to_string(),
+            token_sell: "0xcdcfc0f66c522fd086a1b725ea3c0eeb9f9e8814".to_string(), //market.quote_contract.clone(),
+            amount_sell: "1000000000000000000000".to_string(),
+            address: format!("0x{}", address),
+            nonce: 123.to_string(),
+            expires: 100000,
+        };
+        let idex_contract = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
+        let order_hash_bytes = order_params_hash(&order_sheet, idex_contract);
+        let good_hash = "0x385777b82d67f8368848ccd56f6ad04159bb6fc1075ae06910abb597c5a7c6a0";
+        assert_eq!(good_hash[2..], hex::encode(order_hash_bytes));
+    }
+
+    #[test]
+    fn test_order_params_sign() {
+        let privbytes = &hex::decode(PRIVKEY_DDEX3).unwrap();
+        let secret_key = SecretKey::from_slice(privbytes).unwrap();
+
+        let order_hash_str = "0x385777b82d67f8368848ccd56f6ad04159bb6fc1075ae06910abb597c5a7c6a0";
+        let order_params_hash = hex::decode(&order_hash_str[2..]).unwrap();
+        let order_hash = eth::ethsign_hash_msg(&order_params_hash[..].to_vec());
+        let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
+
         let good_r = "0x860874c6d650c646389e3a7fbcd835665e546cbafa9831438d3a71535c19c50f";
         let good_s = "0x18205ecf4a6927e8653828c5508c3676f634c74051d9ef4f9216dbef43594a25";
 
-        //assert_eq!(token, good_token);
+        assert_eq!(hex::encode(r), good_r[2..]);
+        assert_eq!(hex::encode(s), good_s[2..]);
     }
 }
