@@ -65,3 +65,12 @@
     api_url: https://api.ddex.io/v4
     taker_fee: 0.3
     maker_fee: 0.1
+  -
+    name: oasis
+    has_balances: false
+    enabled: false
+    protocol: oasis
+    contract_address: 0x794e6e91555438aFc3ccF1c5076A74F42133d08D
+    api_url: https://mainnet.infura.io/v3/
+    taker_fee: 0.3
+    maker_fee: 0.1

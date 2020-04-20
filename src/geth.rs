@@ -3,17 +3,13 @@ use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpc {
-    jsonrpc: String,
-    id: String,
-    method: String,
-    params: Vec<JsonRpcParam>,
+    pub jsonrpc: String,
+    pub id: String,
+    pub method: String,
+    pub params: Vec<JsonRpcParam>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JsonRpcParam {
-    key: String,
-    value: String,
-}
+pub type JsonRpcParam = HashMap<String, String>;
 
 #[allow(dead_code)]
 pub fn rpc(

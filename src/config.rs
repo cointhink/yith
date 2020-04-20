@@ -12,6 +12,7 @@ pub struct Config {
     pub proxy: Option<String>,
     pub etherscan_key: String,
     pub idex_key: String,
+    pub infura_project_id: String,
     pub email: Option<String>,
 }
 
@@ -56,6 +57,8 @@ pub enum ExchangeProtocol {
     Switcheo,
     #[serde(rename = "idex")]
     Idex,
+    #[serde(rename = "oasis")]
+    Oasis,
 }
 
 pub struct ExchangeList {
@@ -99,6 +102,10 @@ pub fn read_exchanges(
             ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
                 settings.clone(),
                 &config.idex_key,
+            )),
+            ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(
+                settings.clone(),
+                &config.infura_project_id,
             )),
         };
         list.exchanges.push(Exchange {
