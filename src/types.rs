@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Order {
     pub id: String,
+    pub date: String,
     pub pair: Pair,
     pub cost: f64,
     pub profit: f64,

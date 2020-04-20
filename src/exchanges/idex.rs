@@ -111,8 +111,6 @@ impl Idex {
 }
 
 impl exchange::Api for Idex {
-    fn setup(&mut self) {}
-
     fn build(
         &self,
         privkey: &str,
@@ -186,7 +184,7 @@ impl exchange::Api for Idex {
         &self,
         public_addr: &str,
         exchange: &config::ExchangeSettings,
-    ) -> HashMap<String, f64> {
+    ) -> exchange::BalanceList {
         let url = format!(
             "{}/returnBalances?address=0x{}",
             exchange.api_url.as_str(),

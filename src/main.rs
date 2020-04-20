@@ -217,6 +217,7 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
 
     types::Order {
         id: "manual".to_string(),
+        date: "now".to_string(),
         pair: pair,
         cost: quantity * price,
         profit: 0.0,

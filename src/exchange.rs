@@ -17,6 +17,7 @@ pub enum OrderSheet {
     Zeroex(exchanges::zeroex::OrderForm),
     Switcheo(exchanges::switcheo::Order),
     Idex(exchanges::idex::OrderSheet),
+    Oasis(exchanges::oasis::OrderSheet),
 }
 
 #[derive(Debug)]
@@ -98,7 +99,7 @@ impl std::fmt::Display for OrderError {
     }
 }
 
-type BalanceList = collections::HashMap<String, f64>;
+pub type BalanceList = collections::HashMap<String, f64>;
 
 #[derive(Debug)]
 pub struct Market {
@@ -124,7 +125,8 @@ impl fmt::Display for Market {
 }
 
 pub trait Api {
-    fn setup(&mut self);
+    fn setup(&mut self) {}
+
     fn build(
         &self,
         privkey: &str,
