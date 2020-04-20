@@ -274,8 +274,11 @@ fn run_order(
     let ask_runs = run_books(config, wallet, &order.ask_books, exchanges);
     let bid_runs = run_books(config, wallet, &order.bid_books, exchanges);
     let run_out = format!(
-        "order #{}\nask runs: \n{}\n\nbid runs: \n{}",
+        "order #{} {} {} {}\nask runs: \n{}\n\nbid runs: \n{}",
         order.id,
+        order.pair,
+        order.cost,
+        order.profit,
         format_runs(ask_runs),
         format_runs(bid_runs)
     );
