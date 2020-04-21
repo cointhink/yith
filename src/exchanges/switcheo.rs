@@ -538,60 +538,74 @@ impl exchange::Api for Switcheo {
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
         let pair = self.pairs.get(&market_pair).unwrap();
 
-        let sheet = OrderSheet {
-            blockchain: "eth".to_string(),
-            contract_hash: exchange.contract_address.to_string(),
-            order_type: "limit".to_string(),
-            pair: market_pair,
-            price: float_precision_string(offer.quote, pair.precision),
-            quantity: amount_to_units(
-                offer.base_qty,
-                base_token_detail.precision,
-                base_token_detail,
-            ),
-            side: askbid.into(),
-            timestamp: now_millis,
-            use_native_tokens: false,
-        };
-        let sign_json = serde_json::to_string(&sheet).unwrap();
-        let signature = eth::ethsign(&sign_json, &secret_key);
-        let address = format!("0x{}", eth::privkey_to_addr(privkey));
-        println!("{:#?}", sheet);
-        let sheet_sign = OrderSheetSign {
-            address: address,
-            sheet: sheet,
-            signature: signature,
-        };
+        let min_cost = units_to_amount(&base_token_detail.minimum_quantity, base_token_detail);
+        let offer_cost = offer.cost(*askbid);
+        if offer_cost > min_cost {
+            let sheet = OrderSheet {
+                blockchain: "eth".to_string(),
+                contract_hash: exchange.contract_address.to_string(),
+                order_type: "limit".to_string(),
+                pair: market_pair,
+                price: float_precision_string(offer.quote, pair.precision),
+                quantity: amount_to_units(
+                    offer.base_qty,
+                    base_token_detail.precision,
+                    base_token_detail,
+                ),
+                side: askbid.into(),
+                timestamp: now_millis,
+                use_native_tokens: false,
+            };
+            let sign_json = serde_json::to_string(&sheet).unwrap();
+            let signature = eth::ethsign(&sign_json, &secret_key);
+            let address = format!("0x{}", eth::privkey_to_addr(privkey));
+            println!("{:#?}", sheet);
+            let sheet_sign = OrderSheetSign {
+                address: address,
+                sheet: sheet,
+                signature: signature,
+            };
 
-        let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("switcheo build {}", url);
-        println!("{}", serde_json::to_string(&sheet_sign.sheet).unwrap());
-        let client = reqwest::blocking::Client::new();
-        let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
-        let status = resp.status();
-        println!("switcheo build result {:#?} {}", status, resp.url());
-        if status.is_success() {
-            let json = resp.text().unwrap();
-            //println!("{}", json);
-            let order = serde_json::from_str::<Order>(&json).unwrap();
-            for fill in &order.fills {
-                println!(
-                    "{}",
-                    fill_display(fill, base_token_detail, quote_token_detail)
-                );
+            let url = format!("{}/orders", exchange.api_url.as_str());
+            println!("switcheo build {}", url);
+            println!("{}", serde_json::to_string(&sheet_sign.sheet).unwrap());
+            let client = reqwest::blocking::Client::new();
+            let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
+            let status = resp.status();
+            println!("switcheo build result {:#?} {}", status, resp.url());
+            if status.is_success() {
+                let json = resp.text().unwrap();
+                //println!("{}", json);
+                let order = serde_json::from_str::<Order>(&json).unwrap();
+                for fill in &order.fills {
+                    println!(
+                        "{}",
+                        fill_display(fill, base_token_detail, quote_token_detail)
+                    );
+                }
+                for make in &order.makes {
+                    println!(
+                        "{}",
+                        makegroup_display(make, base_token_detail, quote_token_detail)
+                    );
+                }
+                Ok(exchange::OrderSheet::Switcheo(order))
+            } else {
+                let build_err = resp.json::<ResponseError>().unwrap();
+                let order_error = exchange::OrderError {
+                    msg: build_err.error,
+                    code: build_err.error_code as i32,
+                };
+                println!("ERR: {}", order_error);
+                Err(Box::new(order_error))
             }
-            for make in &order.makes {
-                println!(
-                    "{}",
-                    makegroup_display(make, base_token_detail, quote_token_detail)
-                );
-            }
-            Ok(exchange::OrderSheet::Switcheo(order))
         } else {
-            let build_err = resp.json::<ResponseError>().unwrap();
             let order_error = exchange::OrderError {
-                msg: build_err.error,
-                code: build_err.error_code as i32,
+                msg: format!(
+                    "offer cost {} does not meet min_cost {} for {}",
+                    offer_cost, min_cost, market.base.symbol
+                ),
+                code: 1,
             };
             println!("ERR: {}", order_error);
             Err(Box::new(order_error))
