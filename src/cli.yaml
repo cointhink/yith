@@ -40,12 +40,12 @@ subcommands:
         about: manual order
         version: "1.0"
         args:
-            - exchange:
-                help: exchange name
-                required: true
-                index: 1
             - side:
                 help: side
+                required: true
+                index: 1
+            - exchange:
+                help: exchange name
                 required: true
                 index: 2
             - quantity:

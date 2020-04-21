@@ -68,9 +68,9 @@
   -
     name: oasis
     has_balances: false
-    enabled: false
+    enabled: true
     protocol: oasis
     contract_address: 0x794e6e91555438aFc3ccF1c5076A74F42133d08D
-    api_url: https://mainnet.infura.io/v3/
+    api_url: https://mainnet.infura.io/v3
     taker_fee: 0.3
     maker_fee: 0.1

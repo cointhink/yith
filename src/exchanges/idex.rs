@@ -235,14 +235,7 @@ pub fn encode_uint256(numstr: &str) -> Vec<u8> {
     // 256bits/32bytes
     let num = numstr.parse::<u128>().unwrap();
     let number = format!("{:x}", num);
-    //let rlp_bytes = num.to_be_bytes(); //rlp_encode_int(num);
-    //hex::encode(rlp_bytes).as_bytes().to_vec()
     left_pad_zero(number.as_bytes().to_vec(), 64)
-}
-
-pub fn rlp_encode_int(num: u128) -> Vec<u8> {
-    let num_bytes = rlp::encode(&(num as u64));
-    left_pad_zero(num_bytes, 32)
 }
 
 pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {

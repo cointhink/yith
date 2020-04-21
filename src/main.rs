@@ -91,7 +91,7 @@ fn app(
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
 
-        let order = build_order(matches);
+        let order = build_manual_order(matches);
         run_order(config, &mut wallet, &order, &exchanges);
     }
     Ok(0)
@@ -131,7 +131,7 @@ fn show_orders(exchanges: &config::ExchangeList, private_key: &str) {
     }
 }
 
-fn build_order(matches: &clap::ArgMatches) -> types::Order {
+fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
     let exchange = matches.value_of("exchange").unwrap();
     let side = matches.value_of("side").unwrap();
     let quantity_str = matches.value_of("quantity").unwrap();
@@ -153,7 +153,7 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
         symbol: quote_symbol.to_uppercase(),
     };
     println!(
-        "{} {} {}{}@{}{}",
+        "build {} {} {}{}@{}{}",
         exchange, side, quantity, base_symbol, price, quote_symbol
     );
 
@@ -212,7 +212,7 @@ fn build_order(matches: &clap::ArgMatches) -> types::Order {
     match side {
         "buy" => asks.books[0].offers.push(offer),
         "sell" => bids.books[0].offers.push(offer),
-        _ => {}
+        unknown => { println!("pick buy/sell: {}", unknown)}
     }
 
     types::Order {
@@ -340,7 +340,10 @@ fn run_book(
                         format!("exchange {} is disabled!", exchange_name)
                     }
                 }
-                None => format!("exchange detail not found for: {:#?}", exchange_name),
+                None => {
+                    println!("exchange detail not found for: {:#?}", exchange_name);
+                    format!("exchange detail not found for: {:#?}", exchange_name)
+                }
             }
         })
         .collect::<Vec<String>>()
@@ -354,6 +357,7 @@ fn run_offer(
     market: &types::Market,
     wallet: &wallet::Wallet,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    println!("run offer {}", offer);
     let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
     let (askbid, market, offer) = unswap(askbid, market, offer);
     let source_name = if exchange.settings.has_balances {
