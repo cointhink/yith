@@ -86,12 +86,14 @@ impl exchange::Api for Oasis {
         let pub_addr = format!("0x{}",eth::privkey_to_addr(privkey));
         let pair = self.pairs.get(&make_market_pair(market));
         let decimals = 18;
+        println!("cost {} base_p {}",offer.cost(*askbid), pair.base_precision);
         let cost_int = exchange::quantity_in_base_units(
             offer.cost(*askbid),
             pair.base_precision,
             pair.base_precision,
         );
         let cost_str = cost_int.to_str_radix(10);
+        println!("cost_int {} cost_str {}", cost_int, cost_str);
         let qty_int = exchange::quantity_in_base_units(
             offer.base_qty,
             pair.quote_precision,
@@ -101,16 +103,16 @@ impl exchange::Api for Oasis {
         let order_sheet = match askbid {
             types::AskBid::Ask => OrderSheet {
                 address: pub_addr,
-                token_buy: market.base_contract.clone(),
+                token_buy: pair.base.clone(),
                 amount_buy: qty_str,
-                token_sell: market.quote_contract.clone(),
+                token_sell: pair.quote.clone(),
                 amount_sell: cost_str,
             },
             types::AskBid::Bid => OrderSheet {
                 address: pub_addr,
-                token_buy: market.quote_contract.clone(),
+                token_buy: pair.quote.clone(),
                 amount_buy: cost_str,
-                token_sell: market.base_contract.clone(),
+                token_sell: pair.base.clone(),
                 amount_sell: qty_str,
             },
         };
@@ -126,7 +128,9 @@ impl exchange::Api for Oasis {
     ) -> Result<(), Box<dyn error::Error>> {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let mut tx = geth::JsonRpcParam::new();
-            tx.insert("from".to_string(), sheet.address);
+            tx.insert("from".to_string(), sheet.address.clone());
+            tx.insert("to".to_string(), exchange.contract_address.clone());
+            tx.insert("data".to_string(), eth_data(&sheet));
             let params = vec![tx];
             let rpc = geth::JsonRpc {
                 jsonrpc: "2.0".to_string(),
@@ -161,4 +165,8 @@ impl exchange::Api for Oasis {
 
 pub fn make_market_pair(market: &exchange::Market) -> String {
     format!("{}/{}", market.base.symbol, market.quote.symbol)
+}
+
+pub fn eth_data(sheet: &OrderSheet) -> String {
+    "0x12".to_string()
 }
