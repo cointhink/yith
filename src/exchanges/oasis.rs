@@ -83,17 +83,15 @@ impl exchange::Api for Oasis {
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn error::Error>> {
-        let pub_addr = format!("0x{}",eth::privkey_to_addr(privkey));
+        let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
         let pair = self.pairs.get(&make_market_pair(market));
         let decimals = 18;
-        println!("cost {} base_p {}",offer.cost(*askbid), pair.base_precision);
         let cost_int = exchange::quantity_in_base_units(
             offer.cost(*askbid),
             pair.base_precision,
             pair.base_precision,
         );
         let cost_str = cost_int.to_str_radix(10);
-        println!("cost_int {} cost_str {}", cost_int, cost_str);
         let qty_int = exchange::quantity_in_base_units(
             offer.base_qty,
             pair.quote_precision,
@@ -131,6 +129,7 @@ impl exchange::Api for Oasis {
             tx.insert("from".to_string(), sheet.address.clone());
             tx.insert("to".to_string(), exchange.contract_address.clone());
             tx.insert("data".to_string(), eth_data(&sheet));
+            tx.insert("value".to_string(), format!("0x{:x}", 10));
             let params = vec![tx];
             let rpc = geth::JsonRpc {
                 jsonrpc: "2.0".to_string(),
@@ -168,5 +167,11 @@ pub fn make_market_pair(market: &exchange::Market) -> String {
 }
 
 pub fn eth_data(sheet: &OrderSheet) -> String {
-    "0x12".to_string()
+    let mut call = Vec::<u8>::new();
+    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
+    call.append(&mut func.to_vec());
+    let mut p1 = hex::decode(eth::encode_addr(&sheet.address)).unwrap();
+    call.append(&mut p1);
+    let callhash = eth::hash_msg(&call);
+    format!("0x{}", hex::encode(callhash))
 }

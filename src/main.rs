@@ -212,7 +212,7 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
     match side {
         "buy" => asks.books[0].offers.push(offer),
         "sell" => bids.books[0].offers.push(offer),
-        unknown => { println!("pick buy/sell: {}", unknown)}
+        unknown => println!("pick buy/sell: {}", unknown),
     }
 
     types::Order {

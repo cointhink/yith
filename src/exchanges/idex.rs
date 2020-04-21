@@ -207,14 +207,14 @@ impl exchange::Api for Idex {
 pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32] {
     let expires = order.expires.to_string();
     let mut parts: Vec<Vec<u8>> = vec![
-        encode_addr(contract_address),
-        encode_addr(&order.token_buy),
-        encode_uint256(&order.amount_buy),
-        encode_addr(&order.token_sell),
-        encode_uint256(&order.amount_sell),
-        encode_uint256(&expires),
-        encode_uint256(&order.nonce),
-        encode_addr(&order.address),
+        eth::encode_addr(contract_address),
+        eth::encode_addr(&order.token_buy),
+        eth::encode_uint256(&order.amount_buy),
+        eth::encode_addr(&order.token_sell),
+        eth::encode_uint256(&order.amount_sell),
+        eth::encode_uint256(&expires),
+        eth::encode_uint256(&order.nonce),
+        eth::encode_addr(&order.address),
     ];
     let hash_hex = parts.iter_mut().fold(Vec::<u8>::new(), |mut memo, part| {
         memo.append(part);
@@ -222,31 +222,6 @@ pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32]
     });
     let hashes = hex::decode(&hash_hex).unwrap();
     eth::hash_msg(&hashes)
-}
-
-pub fn encode_addr(zstr: &str) -> Vec<u8> {
-    // 160bits/20bytes
-    let hexletters = zstr[2..].to_lowercase();
-    //rlp::encode(&hexletters) //.as_bytes().to_vec()
-    hexletters.as_bytes().to_vec() // do nothing?
-}
-
-pub fn encode_uint256(numstr: &str) -> Vec<u8> {
-    // 256bits/32bytes
-    let num = numstr.parse::<u128>().unwrap();
-    let number = format!("{:x}", num);
-    left_pad_zero(number.as_bytes().to_vec(), 64)
-}
-
-pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
-    let padding_char = '0' as u8;
-    let mut padded = Vec::<u8>::new();
-    let left = (width as usize) - bytes.len();
-    for x in 0..left {
-        padded.push(padding_char)
-    }
-    padded.append(&mut bytes.clone());
-    padded
 }
 
 #[cfg(test)]
@@ -271,28 +246,6 @@ mod tests {
         let idex_encoded = hex::decode(encode_addr(idex_contract)).unwrap();
         let hash = eth::hash_msg(&idex_encoded);
         let good_hash = "0x4e8ebbefa452077428f93c9520d3edd60594ff452a29ac7d2ccc11d47f3ab95b";
-        assert_eq!(hex::encode(hash), good_hash[2..]);
-    }
-
-    #[test]
-    fn test_left_pad_zero() {
-        let bytes = vec![1, 2, 3];
-        let padded = left_pad_zero(bytes, 4);
-        let good = vec!['0' as u8, 1, 2, 3];
-        assert_eq!(good, padded);
-
-        let bytes = vec![1, 2, 3, 4];
-        let padded = left_pad_zero(bytes, 4);
-        let good = vec![1, 2, 3, 4];
-        assert_eq!(good, padded);
-    }
-
-    #[test]
-    fn test_encode_uint256() {
-        let number = "1";
-        let idex_encoded = hex::decode(encode_uint256(number)).unwrap();
-        let hash = eth::hash_msg(&idex_encoded);
-        let good_hash = "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6";
         assert_eq!(hex::encode(hash), good_hash[2..]);
     }
 

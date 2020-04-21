@@ -106,6 +106,30 @@ pub fn dehex(bytes: &str) -> Vec<u8> {
     hex::decode(bytes).unwrap()
 }
 
+pub fn encode_addr(str: &str) -> Vec<u8> {
+    // 160bits/20bytes
+    let hexletters = str[2..].to_lowercase();
+    hexletters.as_bytes().to_vec()
+}
+
+pub fn encode_uint256(numstr: &str) -> Vec<u8> {
+    // 256bits/32bytes
+    let num = numstr.parse::<u128>().unwrap();
+    let number = format!("{:x}", num);
+    left_pad_zero(number.as_bytes().to_vec(), 64)
+}
+
+pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
+    let padding_char = '0' as u8;
+    let mut padded = Vec::<u8>::new();
+    let left = (width as usize) - bytes.len();
+    for x in 0..left {
+        padded.push(padding_char)
+    }
+    padded.append(&mut bytes.clone());
+    padded
+}
+
 /*
 web3 is giant
 pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {
@@ -199,5 +223,27 @@ mod tests {
         let sig_bytes = sigparts_to_vrs(v, r, s);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
+    }
+
+    #[test]
+    fn test_left_pad_zero() {
+        let bytes = vec![1, 2, 3];
+        let padded = left_pad_zero(bytes, 4);
+        let good = vec!['0' as u8, 1, 2, 3];
+        assert_eq!(good, padded);
+
+        let bytes = vec![1, 2, 3, 4];
+        let padded = left_pad_zero(bytes, 4);
+        let good = vec![1, 2, 3, 4];
+        assert_eq!(good, padded);
+    }
+
+    #[test]
+    fn test_encode_uint256() {
+        let number = "1";
+        let idex_encoded = hex::decode(encode_uint256(number)).unwrap();
+        let hash = eth::hash_msg(&idex_encoded);
+        let good_hash = "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6";
+        assert_eq!(hex::encode(hash), good_hash[2..]);
     }
 }
