@@ -47,16 +47,19 @@ pub struct Oasis {
     infura_id: String,
     client: reqwest::blocking::Client,
     pairs: PairList,
+    abi: Vec<AbiCall>
 }
 
 impl Oasis {
     pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Oasis {
         let client = Oasis::build_http_client().unwrap();
         let pairs = read_pairs("notes/oasis-pairs.json");
+        let abi = read_abi("notes/oasis-abi.json");
         Oasis {
             infura_id: api_key.to_string(),
             client: client,
             pairs: pairs,
+            abi: abi,
         }
     }
 
@@ -72,6 +75,18 @@ pub fn read_pairs(filename: &str) -> PairList {
     let yaml = file_ok.unwrap();
     let pairs = serde_yaml::from_str::<HashMap<String, PairDetail>>(&yaml).unwrap();
     PairList { pairs: pairs }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AbiCall {
+    r#type: String,
+    name: Option<String>,
+}
+
+pub fn read_abi(filename: &str) -> Vec<AbiCall> {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    serde_yaml::from_str::<Vec<AbiCall>>(&yaml).unwrap()
 }
 
 impl exchange::Api for Oasis {
@@ -127,9 +142,11 @@ impl exchange::Api for Oasis {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let mut tx = geth::JsonRpcParam::new();
             tx.insert("from".to_string(), sheet.address.clone());
-            tx.insert("to".to_string(), exchange.contract_address.clone());
-            tx.insert("data".to_string(), eth_data(&sheet));
-            tx.insert("value".to_string(), format!("0x{:x}", 10));
+            let contract_addr = exchange.contract_address.clone();
+            tx.insert("to".to_string(), contract_addr);
+            let data = eth_data(&sheet);
+            tx.insert("data".to_string(), data.to_string());
+            //tx.insert("value".to_string(), format!("0x{:x}", 10));
             let params = (tx, Some("latest".to_string()));
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
@@ -160,12 +177,9 @@ pub fn make_market_pair(market: &exchange::Market) -> String {
 
 pub fn eth_data(sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
-    let func = &eth::hash_msg(&"znet_peerCount()".to_string().as_bytes().to_vec())[0..4];
-    //    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
+    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
     call.append(&mut func.to_vec());
-    // let bomb_address = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359";
-    // let mut p1 = hex::decode(eth::encode_addr2(&bomb_address)).unwrap();
-    // call.append(&mut p1);
-    let callhash = eth::hash_msg(&call);
+    let mut p1 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
+    call.append(&mut p1);
     format!("0x{}", hex::encode(call))
 }

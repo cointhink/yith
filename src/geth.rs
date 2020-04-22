@@ -1,7 +1,7 @@
+use bs58;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use rand::{thread_rng, Rng};
-use bs58;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpc {
