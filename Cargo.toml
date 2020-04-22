@@ -28,3 +28,4 @@ clap = {version = "2.33", features = ["yaml"]}
 #ethereum-tx-sign = "3.0.2"
 #web3 = "0.10.0" #piggy
 rlp = "0.4.5"
+bs58 = "0.3.1"

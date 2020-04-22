@@ -160,7 +160,7 @@ pub fn make_market_pair(market: &exchange::Market) -> String {
 
 pub fn eth_data(sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
-    let func = &eth::hash_msg(&"net_peerCount()".to_string().as_bytes().to_vec())[0..4];
+    let func = &eth::hash_msg(&"znet_peerCount()".to_string().as_bytes().to_vec())[0..4];
     //    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
     call.append(&mut func.to_vec());
     // let bomb_address = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359";
