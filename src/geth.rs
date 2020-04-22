@@ -1,7 +1,6 @@
-use crate::time;
-use crate::eth;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use rand::{thread_rng, Rng};
 use bs58;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,7 +29,7 @@ pub fn rpc(
     let params_json = serde_json::to_string(&params).unwrap();
     let jrpc = JsonRpc {
         jsonrpc: "2.0".to_string(),
-        id: mk_id(&params_json),
+        id: gen_id(),
         method: method.to_string(),
         params: params,
     };
@@ -40,9 +39,8 @@ pub fn rpc(
     client.post(url).json(&jrpc).send()
 }
 
-pub fn mk_id(data: &str) -> String {
-    let mut uniq = Vec::<u8>::new();
-    uniq.append(&mut time::now_bytes()[0..4].to_vec());
-    uniq.append(&mut eth::hash_msg(&data.as_bytes().to_vec())[0..4].to_vec());
-    bs58::encode(uniq).into_string()
+pub fn gen_id() -> String {
+    let mut pad = [0u8; 6];
+    rand::thread_rng().fill(&mut pad);
+    bs58::encode(pad).into_string()
 }

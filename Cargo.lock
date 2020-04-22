@@ -2086,6 +2086,7 @@ dependencies = [
  "lettre_email",
  "num-bigint",
  "num-traits",
+ "rand 0.7.3",
  "redis",
  "reqwest",
  "rlp",
