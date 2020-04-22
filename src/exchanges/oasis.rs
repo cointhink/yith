@@ -170,8 +170,10 @@ pub fn eth_data(sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
     let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
     call.append(&mut func.to_vec());
-    let mut p1 = hex::decode(eth::encode_addr(&sheet.address)).unwrap();
+    println!("1 {}", call.len());
+    let mut p1 = hex::decode(eth::encode_addr2(&sheet.address)).unwrap();
     call.append(&mut p1);
+    println!("2 {}", call.len());
     let callhash = eth::hash_msg(&call);
-    format!("0x{}", hex::encode(callhash))
+    format!("0x{}", hex::encode(call))
 }

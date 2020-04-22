@@ -112,6 +112,13 @@ pub fn encode_addr(str: &str) -> Vec<u8> {
     hexletters.as_bytes().to_vec()
 }
 
+pub fn encode_addr2(str: &str) -> Vec<u8> {
+    // 160bits/20bytes
+    let hexletters = str[2..].to_lowercase();
+    let hexletters = hexletters.as_bytes().to_vec();
+    left_pad_zero(hexletters, 64)
+}
+
 pub fn encode_uint256(numstr: &str) -> Vec<u8> {
     // 256bits/32bytes
     let num = numstr.parse::<u128>().unwrap();
