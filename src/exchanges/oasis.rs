@@ -131,16 +131,8 @@ impl exchange::Api for Oasis {
             tx.insert("data".to_string(), eth_data(&sheet));
             tx.insert("value".to_string(), format!("0x{:x}", 10));
             let params = (tx, Some("latest".to_string()));
-            let rpc = geth::JsonInfuraRpc {
-                jsonrpc: "2.0".to_string(),
-                id: "12".to_string(),
-                method: "eth_call".to_string(),
-                params: params,
-            };
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            println!("{}", serde_json::to_string(&rpc).unwrap());
-            println!("{:?}", url);
-            let resp = self.client.post(url.as_str()).json(&rpc).send().unwrap();
+            let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
             println!("{} {}", resp.status(), resp.text().unwrap());
             Ok(())
         } else {
@@ -168,10 +160,12 @@ pub fn make_market_pair(market: &exchange::Market) -> String {
 
 pub fn eth_data(sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
-    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
+    let func = &eth::hash_msg(&"net_peerCount()".to_string().as_bytes().to_vec())[0..4];
+    //    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
     call.append(&mut func.to_vec());
-    let mut p1 = hex::decode(eth::encode_addr2(&sheet.address)).unwrap();
-    call.append(&mut p1);
+    // let bomb_address = "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359";
+    // let mut p1 = hex::decode(eth::encode_addr2(&bomb_address)).unwrap();
+    // call.append(&mut p1);
     let callhash = eth::hash_msg(&call);
     format!("0x{}", hex::encode(call))
 }
