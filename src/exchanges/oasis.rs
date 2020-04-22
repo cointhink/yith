@@ -47,7 +47,7 @@ pub struct Oasis {
     infura_id: String,
     client: reqwest::blocking::Client,
     pairs: PairList,
-    abi: Vec<AbiCall>
+    abi: Vec<AbiCall>,
 }
 
 impl Oasis {

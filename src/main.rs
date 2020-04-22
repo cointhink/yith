@@ -248,14 +248,14 @@ fn etherscan_coins(
     wallet_coins: &Vec<wallet::WalletCoin>,
     api_key: &str,
 ) -> Vec<wallet::WalletCoin> {
-    let token_list = config::read_tokens("./notes/etherscan-tokens.json");
+    let escan = etherscan::Etherscan::new();
     let mut coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet_coins {
         let mut balance = etherscan::balance(my_addr, &coin.contract, api_key);
         let token = types::Ticker {
             symbol: coin.ticker_symbol.clone(),
         };
-        let decimals = match token_list.get(&token) {
+        let decimals = match escan.tokens.get(&token) {
             Some(token_detail) => token_detail.decimals,
             None => 0,
         };

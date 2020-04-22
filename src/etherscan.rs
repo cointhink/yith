@@ -1,7 +1,29 @@
+use crate::exchanges;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::fs;
 use std::time::Duration;
+
+pub struct Etherscan {
+    pub tokens: TokenList,
+}
+
+impl Etherscan {
+    pub fn new() -> Etherscan {
+        let tokens = read_tokens("./notes/etherscan-tokens.json");
+        Etherscan { tokens: tokens }
+    }
+}
+
+type TokenList = exchanges::switcheo::TokenList;
+type Token = exchanges::switcheo::TokenDetail;
+
+pub fn read_tokens(filename: &str) -> TokenList {
+    let yaml = fs::read_to_string(filename).unwrap();
+    let tokens = serde_yaml::from_str(&yaml).unwrap();
+    TokenList { tokens: tokens }
+}
 
 pub struct Balances<'a> {
     coins: Vec<Balance<'a>>,
