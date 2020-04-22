@@ -11,6 +11,15 @@ pub struct JsonRpc {
 
 pub type JsonRpcParam = HashMap<String, String>;
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonInfuraRpc {
+    pub jsonrpc: String,
+    pub id: String,
+    pub method: String,
+    pub params: JsonInfuraRpcParam,
+}
+pub type JsonInfuraRpcParam = (JsonRpcParam, Option<String>);
+
 #[allow(dead_code)]
 pub fn rpc(
     config: &crate::config::Config,

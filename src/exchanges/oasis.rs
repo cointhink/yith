@@ -130,8 +130,8 @@ impl exchange::Api for Oasis {
             tx.insert("to".to_string(), exchange.contract_address.clone());
             tx.insert("data".to_string(), eth_data(&sheet));
             tx.insert("value".to_string(), format!("0x{:x}", 10));
-            let params = vec![tx];
-            let rpc = geth::JsonRpc {
+            let params = (tx, Some("latest".to_string()));
+            let rpc = geth::JsonInfuraRpc {
                 jsonrpc: "2.0".to_string(),
                 id: "12".to_string(),
                 method: "eth_call".to_string(),
@@ -170,10 +170,8 @@ pub fn eth_data(sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
     let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
     call.append(&mut func.to_vec());
-    println!("1 {}", call.len());
     let mut p1 = hex::decode(eth::encode_addr2(&sheet.address)).unwrap();
     call.append(&mut p1);
-    println!("2 {}", call.len());
     let callhash = eth::hash_msg(&call);
     format!("0x{}", hex::encode(call))
 }

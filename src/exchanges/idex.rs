@@ -231,25 +231,6 @@ mod tests {
     static PRIVKEY_DDEX3: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
 
     #[test]
-    fn test_encode_addr() {
-        let idex_contract = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
-        let idex_encoded = hex::decode(encode_addr(idex_contract)).unwrap();
-        let hash = eth::hash_msg(&idex_encoded);
-        let good_hash = "0x9f13f88230a70de90ed5fa41ba35a5fb78bc55d11cc9406f17d314fb67047ac7";
-        assert_eq!(hex::encode(hash), good_hash[2..]);
-    }
-
-    #[test]
-    fn test_encode_addr2() {
-        //web3.js docs
-        let idex_contract = "0x407D73d8a49eeb85D32Cf465507dd71d507100c1";
-        let idex_encoded = hex::decode(encode_addr(idex_contract)).unwrap();
-        let hash = eth::hash_msg(&idex_encoded);
-        let good_hash = "0x4e8ebbefa452077428f93c9520d3edd60594ff452a29ac7d2ccc11d47f3ab95b";
-        assert_eq!(hex::encode(hash), good_hash[2..]);
-    }
-
-    #[test]
     fn test_order_params_hash() {
         let address = eth::privkey_to_addr(PRIVKEY_DDEX3);
 

@@ -249,8 +249,36 @@ mod tests {
     fn test_encode_uint256() {
         let number = "1";
         let idex_encoded = hex::decode(encode_uint256(number)).unwrap();
-        let hash = eth::hash_msg(&idex_encoded);
+        let hash = hash_msg(&idex_encoded);
         let good_hash = "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6";
         assert_eq!(hex::encode(hash), good_hash[2..]);
+    }
+
+    #[test]
+    fn test_encode_addr() {
+        let idex_contract = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
+        let idex_encoded = hex::decode(encode_addr(idex_contract)).unwrap();
+        let hash = hash_msg(&idex_encoded);
+        let good_hash = "0x9f13f88230a70de90ed5fa41ba35a5fb78bc55d11cc9406f17d314fb67047ac7";
+        assert_eq!(hex::encode(hash), good_hash[2..]);
+    }
+
+    #[test]
+    fn test_encode_addr_2() {
+        // values from web3.js docs
+        let idex_contract = "0x407D73d8a49eeb85D32Cf465507dd71d507100c1";
+        let idex_encoded = hex::decode(encode_addr(idex_contract)).unwrap();
+        let hash = hash_msg(&idex_encoded);
+        let good_hash = "0x4e8ebbefa452077428f93c9520d3edd60594ff452a29ac7d2ccc11d47f3ab95b";
+        assert_eq!(hex::encode(hash), good_hash[2..]);
+    }
+
+    #[test]
+    fn test_encode_addr2() {
+        let address = "0x1122334455667788990011223344556677889900";
+        let addr_encoded = encode_addr2(address);
+        let addr_str: String = std::str::from_utf8(&addr_encoded).unwrap().to_string();
+        let good_hash = "0x0000000000000000000000001122334455667788990011223344556677889900";
+        assert_eq!(addr_str, good_hash[2..]);
     }
 }
