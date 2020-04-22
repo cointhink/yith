@@ -1,3 +1,5 @@
+use clap;
+
 mod config;
 mod email;
 mod eth;
@@ -248,7 +250,7 @@ fn etherscan_coins(
 ) -> Vec<wallet::WalletCoin> {
     let token_list = config::read_tokens("./notes/etherscan-tokens.json");
     let mut coins = Vec::<wallet::WalletCoin>::new();
-    for coin in wallet_coins.iter() {
+    for coin in wallet_coins {
         let mut balance = etherscan::balance(my_addr, &coin.contract, api_key);
         let token = types::Ticker {
             symbol: coin.ticker_symbol.clone(),
