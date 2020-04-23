@@ -1,32 +1,28 @@
 [package]
 name = "yith"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Don Park <donp@donp.org>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-redis = "0.15"
-serde = { version = "1.0", features = ["derive"] }
-serde_yaml = "0.8"
-serde_json = "*"
-reqwest = { version = "0.10", features = ["blocking", "json", "socks"] }
-secp256k1 = { version = "0.17.2", features = ["recovery"] }
-hex = "0.4.0"
-tiny-keccak = { version = "2.0.0", features = ["keccak"] }
-ethabi = "11.0.0"
-ethereum-types = "0.8.0"
-#serde-rlp = "0.1.4"
+#ethereum-tx-sign = "3.0.2"
+bigdecimal = "0.1"
+bs58 = "0.3"
+chrono = "0.4"
+clap = {version = "2.33", features = ["yaml"]}
+ethabi = "12.0"
+ethereum-types = "0.9.0"
+hex = "0.4"
 lettre = { version = "0.9" }
 lettre_email = { version = "0.9" }
-chrono = "0.4"
 num-bigint = "0.2"
-bigdecimal = "0.1"
 num-traits = "0.2"
-clap = {version = "2.33", features = ["yaml"]}
-#ethereum-tx-sign = "3.0.2"
-#web3 = "0.10.0" #piggy
-rlp = "0.4.5"
-bs58 = "0.3.1"
-rand = "0.7.3"
+rand = "0.7"
+redis = "0.15"
+reqwest = { version = "0.10", features = ["blocking", "json", "socks"] }
+rlp = "0.4"
+secp256k1 = { version = "0.17", features = ["recovery"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.8"
+tiny-keccak = { version = "2.0", features = ["keccak"] }
