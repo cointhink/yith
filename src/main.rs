@@ -139,44 +139,69 @@ fn run_order(
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
-    let ask_runs = run_books(config, wallet, &order.ask_books, exchanges);
-    let bid_runs = run_books(config, wallet, &order.bid_books, exchanges);
+    let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges);
+    let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges);
+
     let run_out = format!(
         "order #{} {} {} {}\nask runs: \n{}\n\nbid runs: \n{}",
         order.id,
         order.pair,
         order.cost,
         order.profit,
-        format_runs(ask_runs),
-        format_runs(bid_runs)
+        format_runs(&ask_sheets),
+        format_runs(&bid_sheets)
     );
+    let ask_goods = filter_good_sheets(ask_sheets);
+    let bid_goods = filter_good_sheets(bid_sheets);
+
+    let ask_runs = run_sheets(config, ask_goods, exchanges);
+    let bid_runs = run_sheets(config, bid_goods, exchanges);
     if let Some(email) = config.email.as_ref() {
         let subject = format!("{}", order.pair);
         email::send(email, &subject, &run_out);
     }
 }
 
-fn run_books(
+fn filter_good_sheets(
+    sheets: Vec<Vec<Result<(String, exchange::OrderSheet), Box<dyn std::error::Error>>>>,
+) -> Vec<Vec<(String, exchange::OrderSheet)>> {
+    sheets
+        .into_iter()
+        .map(|t| {
+            let good_sheets = Vec::<(String, exchange::OrderSheet)>::new();
+            t.into_iter()
+                .fold(good_sheets, |mut memo, result| match result {
+                    Ok(exg_sheet) => {
+                        memo.push(exg_sheet);
+                        memo
+                    }
+                    Err(_e) => memo,
+                })
+        })
+        .collect()
+}
+
+fn build_books(
     config: &config::Config,
     wallet: &wallet::Wallet,
     books: &types::Books,
     exchanges: &config::ExchangeList,
-) -> Vec<Vec<String>> {
+) -> Vec<Vec<Result<(String, exchange::OrderSheet), Box<dyn std::error::Error>>>> {
     books
         .books
         .iter()
         .take(1) // first offer
-        .map(|book| run_book(config, wallet, &books.askbid, book, exchanges))
-        .collect::<Vec<Vec<String>>>()
+        .map(|book| build_book(config, wallet, &books.askbid, book, exchanges))
+        .collect()
 }
 
-fn run_book(
+fn build_book(
     config: &config::Config,
     wallet: &wallet::Wallet,
     askbid: &types::AskBid,
     book: &types::Book,
     exchanges: &config::ExchangeList,
-) -> Vec<String> {
+) -> Vec<Result<(String, exchange::OrderSheet), Box<dyn std::error::Error>>> {
     book.offers
         .iter()
         .take(1) // first offer
@@ -193,39 +218,35 @@ fn run_book(
             match exchanges.find_by_name(exchange_name) {
                 Some(exchange) => {
                     if exchange.settings.enabled {
-                        let out =
-                            match run_offer(config, askbid, &exchange, offer, &book.market, wallet)
-                            {
-                                Ok(()) => {
-                                    wait_order(config, &exchange);
-                                    "ok".to_string()
-                                }
-                                Err(e) => e.to_string(),
-                            };
-                        format!("{} {} {}\n{}", askbid, &book.market, offer, out)
+                        match build_offer(config, askbid, &exchange, offer, &book.market, wallet) {
+                            Ok(sheet) => Ok((exchange_name.clone(), sheet)),
+                            Err(e) => Err(e),
+                        }
                     } else {
-                        println!("exchange {} is disabled!", exchange_name);
-                        format!("exchange {} is disabled!", exchange_name)
+                        Err(exchange::ExchangeError::build_box(format!(
+                            "exchange {} is disabled!",
+                            exchange_name
+                        )))
                     }
                 }
-                None => {
-                    println!("exchange detail not found for: {:#?}", exchange_name);
-                    format!("exchange detail not found for: {:#?}", exchange_name)
-                }
+                None => Err(exchange::ExchangeError::build_box(format!(
+                    "exchange detail not found for: {:#?}",
+                    exchange_name
+                ))),
             }
         })
-        .collect::<Vec<String>>()
+        .collect()
 }
 
-fn run_offer(
+fn build_offer(
     config: &config::Config,
     askbid: &types::AskBid,
     exchange: &config::Exchange,
     offer: &types::Offer,
     market: &types::Market,
     wallet: &wallet::Wallet,
-) -> Result<(), Box<dyn std::error::Error>> {
-    println!("run offer {}", offer);
+) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
+    println!("build offer {} {}", exchange, offer);
     let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
     let (askbid, market, offer) = unswap(askbid, market, offer);
     let source_name = if exchange.settings.has_balances {
@@ -257,28 +278,51 @@ fn run_offer(
                 base_qty: least_qty,
                 quote: offer.quote,
             };
-            match exchange.api.build(
+            exchange.api.build(
                 &config.wallet_private_key,
                 &askbid,
                 &exchange.settings,
                 &market,
                 &capped_offer,
-            ) {
-                Ok(sheet) => {
-                    exchange
-                        .api
-                        .submit(&config.wallet_private_key, &exchange.settings, sheet)
-                }
-                Err(e) => Err(e),
-            }
+            )
         }
-        Err(_e) => {
-            let exg_err = exchange::ExchangeError {
-                msg: format!("!{} not found in wallet for {}", check_ticker, source_name),
-            };
-            println!("{}", exg_err);
-            Err(Box::new(exg_err))
+        Err(_e) => Err(exchange::ExchangeError::build_box(format!(
+            "!{} not found in wallet for {}",
+            check_ticker, source_name
+        ))),
+    }
+}
+
+fn run_sheets(
+    config: &config::Config,
+    sheets: Vec<Vec<(String, exchange::OrderSheet)>>,
+    exchanges: &config::ExchangeList,
+) {
+    let _s = sheets.into_iter().map(|t| {
+        t.into_iter().map(
+            |(exchange_name, sheet)| match exchanges.find_by_name(&exchange_name) {
+                Some(exchange) => run_sheet(config, sheet, exchange),
+                None => Ok(()),
+            },
+        )
+    });
+}
+
+fn run_sheet(
+    config: &config::Config,
+    sheet: exchange::OrderSheet,
+    exchange: &config::Exchange,
+) -> Result<(), Box<dyn std::error::Error>> {
+    println!("run sheet {} {:?}", exchange, sheet);
+    match exchange
+        .api
+        .submit(&config.wallet_private_key, &exchange.settings, sheet)
+    {
+        Ok(sheet) => {
+            wait_order(config, &exchange);
+            Ok(())
         }
+        Err(e) => Err(e),
     }
 }
 
@@ -345,14 +389,23 @@ fn minimum(amounts: Vec<f64>) -> f64 {
         .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo })
 }
 
-fn format_runs(runs: Vec<Vec<String>>) -> String {
+fn format_runs(
+    runs: &Vec<Vec<Result<(String, exchange::OrderSheet), Box<dyn std::error::Error>>>>,
+) -> String {
     runs.iter()
         .enumerate()
-        .fold(String::new(), |mut m, (idx, t)| {
-            let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, t)| {
-                m.push_str(&format!("offr #{}: {}", idx, t));
-                m
-            });
+        .fold(String::new(), |mut m, (idx, ts)| {
+            let line = ts
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut m, (idx, r)| {
+                    let out = match r {
+                        Ok((en, sheet)) => format!("offr #{}: {} {:?}", idx, en, sheet),
+                        Err(err) => err.to_string(),
+                    };
+                    m.push_str(&out);
+                    m
+                });
             m.push_str(&format!("exg #{}: {}", idx, line));
             m
         })

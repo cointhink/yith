@@ -25,9 +25,16 @@ pub struct ExchangeError {
     pub msg: String,
 }
 
+impl ExchangeError {
+    pub fn build_box(msg: String) -> Box<dyn error::Error> {
+        println!("{}", msg);
+        Box::new(ExchangeError { msg: msg })
+    }
+}
+
 impl error::Error for ExchangeError {
     fn description(&self) -> &str {
-        "it done goofed up"
+        &self.msg
     }
 
     fn cause(&self) -> Option<&dyn error::Error> {
@@ -38,7 +45,7 @@ impl error::Error for ExchangeError {
 
 impl fmt::Display for ExchangeError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.msg)
+        write!(f, "{}", self.to_string())
     }
 }
 
