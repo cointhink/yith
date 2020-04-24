@@ -1,7 +1,7 @@
 .PHONY: all run fmt
 
 all:
-	cargo build
+	cargo build --target-dir .build
 
 run: all
 	./target/debug/yith $*
