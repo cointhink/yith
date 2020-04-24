@@ -152,13 +152,17 @@ fn run_order(
         format_runs(&bid_sheets)
     );
 
-    let ask_sheets_len = ask_sheets.len();
-    let bid_sheets_len = bid_sheets.len();
+    let ask_sheets_len = count_sheets(&ask_sheets);
+    let bid_sheets_len = count_sheets(&bid_sheets);
     let ask_goods = filter_good_sheets(ask_sheets);
     let bid_goods = filter_good_sheets(bid_sheets);
-    let ask_goods_len = ask_goods.len();
-    let bid_goods_len = bid_goods.len();
+    let ask_goods_len = count_sheets(&ask_goods);
+    let bid_goods_len = count_sheets(&bid_goods);
 
+    println!(
+        "a{}/{} b{}/{}",
+        ask_goods_len, ask_sheets_len, bid_goods_len, bid_sheets_len
+    );
     if ask_goods_len == ask_sheets_len {
         if bid_goods_len == bid_sheets_len {
             let ask_runs = run_sheets(config, ask_goods, exchanges);
@@ -169,16 +173,14 @@ fn run_order(
             }
         } else {
             println!(
-                "abort! bids {} good {} (thats bad)",
-                bid_sheets_len,
-                bid_goods.len()
+                "sumbit aborted! bids {} good {} (thats bad)",
+                bid_sheets_len, bid_goods_len
             );
         }
     } else {
         println!(
-            "abort! asks {} good {} (thats bad)",
-            ask_sheets_len,
-            ask_goods.len()
+            "submit aborted! asks {} good {} (thats bad)",
+            ask_sheets_len, ask_goods_len
         );
     }
 }
@@ -207,6 +209,10 @@ fn filter_good_sheets(
             (exchange_name, good_sheets)
         })
         .collect()
+}
+
+fn count_sheets<T>(sheets: &Vec<(String, Vec<T>)>) -> usize {
+    sheets.iter().fold(0, |m, s| m + s.1.len())
 }
 
 fn build_books(
