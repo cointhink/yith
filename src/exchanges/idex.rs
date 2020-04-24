@@ -51,9 +51,9 @@ pub struct NonceResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenDetail {
-    name: String,
-    address: String,
-    decimals: i32,
+    pub name: String,
+    pub address: String,
+    pub decimals: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -71,6 +71,7 @@ impl TokenList {
     }
 
     pub fn get(&self, symbol2: &str) -> &TokenDetail {
+        println!("idex lookup {}", symbol2);
         self.tokens
             .iter()
             .find(|(symbol, detail)| *symbol == symbol2)

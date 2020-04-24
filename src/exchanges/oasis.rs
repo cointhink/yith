@@ -1,6 +1,7 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::exchanges;
 use crate::geth;
 use crate::types;
 use serde::{Deserialize, Serialize};
@@ -47,6 +48,7 @@ pub struct Oasis {
     client: reqwest::blocking::Client,
     pairs: PairList,
     abi: Vec<AbiCall>,
+    tokens: exchanges::idex::TokenList, // borrow from Idex
 }
 
 impl Oasis {
@@ -54,11 +56,13 @@ impl Oasis {
         let client = Oasis::build_http_client().unwrap();
         let pairs = read_pairs("notes/oasis-pairs.json");
         let abi = read_abi("notes/oasis-abi.json");
+        let tokens = exchanges::idex::TokenList::read_tokens("notes/idex-tokens.json");
         Oasis {
             infura_id: api_key.to_string(),
             client: client,
             pairs: pairs,
             abi: abi,
+            tokens: tokens,
         }
     }
 
@@ -112,19 +116,21 @@ impl exchange::Api for Oasis {
             pair.quote_precision,
         );
         let qty_str = qty_int.to_str_radix(10);
+        let base_token = &self.tokens.get(&pair.base).address;
+        let quote_token = &self.tokens.get(&pair.quote).address;
         let order_sheet = match askbid {
             types::AskBid::Ask => OrderSheet {
                 address: pub_addr,
-                token_buy: pair.base.clone(),
+                token_buy: base_token.to_string(),
                 amount_buy: qty_str,
-                token_sell: pair.quote.clone(),
+                token_sell: quote_token.to_string(),
                 amount_sell: cost_str,
             },
             types::AskBid::Bid => OrderSheet {
                 address: pub_addr,
-                token_buy: pair.quote.clone(),
+                token_buy: quote_token.to_string(),
                 amount_buy: cost_str,
-                token_sell: pair.base.clone(),
+                token_sell: base_token.to_string(),
                 amount_sell: qty_str,
             },
         };
