@@ -18,6 +18,7 @@ pub enum OrderSheet {
     Switcheo(exchanges::switcheo::Order),
     Idex(exchanges::idex::OrderSheet),
     Oasis(exchanges::oasis::OrderSheet),
+    Placebo,
 }
 
 #[derive(Debug)]

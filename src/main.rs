@@ -69,8 +69,8 @@ fn app(
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
 
-        show_orders(&exchanges, &config.wallet_private_key);
-        println!("");
+        //show_orders(&exchanges, &config.wallet_private_key);
+        //println!("");
 
         let order = match matches.value_of("arb_file") {
             Some(filename) => {
@@ -139,42 +139,49 @@ fn run_order(
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) {
-    let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges);
-    let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges);
-
-    let run_out = format!(
-        "order #{} {} {} {}\nask runs: \n{}\n\nbid runs: \n{}",
-        order.id,
-        order.pair,
-        order.cost,
-        order.profit,
-        format_runs(&ask_sheets),
-        format_runs(&bid_sheets)
-    );
-
+    let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
+    let ask_sheets_out = format_runs(&ask_sheets);
     let ask_sheets_len = count_sheets(&ask_sheets);
-    let bid_sheets_len = count_sheets(&bid_sheets);
     let ask_goods = filter_good_sheets(ask_sheets);
-    let bid_goods = filter_good_sheets(bid_sheets);
     let ask_goods_len = count_sheets(&ask_goods);
-    let bid_goods_len = count_sheets(&bid_goods);
+    println!("a {}/{}", ask_goods_len, ask_sheets_len);
+    let mut run_out = "".to_string();
 
-    println!(
-        "a{}/{} b{}/{}",
-        ask_goods_len, ask_sheets_len, bid_goods_len, bid_sheets_len
-    );
     if ask_goods_len == ask_sheets_len {
-        if bid_goods_len == bid_sheets_len {
+        let sim_bid_sheets =
+            build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
+        let sim_bid_sheets_out = format_runs(&sim_bid_sheets);
+        let sim_bid_sheets_len = count_sheets(&sim_bid_sheets);
+        let sim_bid_goods = filter_good_sheets(sim_bid_sheets);
+        let sim_bid_goods_len = count_sheets(&sim_bid_goods);
+        println!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len);
+
+        if sim_bid_goods_len == sim_bid_sheets_len {
             let ask_runs = run_sheets(config, ask_goods, exchanges);
-            let bid_runs = run_sheets(config, bid_goods, exchanges);
-            if let Some(email) = config.email.as_ref() {
-                let subject = format!("{}", order.pair);
-                email::send(email, &subject, &run_out);
+
+            let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
+            let bid_sheets_out = format_runs(&bid_sheets);
+            let bid_sheets_len = count_sheets(&bid_sheets);
+            let bid_goods = filter_good_sheets(bid_sheets);
+            let bid_goods_len = count_sheets(&bid_goods);
+            println!("b {}/{}", bid_goods_len, bid_sheets_len);
+
+            if bid_goods_len == bid_sheets_len {
+                let bid_runs = run_sheets(config, bid_goods, exchanges);
+                run_out = format!(
+                    "ask runs: \n{}\n\nsim bid runs: \n{}\n\nbid runs: \n{}",
+                    ask_sheets_out, sim_bid_sheets_out, bid_sheets_out,
+                );
+            } else {
+                println!(
+                    "sumbit aborted! bids {} good {} (thats bad)",
+                    bid_sheets_len, bid_goods_len
+                );
             }
         } else {
             println!(
-                "sumbit aborted! bids {} good {} (thats bad)",
-                bid_sheets_len, bid_goods_len
+                "submit aborted! sim_bid {} good {} (thats bad)",
+                sim_bid_sheets_len, sim_bid_goods_len
             );
         }
     } else {
@@ -182,6 +189,15 @@ fn run_order(
             "submit aborted! asks {} good {} (thats bad)",
             ask_sheets_len, ask_goods_len
         );
+    }
+
+    if let Some(email) = config.email.as_ref() {
+        let subject = format!("{}", order.pair);
+        let out = format!(
+            "order #{} {} {} {}\n{}",
+            order.id, order.pair, order.cost, order.profit, run_out
+        );
+        email::send(email, &subject, &out);
     }
 }
 
@@ -215,11 +231,19 @@ fn count_sheets<T>(sheets: &Vec<(String, Vec<T>)>) -> usize {
     sheets.iter().fold(0, |m, s| m + s.1.len())
 }
 
+// rust to learn
+#[derive(Clone, Copy)]
+enum Mode {
+    Simulate,
+    Real,
+}
+
 fn build_books(
     config: &config::Config,
     wallet: &wallet::Wallet,
     books: &types::Books,
     exchanges: &config::ExchangeList,
+    mode: Mode,
 ) -> Vec<(
     String,
     Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
@@ -235,9 +259,10 @@ fn build_books(
                     if exchange.settings.enabled {
                         (
                             exchange_name,
-                            build_book(config, wallet, &books.askbid, book, exchange),
+                            build_book(config, wallet, &books.askbid, book, exchange, mode),
                         )
                     } else {
+                        // rust to learn
                         let borrow_check_omg = exchange_name.clone();
                         (
                             exchange_name,
@@ -266,20 +291,25 @@ fn build_book(
     askbid: &types::AskBid,
     book: &types::Book,
     exchange: &config::Exchange,
+    mode: Mode,
 ) -> Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>> {
     book.offers
         .iter()
         .take(1) // first offer
         .map(|offer| {
             println!(
-                "** {} {} {} => {}{}",
+                "** {} {} {} {} => {}{}",
+                match mode {
+                    Mode::Real => "BUILD",
+                    Mode::Simulate => "SIMBUILD",
+                },
                 askbid,
                 &book.market,
                 offer,
                 offer.cost(*askbid),
                 &book.market.quote
             );
-            build_offer(config, askbid, &exchange, offer, &book.market, wallet)
+            build_offer(config, askbid, &exchange, offer, &book.market, wallet, mode)
         })
         .collect()
 }
@@ -291,6 +321,7 @@ fn build_offer(
     offer: &types::Offer,
     market: &types::Market,
     wallet: &wallet::Wallet,
+    mode: Mode,
 ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
     println!("build offer {} {}", exchange, offer);
     let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
@@ -304,22 +335,51 @@ fn build_offer(
         types::AskBid::Ask => &market.quote,
         types::AskBid::Bid => &market.base,
     };
+    let mut amount_limits = vec![];
     match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
         Ok(coin) => {
-            let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
-            let offer_cost = offer.cost(askbid);
-            let amounts = vec![offer_cost, wallet_coin_limit, coin.base_total()];
-            let least_cost = minimum(amounts);
-            let least_qty = match askbid {
-                types::AskBid::Ask => least_cost / offer.quote,
-                types::AskBid::Bid => least_cost,
-            };
-            if least_cost < offer_cost {
-                println!(
-                    "{} {} balance capped at {}. adj qty {}",
-                    check_ticker, source_name, least_cost, least_qty
-                );
+            amount_limits.push(coin.base_total());
+        }
+        Err(_e) => {
+            let err = exchange::ExchangeError::build_box(format!(
+                "WARNING: {} balance unknown for {}",
+                check_ticker, source_name
+            ));
+            match mode {
+                Mode::Simulate => (),
+                Mode::Real => return Err(err), // early return
             }
+        }
+    };
+    match wallet.find_coin_by_source_symbol("limit", &check_ticker.symbol) {
+        Ok(coin) => {
+            let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
+            amount_limits.push(wallet_coin_limit);
+            amount_limits.push(coin.base_total());
+        }
+        Err(_e) => {
+            let _err = exchange::ExchangeError::build_box(format!(
+                "WARNING: {} wallet limit not set",
+                check_ticker
+            ));
+        }
+    };
+
+    let offer_cost = offer.cost(askbid);
+    amount_limits.push(offer_cost);
+    let least_cost = minimum(amount_limits);
+    let least_qty = match askbid {
+        types::AskBid::Ask => least_cost / offer.quote,
+        types::AskBid::Bid => least_cost,
+    };
+    if least_cost < offer_cost {
+        exchange::ExchangeError::build_box(format!(
+            "{} {} balance capped at {:0.4}. adj qty {:0.4}",
+            check_ticker, source_name, least_cost, least_qty
+        ));
+    }
+    match mode {
+        Mode::Real => {
             let capped_offer = types::Offer {
                 base_qty: least_qty,
                 quote: offer.quote,
@@ -332,10 +392,7 @@ fn build_offer(
                 &capped_offer,
             )
         }
-        Err(_e) => Err(exchange::ExchangeError::build_box(format!(
-            "!{} not found in wallet for {}",
-            check_ticker, source_name
-        ))),
+        Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
     }
 }
 
@@ -359,7 +416,7 @@ fn run_sheet(
     sheet: exchange::OrderSheet,
     exchange: &config::Exchange,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    println!("run sheet {} {:?}", exchange, sheet);
+    println!("** RUN sheet {} {:?}", exchange, sheet);
     match exchange
         .api
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
