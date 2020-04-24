@@ -378,6 +378,21 @@ fn build_offer(
             check_ticker, source_name, least_cost, least_qty
         ));
     }
+
+    let market_min_opt = exchange.api.market_minimum(&market, &exchange.settings);
+    match market_min_opt {
+        Some(market_minimum) => {
+            if market_minimum > least_cost {
+                let err = exchange::ExchangeError::build_box(format!(
+                    "{} minimum of {:0.4} not met with {:0.4}{}!",
+                    market, market_minimum, least_cost, check_ticker
+                ));
+                return Err(err);
+            }
+        }
+        None => (),
+    }
+
     match mode {
         Mode::Real => {
             let capped_offer = types::Offer {

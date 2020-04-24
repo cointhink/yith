@@ -151,6 +151,11 @@ pub trait Api {
         sheet: OrderSheet,
     ) -> Result<(), Box<dyn error::Error>>;
 
+    fn market_minimum(&self, market: &Market, exchange: &config::ExchangeSettings) -> Option<f64> {
+        println!("warning {} has no market_minimum call", exchange.name);
+        None
+    }
+
     fn balances<'a>(&self, privkey: &str, exchange: &config::ExchangeSettings) -> BalanceList {
         collections::HashMap::new()
     }
