@@ -34,12 +34,11 @@ pub struct PairList {
 }
 
 impl PairList {
-    pub fn get(&self, symbol2: &str) -> &PairDetail {
+    pub fn get(&self, base: &str, quote: &str) -> &PairDetail {
         self.pairs
-            .iter()
-            .find(|(symbol, detail)| *symbol == symbol2)
+            .values()
+            .find(|pd| pd.base == base && pd.quote == quote)
             .unwrap()
-            .1
     }
 }
 
@@ -99,7 +98,7 @@ impl exchange::Api for Oasis {
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn error::Error>> {
         let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
-        let pair = self.pairs.get(&make_market_pair(market));
+        let pair = self.pairs.get(&market.base.symbol, &market.quote.symbol);
         let decimals = 18;
         let cost_int = exchange::quantity_in_base_units(
             offer.cost(*askbid),
@@ -169,10 +168,6 @@ impl exchange::Api for Oasis {
     ) -> exchange::BalanceList {
         collections::HashMap::new()
     }
-}
-
-pub fn make_market_pair(market: &exchange::Market) -> String {
-    format!("{}/{}", market.base.symbol, market.quote.symbol)
 }
 
 pub fn eth_data(sheet: &OrderSheet) -> String {
