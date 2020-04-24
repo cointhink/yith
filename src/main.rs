@@ -381,16 +381,20 @@ fn build_offer(
 
     let market_min_opt = exchange
         .api
-        .market_minimum(&market.quote, &exchange.settings);
+        .market_minimum(check_ticker, &exchange.settings);
     match market_min_opt {
         Some(market_minimum) => {
-            println!("{} minimum {}{}", &market, market_minimum, &market.quote);
             if market_minimum > least_cost {
                 let err = exchange::ExchangeError::build_box(format!(
-                    "{} minimum of {:0.4} not met with {:0.4}{}!",
-                    &market, market_minimum, least_cost, &market.quote
+                    "{} minimum of {:0.4} NOT met with {:0.4}{}",
+                    &market, market_minimum, least_cost, check_ticker
                 ));
                 return Err(err);
+            } else {
+                println!(
+                    "{} minimum {}{} met with {}{}",
+                    &market, market_minimum, check_ticker, least_cost, &market.quote
+                );
             }
         }
         None => (),
