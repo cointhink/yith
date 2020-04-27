@@ -103,10 +103,9 @@ pub fn read_exchanges(
                 settings.clone(),
                 &config.idex_key,
             )),
-            ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(
-                settings.clone(),
-                &config.infura_project_id,
-            )),
+            ExchangeProtocol::Oasis => {
+                Box::new(exchanges::oasis::Oasis::new(&config.infura_project_id))
+            }
         };
         list.exchanges.push(Exchange {
             api: api,

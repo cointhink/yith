@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_eip712_domain_sep() {
-        static good_exchange_hash_v2: &str =
+        let good_exchange_hash_v2: &str =
             "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
         let hash = eip712_exchange_hash(CONTRACT_ADDR_V2);
         assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())

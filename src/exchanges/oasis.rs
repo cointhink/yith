@@ -9,7 +9,6 @@ use std::collections;
 use std::collections::HashMap;
 use std::error;
 use std::fs;
-use std::time::Duration;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
@@ -43,34 +42,24 @@ impl PairList {
     }
 }
 
-#[allow(dead_code)]
 pub struct Oasis {
     infura_id: String,
-    client: reqwest::blocking::Client,
     pairs: PairList,
-    abi: Vec<AbiCall>,
+    contract: Contract,
     tokens: exchanges::idex::TokenList, // borrow from Idex
 }
 
 impl Oasis {
-    pub fn new(_settings: config::ExchangeSettings, api_key: &str) -> Oasis {
-        let client = Oasis::build_http_client().unwrap();
+    pub fn new(api_key: &str) -> Oasis {
         let pairs = read_pairs("notes/oasis-pairs.json");
         let abi = read_abi("notes/oasis-abi.json");
         let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
         Oasis {
             infura_id: api_key.to_string(),
-            client: client,
             pairs: pairs,
-            abi: abi,
+            contract: abi,
             tokens: tokens,
         }
-    }
-
-    pub fn build_http_client() -> reqwest::Result<reqwest::blocking::Client> {
-        reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(10))
-            .build()
     }
 }
 
@@ -81,16 +70,45 @@ pub fn read_pairs(filename: &str) -> PairList {
     PairList { pairs: pairs }
 }
 
+pub fn read_abi(filename: &str) -> Contract {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let abi = serde_yaml::from_str::<Vec<AbiCall>>(&yaml).unwrap();
+    Contract { abi: abi }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AbiCall {
     r#type: String,
     name: Option<String>,
 }
 
-pub fn read_abi(filename: &str) -> Vec<AbiCall> {
-    let file_ok = fs::read_to_string(filename);
-    let yaml = file_ok.unwrap();
-    serde_yaml::from_str::<Vec<AbiCall>>(&yaml).unwrap()
+pub struct Contract {
+    abi: Vec<AbiCall>,
+}
+
+impl Contract {
+    fn call(&self, fname: &str) -> Option<Vec<u8>> {
+        let call_opt = self.abi.iter().find(|r#fn| {
+            println!("{:?}", r#fn);
+            if let Some(name) = &r#fn.name {
+                name == fname
+            } else {
+                false
+            }
+        });
+        match call_opt {
+            Some(call) => {
+                if let Some(name) = &call.name {
+                    let bytes = &eth::hash_msg(&name.as_bytes().to_vec());
+                    Some(bytes[0..4].to_vec())
+                } else {
+                    None
+                }
+            }
+            None => None,
+        }
+    }
 }
 
 impl exchange::Api for Oasis {
@@ -149,7 +167,7 @@ impl exchange::Api for Oasis {
             tx.insert("from".to_string(), sheet.address.clone());
             let contract_addr = exchange.contract_address.clone();
             tx.insert("to".to_string(), contract_addr);
-            let data = eth_data(&sheet);
+            let data = eth_data(&self.contract, &sheet);
             tx.insert("data".to_string(), data.to_string());
             //tx.insert("value".to_string(), format!("0x{:x}", 10));
             let params = (tx, Some("latest".to_string()));
@@ -176,11 +194,30 @@ impl exchange::Api for Oasis {
     }
 }
 
-pub fn eth_data(sheet: &OrderSheet) -> String {
+pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
-    let func = &eth::hash_msg(&"getMinSell(address)".to_string().as_bytes().to_vec())[0..4];
-    call.append(&mut func.to_vec());
+    let mut func = contract.call("offer").unwrap();
+    call.append(&mut func);
     let mut p1 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
     call.append(&mut p1);
     format!("0x{}", hex::encode(call))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_build_abi_data() {
+        let _api_str = "offer(uint256, address, uint256, address, uint256, bool)";
+        let contract = read_abi("notes/oasis-abi.json");
+        let sheet = OrderSheet {
+            address: "0xab".to_string(),
+            token_buy: "0x12".to_string(),
+            amount_buy: "1".to_string(),
+            token_sell: "0x34".to_string(),
+            amount_sell: "2".to_string(),
+        };
+        let _abi_hex = eth_data(&contract, &sheet);
+    }
 }
