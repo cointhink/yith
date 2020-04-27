@@ -137,6 +137,10 @@ pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
     padded
 }
 
+pub fn hash_abi_sig(sig: &str) -> [u8; 4] {
+    hash_msg(&sig.as_bytes().to_vec())[0..4].try_into().unwrap()
+}
+
 /*
 web3 is giant
 pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {

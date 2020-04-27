@@ -7,6 +7,7 @@ use crate::types;
 use serde::{Deserialize, Serialize};
 use std::collections;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::error;
 use std::fs;
 
@@ -78,9 +79,18 @@ pub fn read_abi(filename: &str) -> Contract {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct AbiInput {
+    #[serde(default)]
+    indexed: bool,
+    name: String,
+    r#type: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct AbiCall {
     r#type: String,
     name: Option<String>,
+    inputs: Vec<AbiInput>,
 }
 
 pub struct Contract {
@@ -90,7 +100,6 @@ pub struct Contract {
 impl Contract {
     fn call(&self, fname: &str) -> Option<Vec<u8>> {
         let call_opt = self.abi.iter().find(|r#fn| {
-            println!("{:?}", r#fn);
             if let Some(name) = &r#fn.name {
                 name == fname
             } else {
@@ -100,8 +109,7 @@ impl Contract {
         match call_opt {
             Some(call) => {
                 if let Some(name) = &call.name {
-                    let bytes = &eth::hash_msg(&name.as_bytes().to_vec());
-                    Some(bytes[0..4].to_vec())
+                    Some(eth::hash_abi_sig(&name).to_vec())
                 } else {
                     None
                 }
@@ -196,10 +204,18 @@ impl exchange::Api for Oasis {
 
 pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
     let mut call = Vec::<u8>::new();
-    let mut func = contract.call("offer").unwrap();
+    let mut func = eth::hash_abi_sig("offer(uint256,address,uint256,address,uint256)").to_vec();
     call.append(&mut func);
-    let mut p1 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
+    let mut p1 = hex::decode(eth::encode_uint256(&sheet.amount_buy)).unwrap();
     call.append(&mut p1);
+    let mut p2 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
+    call.append(&mut p2);
+    let mut p3 = hex::decode(eth::encode_uint256(&sheet.amount_sell)).unwrap();
+    call.append(&mut p3);
+    let mut p4 = hex::decode(eth::encode_addr2(&sheet.token_sell)).unwrap();
+    call.append(&mut p4);
+    let mut p5 = hex::decode(eth::encode_uint256("0")).unwrap();
+    call.append(&mut p5); // position
     format!("0x{}", hex::encode(call))
 }
 
@@ -218,6 +234,6 @@ mod tests {
             token_sell: "0x34".to_string(),
             amount_sell: "2".to_string(),
         };
-        let _abi_hex = eth_data(&contract, &sheet);
+        let abi_hex = eth_data(&contract, &sheet);
     }
 }
