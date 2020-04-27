@@ -71,12 +71,17 @@ impl TokenList {
     }
 
     pub fn get(&self, symbol2: &str) -> &TokenDetail {
-        println!("idex lookup {}", symbol2);
-        self.tokens
+        let detail = self
+            .tokens
             .iter()
             .find(|(symbol, _detail)| *symbol == symbol2)
             .unwrap()
-            .1
+            .1;
+        println!(
+            "idex lookup {} ^{} {}",
+            symbol2, detail.decimals, detail.address
+        );
+        detail
     }
 }
 

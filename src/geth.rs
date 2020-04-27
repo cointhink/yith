@@ -15,10 +15,12 @@ pub struct JsonRpc {
 #[serde(untagged)]
 pub enum ParamTypes {
     Standard(JsonRpcParam),
+    Single(SingleParam),
     Infura(JsonInfuraRpcParam),
 }
 
 pub type JsonRpcParam = HashMap<String, String>;
+pub type SingleParam = (String,);
 pub type JsonInfuraRpcParam = (JsonRpcParam, Option<String>);
 
 pub fn rpc(

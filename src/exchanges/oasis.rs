@@ -7,7 +7,6 @@ use crate::types;
 use serde::{Deserialize, Serialize};
 use std::collections;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::error;
 use std::fs;
 
@@ -175,12 +174,22 @@ impl exchange::Api for Oasis {
             tx.insert("from".to_string(), sheet.address.clone());
             let contract_addr = exchange.contract_address.clone();
             tx.insert("to".to_string(), contract_addr);
-            let data = eth_data(&self.contract, &sheet);
-            tx.insert("data".to_string(), data.to_string());
-            //tx.insert("value".to_string(), format!("0x{:x}", 10));
-            let params = (tx, Some("latest".to_string()));
+            tx.insert("data".to_string(), get_min_sell_data(&sheet.token_buy));
+            let params = (tx.clone(), Some("latest".to_string()));
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
+            println!("{} {}", resp.status(), resp.text().unwrap());
+
+            tx.insert("data".to_string(), eth_data(&self.contract, &sheet));
+            let params = ("0x1234".to_string(),);
+
+            let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
+            let resp = geth::rpc(
+                &url,
+                "eth_sendRawTransaction",
+                geth::ParamTypes::Single(params),
+            )
+            .unwrap();
             println!("{} {}", resp.status(), resp.text().unwrap());
             Ok(())
         } else {
@@ -203,6 +212,7 @@ impl exchange::Api for Oasis {
 }
 
 pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
+    contract.call("placeholder");
     let mut call = Vec::<u8>::new();
     let mut func = eth::hash_abi_sig("offer(uint256,address,uint256,address,uint256)").to_vec();
     call.append(&mut func);
@@ -219,13 +229,22 @@ pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
     format!("0x{}", hex::encode(call))
 }
 
+pub fn get_min_sell_data(addr: &str) -> String {
+    let mut call = Vec::<u8>::new();
+    let mut func = eth::hash_abi_sig("getMinSell(address)").to_vec();
+    call.append(&mut func);
+    let mut p1 = hex::decode(eth::encode_addr2(addr)).unwrap();
+    call.append(&mut p1);
+    format!("0x{}", hex::encode(call))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_build_abi_data() {
-        let _api_str = "offer(uint256, address, uint256, address, uint256, bool)";
+        let _api_str = "offer(uint256, address, uint256, address, uint256)";
         let contract = read_abi("notes/oasis-abi.json");
         let sheet = OrderSheet {
             address: "0xab".to_string(),
@@ -234,6 +253,6 @@ mod tests {
             token_sell: "0x34".to_string(),
             amount_sell: "2".to_string(),
         };
-        let abi_hex = eth_data(&contract, &sheet);
+        let _abi_hex = eth_data(&contract, &sheet);
     }
 }
