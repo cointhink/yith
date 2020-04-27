@@ -157,7 +157,7 @@ fn run_order(
         println!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len);
 
         if sim_bid_goods_len == sim_bid_sheets_len {
-            let ask_runs = run_sheets(config, ask_goods, exchanges);
+            let _ask_runs = run_sheets(config, ask_goods, exchanges);
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             let bid_sheets_out = format_runs(&bid_sheets);
@@ -167,7 +167,7 @@ fn run_order(
             println!("b {}/{}", bid_goods_len, bid_sheets_len);
 
             if bid_goods_len == bid_sheets_len {
-                let bid_runs = run_sheets(config, bid_goods, exchanges);
+                let _bid_runs = run_sheets(config, bid_goods, exchanges);
                 run_out = format!(
                     "ask runs: \n{}\n\nsim bid runs: \n{}\n\nbid runs: \n{}",
                     ask_sheets_out, sim_bid_sheets_out, bid_sheets_out,
@@ -194,7 +194,7 @@ fn run_order(
     if let Some(email) = config.email.as_ref() {
         let subject = format!("{}", order.pair);
         let out = format!(
-            "order #{} {} {} {}\n{}",
+            "order #{} {} {:0.4} {:0.4}\n{}",
             order.id, order.pair, order.cost, order.profit, run_out
         );
         email::send(email, &subject, &out);

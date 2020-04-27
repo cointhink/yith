@@ -204,6 +204,7 @@ pub struct Pair {
     amount_decimals: i32,
 }
 
+#[allow(dead_code)]
 pub struct Ddex3 {
     pairs: PairList,
     settings: config::ExchangeSettings,
@@ -256,7 +257,7 @@ impl exchange::Api for Ddex3 {
             amount: format!("{:.width$}", qty, width = pair.amount_decimals as usize),
         };
 
-        let client = build_http_client(exchange)?;
+        let client = build_http_client()?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
         println!("Ddex3 {}", url);
@@ -271,7 +272,6 @@ impl exchange::Api for Ddex3 {
         let body = serde_json::from_str::<BuildResponse>(&json).unwrap();
         if status.is_success() {
             if body.status > 0 {
-                let err_msg = format!("{} {}", &body.status, &body.desc);
                 let order_error = exchange::OrderError {
                     msg: body.desc,
                     code: body.status as i32,
@@ -322,7 +322,7 @@ impl exchange::Api for Ddex3 {
                 signature: signature,
                 method: 0, // web ddex uses method 1
             };
-            let client = build_http_client(exchange)?;
+            let client = build_http_client()?;
             let url = format!("{}/orders/sync", exchange.api_url.as_str());
             println!("{} {}", url, serde_json::to_string(&order_place).unwrap());
             let headers = auth_header(private_key);
@@ -360,7 +360,7 @@ impl exchange::Api for Ddex3 {
         private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
-        let client = build_http_client(exchange).unwrap();
+        let client = build_http_client().unwrap();
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("{}", url);
         let headers = auth_header(private_key);
@@ -383,9 +383,7 @@ impl exchange::Api for Ddex3 {
     }
 }
 
-pub fn build_http_client(
-    exchange: &config::ExchangeSettings,
-) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_http_client() -> reqwest::Result<reqwest::blocking::Client> {
     let headers = header::HeaderMap::new();
     reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))

@@ -74,12 +74,13 @@ impl TokenList {
         println!("idex lookup {}", symbol2);
         self.tokens
             .iter()
-            .find(|(symbol, detail)| *symbol == symbol2)
+            .find(|(symbol, _detail)| *symbol == symbol2)
             .unwrap()
             .1
     }
 }
 
+#[allow(dead_code)]
 pub struct Idex {
     settings: config::ExchangeSettings,
     client: reqwest::blocking::Client,
@@ -192,7 +193,6 @@ impl exchange::Api for Idex {
             public_addr
         );
         let resp = self.client.get(url.as_str()).send().unwrap();
-        let status = resp.status();
         let response = resp.json::<BalanceResponse>().unwrap();
         response
             .balances
@@ -267,7 +267,7 @@ mod tests {
         let order_hash_str = "0x385777b82d67f8368848ccd56f6ad04159bb6fc1075ae06910abb597c5a7c6a0";
         let order_params_hash = hex::decode(&order_hash_str[2..]).unwrap();
         let order_hash = eth::ethsign_hash_msg(&order_params_hash[..].to_vec());
-        let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
+        let (_v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
 
         let good_r = "0x860874c6d650c646389e3a7fbcd835665e546cbafa9831438d3a71535c19c50f";
         let good_s = "0x18205ecf4a6927e8653828c5508c3676f634c74051d9ef4f9216dbef43594a25";

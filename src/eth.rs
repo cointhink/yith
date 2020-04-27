@@ -14,7 +14,7 @@ pub fn wei_to_eth(wei: f64, decimals: i32) -> f64 {
 
 pub fn privkey_to_pubkeybytes(privkey: &str) -> [u8; 65] {
     let secp = Secp256k1::new();
-    let privbytes = &hex::decode(privkey).unwrap();
+    let privbytes = &dehex(privkey);
     let secret_key = SecretKey::from_slice(privbytes).expect("32 bytes, within curve order");
     let public_key = PublicKey::from_secret_key(&secp, &secret_key);
     public_key.serialize_uncompressed()
@@ -176,20 +176,18 @@ pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx
 #[cfg(test)]
 mod tests {
     use super::*;
-    static privkey: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
-    static pubkey: &str = "041ea3510efdb57c6cf0dc77a454b4f5b95775f9606b0f7d7a294b47aae57b21882e6c4888d050992b58a0640066ab72adff7575c07d201716c40b9146624eedb4";
-    static good_addr: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
-    static msg_v3: &str = "HYDRO-AUTHENTICATION@1524088776656";
-    static good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+    static PRIVKEY: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
+    static PUBKEY: &str = "041ea3510efdb57c6cf0dc77a454b4f5b95775f9606b0f7d7a294b47aae57b21882e6c4888d050992b58a0640066ab72adff7575c07d201716c40b9146624eedb4";
+    static GOOD_ADDR: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
 
     #[test]
     fn test_pubkey_to_addr() {
-        let pubkey_bytes = hex::decode(pubkey).unwrap();
+        let pubkey_bytes = hex::decode(PUBKEY).unwrap();
         let mut pubkey_sized_bytes = [0u8; 65];
         pubkey_sized_bytes.copy_from_slice(&pubkey_bytes);
         let addr_bytes = pubkey_to_addr(pubkey_sized_bytes);
         let addr = hex::encode(addr_bytes);
-        assert_eq!(addr, good_addr);
+        assert_eq!(addr, GOOD_ADDR);
     }
 
     #[test]
@@ -199,6 +197,7 @@ mod tests {
         let good_hash_bytes = hex::decode(good_hash_v3).unwrap();
         let mut good_hash_sized_bytes = [0u8; 32];
         good_hash_sized_bytes.copy_from_slice(&good_hash_bytes);
+        let msg_v3: &str = "HYDRO-AUTHENTICATION@1524088776656";
         let hash_bytes = ethsign_hash_msg(&msg_v3.as_bytes().to_vec());
         assert_eq!(hash_bytes, good_hash_sized_bytes);
     }
@@ -207,7 +206,8 @@ mod tests {
     fn test_sign_bytes() {
         let hash_v4: &[u8] = b"68cef504a5bf9b821df3313da9af66354d8865f29ba038c42b62cea53cd9986d";
         let hash_bytes: Vec<u8> = hex::decode(hash_v4).unwrap();
-        let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
+        let good_sig_v4: &str = "2a10e17a0375a6728947ae4a4ad0fe88e7cc8dd929774be0e33d7e1988f1985f13cf66267134ec4777878b6239e7004b9d2defb03ede94352a20acf0a20a50dc1b";
+        let privkey_bytes: Vec<u8> = hex::decode(PRIVKEY).unwrap();
         let private_key =
             SecretKey::from_slice(&privkey_bytes).expect("32 bytes, within curve order");
         let sig_bytes = sign_bytes(&hash_bytes, &private_key);
@@ -221,7 +221,7 @@ mod tests {
     fn test_sign_bytes_vrs() {
         let hash: &[u8] = b"fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408";
         let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
-        let privkey_bytes: Vec<u8> = hex::decode(privkey).unwrap();
+        let privkey_bytes: Vec<u8> = hex::decode(PRIVKEY).unwrap();
         let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
         let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
         let sig_bytes = sigparts_to_vrs(v, r, s);

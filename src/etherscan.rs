@@ -17,7 +17,6 @@ impl Etherscan {
 }
 
 type TokenList = exchanges::switcheo::TokenList;
-type Token = exchanges::switcheo::TokenDetail;
 
 pub fn read_tokens(filename: &str) -> TokenList {
     let yaml = fs::read_to_string(filename).unwrap();

@@ -119,6 +119,7 @@ pub enum BuySell {
     Sell,
 }
 
+#[allow(dead_code)]
 pub enum SignatureType {
     Illegal = 0x00,
     Invalid = 0x01,
@@ -195,7 +196,7 @@ impl exchange::Api for Zeroex {
 
     fn submit(
         &self,
-        privkey: &str,
+        _privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -327,9 +328,7 @@ mod tests {
     use super::*;
 
     static PRIVKEY: &str = "e4abcbf75d38cf61c4fde0ade1148f90376616f5233b7c1fef2a78c5992a9a50";
-    static contract_addr_v2: &str = "0x080bf510FCbF18b91105470639e9561022937712";
-    static good_exchange_hash_v2: &str =
-        "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
+    static CONTRACT_ADDR_V2: &str = "0x080bf510FCbF18b91105470639e9561022937712";
 
     fn blank_order_form() -> OrderForm {
         OrderForm {
@@ -344,7 +343,7 @@ mod tests {
             taker_fee: "0".to_string(),
             expiration_time_seconds: "0".to_string(),
             salt: "0".to_string(),
-            exchange_address: contract_addr_v2.to_string(),
+            exchange_address: CONTRACT_ADDR_V2.to_string(),
             maker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             taker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
@@ -355,7 +354,9 @@ mod tests {
 
     #[test]
     fn test_eip712_domain_sep() {
-        let hash = eip712_exchange_hash(contract_addr_v2);
+        static good_exchange_hash_v2: &str =
+            "b2246130e7ae0d4b56269ccac10d3a9ac666d825bcd20ce28fea70f1f65d3de0";
+        let hash = eip712_exchange_hash(CONTRACT_ADDR_V2);
         assert_eq!(hash.to_vec(), hex::decode(good_exchange_hash_v2).unwrap())
     }
 
@@ -378,7 +379,7 @@ mod tests {
         let mut form_hash = [0u8; 32];
         let good_form_hash = "6272bc49657b2210a4eba2cd343aa184ed1b77c377cad3b452afa50be0f15d06";
         form_hash.copy_from_slice(&hex::decode(good_form_hash).unwrap());
-        let tokens = exchange_order_tokens(form_hash, contract_addr_v2);
+        let tokens = exchange_order_tokens(form_hash, CONTRACT_ADDR_V2);
         let exchange_tokens_bytes = ethabi::encode(&tokens);
         let eip191_header = hex::decode("1901").unwrap();
         let exg_with_header = [&eip191_header[..], &exchange_tokens_bytes[..]].concat();

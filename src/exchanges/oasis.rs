@@ -43,6 +43,7 @@ impl PairList {
     }
 }
 
+#[allow(dead_code)]
 pub struct Oasis {
     infura_id: String,
     client: reqwest::blocking::Client,

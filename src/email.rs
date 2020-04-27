@@ -2,7 +2,6 @@ use lettre::{SmtpClient, Transport};
 use lettre_email::Email;
 
 pub fn send(to_addr: &str, subject: &str, body: &str) {
-    let payload = format!("Subject: {}\n\n{}", subject, body);
     let email = Email::builder() // to be used
         .to(to_addr)
         .from("yith@donp.org")
