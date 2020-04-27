@@ -2,6 +2,8 @@ use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use std::convert::TryInto;
 use tiny_keccak::{Hasher, Keccak};
 
+pub const ETH_CHAIN_MAINNET: u32 = 1;
+
 pub fn wei_to_eth(wei: f64, decimals: i32) -> f64 {
     wei / 10_f64.powi(decimals)
 }

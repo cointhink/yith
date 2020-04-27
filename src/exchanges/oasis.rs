@@ -4,6 +4,7 @@ use crate::exchange;
 use crate::exchanges;
 use crate::geth;
 use crate::types;
+use ethereum_types;
 use serde::{Deserialize, Serialize};
 use std::collections;
 use std::collections::HashMap;
@@ -165,7 +166,7 @@ impl exchange::Api for Oasis {
 
     fn submit(
         &self,
-        _private_key: &str,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn error::Error>> {
@@ -180,8 +181,17 @@ impl exchange::Api for Oasis {
             let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
             println!("{} {}", resp.status(), resp.text().unwrap());
 
-            tx.insert("data".to_string(), eth_data(&self.contract, &sheet));
-            let params = ("0x1234".to_string(),);
+            let tx = ethereum_tx_sign::RawTransaction {
+                nonce: ethereum_types::U256::from(0),
+                to: Some(ethereum_types::H160::zero()),
+                value: ethereum_types::U256::zero(),
+                gas_price: ethereum_types::U256::from(10000),
+                gas: ethereum_types::U256::from(21240),
+                data: eth_data(&self.contract, &sheet),
+            };
+            let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
+            let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
+            let params = (eth::hex(&rlp_bytes),);
 
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let resp = geth::rpc(
@@ -211,7 +221,7 @@ impl exchange::Api for Oasis {
     }
 }
 
-pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
+pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> Vec<u8> {
     contract.call("placeholder");
     let mut call = Vec::<u8>::new();
     let mut func = eth::hash_abi_sig("offer(uint256,address,uint256,address,uint256)").to_vec();
@@ -226,7 +236,7 @@ pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> String {
     call.append(&mut p4);
     let mut p5 = hex::decode(eth::encode_uint256("0")).unwrap();
     call.append(&mut p5); // position
-    format!("0x{}", hex::encode(call))
+    call
 }
 
 pub fn get_min_sell_data(addr: &str) -> String {
