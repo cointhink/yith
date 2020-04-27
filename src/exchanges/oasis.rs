@@ -179,7 +179,27 @@ impl exchange::Api for Oasis {
             let params = (tx.clone(), Some("latest".to_string()));
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
-            println!("{} {}", resp.status(), resp.text().unwrap());
+            let status = resp.status();
+            let json = resp.text().unwrap();
+            println!("{} {}", status, json);
+            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
+            match result.part {
+                geth::ResultTypes::Result(r) => println!("{:?}", r),
+                geth::ResultTypes::Error(e) => println!("Err {:?}", e.error.message),
+            }
+
+            let params = (sheet.address.clone(), "latest".to_string());
+            let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
+            let resp = geth::rpc(
+                &url,
+                "eth_getTransactionCount",
+                geth::ParamTypes::InfuraSingle(params),
+            )
+            .unwrap();
+            let json = resp.text().unwrap();
+            println!("{} {}", status, json);
+            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
+            println!("obj result {:?}", result);
 
             let tx = ethereum_tx_sign::RawTransaction {
                 nonce: ethereum_types::U256::from(0),
@@ -200,7 +220,12 @@ impl exchange::Api for Oasis {
                 geth::ParamTypes::Single(params),
             )
             .unwrap();
-            println!("{} {}", resp.status(), resp.text().unwrap());
+            let status = resp.status();
+            let json = resp.text().unwrap();
+            println!("{} {}", status, json);
+            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
+            println!("obj result {:?}", result);
+
             Ok(())
         } else {
             let order_error = exchange::OrderError {
