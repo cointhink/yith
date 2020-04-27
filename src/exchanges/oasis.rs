@@ -52,11 +52,11 @@ pub struct Oasis {
 }
 
 impl Oasis {
-    pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Oasis {
+    pub fn new(_settings: config::ExchangeSettings, api_key: &str) -> Oasis {
         let client = Oasis::build_http_client().unwrap();
         let pairs = read_pairs("notes/oasis-pairs.json");
         let abi = read_abi("notes/oasis-abi.json");
-        let tokens = exchanges::idex::TokenList::read_tokens("notes/idex-tokens.json");
+        let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
         Oasis {
             infura_id: api_key.to_string(),
             client: client,
@@ -97,13 +97,12 @@ impl exchange::Api for Oasis {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        exchange: &config::ExchangeSettings,
+        _exchange: &config::ExchangeSettings,
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn error::Error>> {
         let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
         let pair = self.pairs.get(&market.base.symbol, &market.quote.symbol);
-        let decimals = 18;
         let cost_int = exchange::quantity_in_base_units(
             offer.cost(*askbid),
             pair.base_precision,
@@ -140,7 +139,7 @@ impl exchange::Api for Oasis {
 
     fn submit(
         &self,
-        private_key: &str,
+        _private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn error::Error>> {
@@ -169,8 +168,8 @@ impl exchange::Api for Oasis {
 
     fn balances<'a>(
         &self,
-        privkey: &str,
-        exchange: &config::ExchangeSettings,
+        _privkey: &str,
+        _exchange: &config::ExchangeSettings,
     ) -> exchange::BalanceList {
         collections::HashMap::new()
     }

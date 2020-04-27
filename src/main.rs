@@ -38,11 +38,11 @@ fn app(
     redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
-    if let Some(matches) = opts.subcommand_matches("balances") {
+    if let Some(_matches) = opts.subcommand_matches("balances") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
     }
-    if let Some(matches) = opts.subcommand_matches("open") {
+    if let Some(_matches) = opts.subcommand_matches("open") {
         show_orders(&exchanges, &config.wallet_private_key);
     }
     if let Some(matches) = opts.subcommand_matches("withdrawl") {
@@ -443,7 +443,7 @@ fn run_sheet(
         .api
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
     {
-        Ok(sheet) => {
+        Ok(_sheet) => {
             wait_order(config, &exchange);
             Ok(())
         }

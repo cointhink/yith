@@ -332,7 +332,7 @@ pub struct Order {
 }
 
 impl Order {
-    fn into_exg(self, base_token: &TokenDetail, quote_token: &TokenDetail) -> exchange::Order {
+    fn into_exg(self, base_token: &TokenDetail, _quote_token: &TokenDetail) -> exchange::Order {
         let date = chrono::DateTime::parse_from_str(self.created_at.as_str(), "%+").unwrap();
         exchange::Order {
             id: self.id,
@@ -474,6 +474,7 @@ impl Switcheo {
         status
     }
 
+    #[allow(dead_code)]
     pub fn wait_on_ids(&self, ids: Vec<String>) {
         let cache = HashMap::<String, cell::Cell<Option<exchange::OrderState>>>::new();
         let mut stats = ids.into_iter().fold(cache, |mut m, i| {
@@ -498,7 +499,7 @@ impl Switcheo {
             });
             if stats
                 .iter_mut()
-                .any(|(id, status_opt)| match status_opt.get_mut() {
+                .any(|(_id, status_opt)| match status_opt.get_mut() {
                     None => true,
                     Some(os) => match os {
                         exchange::OrderState::Pending | exchange::OrderState::Open => true,
@@ -673,7 +674,7 @@ impl exchange::Api for Switcheo {
     fn market_minimum(
         &self,
         ticker: &types::Ticker,
-        exchange: &config::ExchangeSettings,
+        _exchange: &config::ExchangeSettings,
     ) -> Option<f64> {
         match self.tokens.get(&ticker) {
             Some(base_token_detail) => {
@@ -698,7 +699,6 @@ impl exchange::Api for Switcheo {
         );
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
-        let status = resp.status();
         let json = resp.text().unwrap();
         let balances = serde_json::from_str::<BalanceResponse>(&json).unwrap();
         if balances.confirming.len() > 0 {
@@ -855,6 +855,7 @@ impl exchange::Api for Switcheo {
     }
 }
 
+#[allow(dead_code)]
 pub fn gather_ids(sigsheet: SignatureSheet) -> Vec<String> {
     let mut ids = vec![];
     for pair in sigsheet.fill_groups {
@@ -948,12 +949,12 @@ pub fn makegroup_display(
 mod tests {
     use super::*;
 
-    static privkey: &str = "98c193239bff9eb53a83e708b63b9c08d6e47900b775402aca2acc3daad06f24";
+    static PRIVKEY: &str = "98c193239bff9eb53a83e708b63b9c08d6e47900b775402aca2acc3daad06f24";
 
     #[test]
     fn test_order_sign() {
         let json = "{\"apple\":\"Z\",\"blockchain\":\"eth\",\"timestamp\":1529380859}";
-        let privkey_bytes = &hex::decode(privkey).unwrap();
+        let privkey_bytes = &hex::decode(PRIVKEY).unwrap();
         let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
         let signature = eth::ethsign(&json.to_string(), &secret_key);
         let good_sig = "0xbcff177dba964027085b5653a5732a68677a66c581f9c85a18e1dc23892c72d86c0b65336e8a17637fd1fe1def7fa8cbac43bf9a8b98ad9c1e21d00e304e32911c";
@@ -1002,7 +1003,7 @@ mod tests {
     fn test_fillgroup_sigs() {
         let sha256 = "b64c9ca323f29f9de97212bc108361aa9d28bc2feccafd9bd6caf5e40a4cc7e7";
         let sha_bytes = hex::decode(sha256).unwrap();
-        let privkey_bytes = &hex::decode(privkey).unwrap();
+        let privkey_bytes = &hex::decode(PRIVKEY).unwrap();
         let secret_key = SecretKey::from_slice(privkey_bytes).unwrap();
         let sig_bytes = eth::sign_bytes(&sha_bytes, &secret_key);
         let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));

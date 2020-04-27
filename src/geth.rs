@@ -26,7 +26,6 @@ pub fn rpc(
     method: &str,
     params: ParamTypes,
 ) -> Result<reqwest::blocking::Response, reqwest::Error> {
-    let params_json = serde_json::to_string(&params).unwrap();
     let jrpc = JsonRpc {
         jsonrpc: "2.0".to_string(),
         id: gen_id(),

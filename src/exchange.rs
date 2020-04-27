@@ -132,6 +132,7 @@ impl fmt::Display for Market {
     }
 }
 
+#[allow(unused_variables)]
 pub trait Api {
     fn setup(&mut self) {}
 
@@ -191,7 +192,7 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
         .unwrap()
         .with_scale(prec as i64) // truncates
         .with_scale(scale as i64);
-    let (qty_int, exp) = big_dec.into_bigint_and_exponent();
+    let (qty_int, _exp) = big_dec.into_bigint_and_exponent();
     qty_int
 }
 

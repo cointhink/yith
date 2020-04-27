@@ -70,6 +70,7 @@ pub struct Books {
 }
 
 impl Books {
+    #[allow(dead_code)]
     pub fn cost_total(&self) -> f64 {
         self.books
             .iter()
@@ -85,6 +86,7 @@ pub struct Book {
 }
 
 impl Book {
+    #[allow(dead_code)]
     pub fn cost_total(&self, askbid: AskBid) -> f64 {
         self.offers.iter().map(|o| o.cost(askbid)).sum()
     }

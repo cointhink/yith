@@ -135,7 +135,7 @@ impl exchange::Api for Ddex4 {
             amount: format!("{:.width$}", qty, width = market.quantity_decimals as usize),
         };
 
-        let client = build_auth_client(exchange)?;
+        let client = build_auth_client()?;
 
         let url = format!("{}{}", exchange.api_url.as_str(), "/orders/build");
         println!("Ddex4 {}", url);
@@ -170,8 +170,8 @@ impl exchange::Api for Ddex4 {
 
     fn submit(
         &self,
-        private_key: &str,
-        exchange: &config::ExchangeSettings,
+        _private_key: &str,
+        _exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<(), Box<dyn std::error::Error>> {
         println!("HYDRO order! {:#?}", sheet);
@@ -206,9 +206,7 @@ impl exchange::Api for Ddex4 {
     }
 }
 
-pub fn build_auth_client(
-    exchange: &config::ExchangeSettings,
-) -> reqwest::Result<reqwest::blocking::Client> {
+pub fn build_auth_client() -> reqwest::Result<reqwest::blocking::Client> {
     let headers = header::HeaderMap::new();
     let bldr = reqwest::blocking::Client::builder()
         .timeout(Duration::from_secs(10))
