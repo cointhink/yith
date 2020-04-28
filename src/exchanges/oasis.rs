@@ -178,11 +178,7 @@ impl exchange::Api for Oasis {
             tx.insert("data".to_string(), get_min_sell_data(&sheet.token_buy));
             let params = (tx.clone(), Some("latest".to_string()));
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let resp = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
-            let status = resp.status();
-            let json = resp.text().unwrap();
-            println!("{} {}", status, json);
-            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
+            let result = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
             match result.part {
                 geth::ResultTypes::Result(r) => println!("{:?}", r),
                 geth::ResultTypes::Error(e) => println!("Err {:?}", e.error.message),
@@ -190,15 +186,12 @@ impl exchange::Api for Oasis {
 
             let params = (sheet.address.clone(), "latest".to_string());
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let resp = geth::rpc(
+            let result = geth::rpc(
                 &url,
                 "eth_getTransactionCount",
                 geth::ParamTypes::InfuraSingle(params),
             )
             .unwrap();
-            let json = resp.text().unwrap();
-            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
-            println!("obj result {:?}", result);
             let nonce = match result.part {
                 geth::ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
                 geth::ResultTypes::Error(e) => {
@@ -223,16 +216,12 @@ impl exchange::Api for Oasis {
             let params = (eth::hex(&rlp_bytes),);
 
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let resp = geth::rpc(
+            let result = geth::rpc(
                 &url,
                 "eth_sendRawTransaction",
                 geth::ParamTypes::Single(params),
             )
             .unwrap();
-            let status = resp.status();
-            let json = resp.text().unwrap();
-            println!("{} {}", status, json);
-            let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
             println!("obj result {:?}", result);
 
             Ok(())

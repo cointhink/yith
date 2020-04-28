@@ -60,7 +60,7 @@ pub fn rpc(
     url: &str,
     method: &str,
     params: ParamTypes,
-) -> Result<reqwest::blocking::Response, reqwest::Error> {
+) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
     let jrpc = JsonRpc {
         jsonrpc: "2.0".to_string(),
         id: gen_id(),
@@ -70,7 +70,15 @@ pub fn rpc(
     let client = reqwest::blocking::Client::new();
     println!("{}", url);
     println!("{}", serde_json::to_string(&jrpc).unwrap());
-    client.post(url).json(&jrpc).send()
+    let result = client.post(url).json(&jrpc).send();
+    match result {
+        Ok(res) => {
+            let json = res.text().unwrap();
+            let rpc_result = serde_json::from_str::<JsonRpcResult>(&json).unwrap();
+            Ok(rpc_result)
+        }
+        Err(e) => Err(Box::new(e)),
+    }
 }
 
 pub fn gen_id() -> String {
