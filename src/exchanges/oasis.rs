@@ -179,10 +179,14 @@ impl exchange::Api for Oasis {
             let params = (tx.clone(), Some("latest".to_string()));
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let result = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
-            match result.part {
-                geth::ResultTypes::Result(r) => println!("{:?}", r),
-                geth::ResultTypes::Error(e) => println!("Err {:?}", e.error.message),
-            }
+            let min_sell = match result.part {
+                geth::ResultTypes::Result(r) => u64::from_str_radix(&r.result[2..], 16).unwrap(),
+                geth::ResultTypes::Error(e) => {
+                    println!("Err {:?}", e.error.message);
+                    0
+                }
+            };
+            println!("Min-Sell {} {}", &sheet.token_buy, min_sell);
 
             let params = (sheet.address.clone(), "latest".to_string());
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
@@ -199,6 +203,7 @@ impl exchange::Api for Oasis {
                     0
                 }
             };
+            println!("TX Count {} nonce {}", nonce, nonce + 1);
 
             let mut contract_addra = [0u8; 20];
             let contract_addr = exchange.contract_address.clone();
@@ -222,7 +227,10 @@ impl exchange::Api for Oasis {
                 geth::ParamTypes::Single(params),
             )
             .unwrap();
-            println!("obj result {:?}", result);
+            match result.part {
+                geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
+                geth::ResultTypes::Result(r) => println!("{:?}", r),
+            };
 
             Ok(())
         } else {
