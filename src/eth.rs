@@ -105,7 +105,7 @@ pub fn hex(bytes: &[u8]) -> String {
 }
 
 pub fn dehex(bytes: &str) -> Vec<u8> {
-    hex::decode(bytes).unwrap()
+    hex::decode(bytes.trim_start_matches("0x")).unwrap()
 }
 
 pub fn encode_addr(str: &str) -> Vec<u8> {

@@ -197,13 +197,19 @@ impl exchange::Api for Oasis {
             )
             .unwrap();
             let json = resp.text().unwrap();
-            println!("{} {}", status, json);
             let result = serde_json::from_str::<geth::JsonRpcResult>(&json).unwrap();
             println!("obj result {:?}", result);
+            let nonce = match result.part {
+                geth::ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
+                geth::ResultTypes::Error(e) => {
+                    println!("Err {:?}", e.error.message);
+                    0
+                }
+            };
 
             let tx = ethereum_tx_sign::RawTransaction {
-                nonce: ethereum_types::U256::from(0),
-                to: Some(ethereum_types::H160::zero()),
+                nonce: ethereum_types::U256::from(nonce + 1),
+                to: Some(ethereum_types::H160::from(eth::dehex(&sheet.address))),
                 value: ethereum_types::U256::zero(),
                 gas_price: ethereum_types::U256::from(10000),
                 gas: ethereum_types::U256::from(21240),
