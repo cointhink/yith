@@ -203,7 +203,7 @@ impl exchange::Api for Oasis {
                     0
                 }
             };
-            println!("TX Count {} nonce {}", nonce, nonce + 1);
+            println!("TX Count/next nonce {}", nonce);
 
             let mut contract_addra = [0u8; 20];
             let contract_addr = exchange.contract_address.clone();
