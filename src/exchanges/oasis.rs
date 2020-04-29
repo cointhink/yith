@@ -209,13 +209,17 @@ impl exchange::Api for Oasis {
             let contract_addr = exchange.contract_address.clone();
             contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
             let tx = ethereum_tx_sign::RawTransaction {
-                nonce: ethereum_types::U256::from(nonce + 1),
+                nonce: ethereum_types::U256::from(nonce),
                 to: Some(ethereum_types::H160::from(contract_addra)),
                 value: ethereum_types::U256::zero(),
-                gas_price: ethereum_types::U256::from(12000),
+                gas_price: ethereum_types::U256::from(5_000_000_000u64),
                 gas: ethereum_types::U256::from(310240),
                 data: eth_data(&self.contract, &sheet),
             };
+            println!(
+                "nonce {} gas_price {} gas_limit {}",
+                tx.nonce, tx.gas_price, tx.gas
+            );
             let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
             let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
             let params = (eth::hex(&rlp_bytes),);
