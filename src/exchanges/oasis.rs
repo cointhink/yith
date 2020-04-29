@@ -204,6 +204,13 @@ impl exchange::Api for Oasis {
                 }
             };
             println!("TX Count/next nonce {}", nonce);
+            let gas_prices = geth::ethgasstation();
+            let gas_price = (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64;
+            let gas_price_gwei = gas_price / 1_000_000_000u64;
+            println!(
+                "gas prices {:?} final price {}gwei",
+                gas_prices, gas_price_gwei
+            );
 
             let mut contract_addra = [0u8; 20];
             let contract_addr = exchange.contract_address.clone();
@@ -212,7 +219,7 @@ impl exchange::Api for Oasis {
                 nonce: ethereum_types::U256::from(nonce),
                 to: Some(ethereum_types::H160::from(contract_addra)),
                 value: ethereum_types::U256::zero(),
-                gas_price: ethereum_types::U256::from(5_000_000_000u64),
+                gas_price: ethereum_types::U256::from(gas_price),
                 gas: ethereum_types::U256::from(310240),
                 data: eth_data(&self.contract, &sheet),
             };

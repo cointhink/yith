@@ -86,3 +86,19 @@ pub fn gen_id() -> String {
     rand::thread_rng().fill(&mut pad);
     bs58::encode(pad).into_string()
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EthGasStationResult {
+    pub fast: f32,
+    pub fastest: f32,
+    pub safe_low: f32,
+    pub average: f32,
+}
+
+pub fn ethgasstation() -> EthGasStationResult {
+    let url = "https://ethgasstation.info/api/ethgasAPI.json";
+    let client = reqwest::blocking::Client::new();
+    let result = client.get(url).send().unwrap();
+    result.json::<EthGasStationResult>().unwrap()
+}
