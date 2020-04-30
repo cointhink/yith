@@ -146,19 +146,24 @@ impl exchange::Api for Oasis {
     ) -> Result<exchange::OrderSheet, Box<dyn error::Error>> {
         let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
         let pair = self.pairs.get(&market.base.symbol, &market.quote.symbol);
-        let cost_int = exchange::quantity_in_base_units(
-            offer.cost(*askbid),
-            pair.base_precision,
-            pair.base_precision,
-        );
-        let cost_str = cost_int.to_str_radix(10);
+        let offer_cost = offer.cost(*askbid);
         let qty_int = exchange::quantity_in_base_units(
             offer.base_qty,
+            pair.base_precision,
+            pair.base_precision,
+        );
+        let qty_str = qty_int.to_str_radix(10);
+        let cost_int = exchange::quantity_in_base_units(
+            offer_cost,
             pair.quote_precision,
             pair.quote_precision,
         );
+        let cost_str = cost_int.to_str_radix(10);
+        println!(
+            "qty {} {} cost {} {}",
+            offer.base_qty, qty_int, offer_cost, cost_int
+        );
 
-        let qty_str = qty_int.to_str_radix(10);
         let base_token = &self.tokens.get(&pair.base).address;
         let quote_token = &self.tokens.get(&pair.quote).address;
         let min_sell = match self.min_sell(quote_token, exchange).unwrap() {
@@ -176,6 +181,18 @@ impl exchange::Api for Oasis {
                 0.0
             }
         };
+        if offer_cost < min_sell {
+            let order_error = exchange::OrderError {
+                msg: format!(
+                    "minimum quantity of {} not met with {}",
+                    min_sell, offer_cost
+                ),
+                code: 14 as i32,
+            };
+            println!("ERR: {}", order_error);
+            return Err(Box::new(order_error));
+        }
+
         let order_sheet = match askbid {
             types::AskBid::Ask => OrderSheet {
                 address: pub_addr,
