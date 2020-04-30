@@ -283,13 +283,13 @@ pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> Vec<u8> {
     let mut call = Vec::<u8>::new();
     let mut func = eth::hash_abi_sig("offer(uint256,address,uint256,address,uint256)").to_vec();
     call.append(&mut func);
-    let mut p1 = hex::decode(eth::encode_uint256(&sheet.amount_buy)).unwrap();
+    let mut p1 = hex::decode(eth::encode_uint256(&sheet.amount_sell)).unwrap();
     call.append(&mut p1);
-    let mut p2 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
+    let mut p2 = hex::decode(eth::encode_addr2(&sheet.token_sell)).unwrap();
     call.append(&mut p2);
-    let mut p3 = hex::decode(eth::encode_uint256(&sheet.amount_sell)).unwrap();
+    let mut p3 = hex::decode(eth::encode_uint256(&sheet.amount_buy)).unwrap();
     call.append(&mut p3);
-    let mut p4 = hex::decode(eth::encode_addr2(&sheet.token_sell)).unwrap();
+    let mut p4 = hex::decode(eth::encode_addr2(&sheet.token_buy)).unwrap();
     call.append(&mut p4);
     let mut p5 = hex::decode(eth::encode_uint256("0")).unwrap();
     call.append(&mut p5); // position
