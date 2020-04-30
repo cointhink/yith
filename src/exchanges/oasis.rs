@@ -62,6 +62,22 @@ impl Oasis {
             tokens: tokens,
         }
     }
+
+    fn min_sell(
+        &self,
+        token: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Result<geth::ResultTypes, Box<dyn std::error::Error>> {
+        let mut tx = geth::JsonRpcParam::new();
+        tx.insert("to".to_string(), exchange.contract_address.clone());
+        tx.insert("data".to_string(), get_min_sell_data(token));
+        let params = (tx.clone(), Some("latest".to_string()));
+        let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
+        match geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)) {
+            Ok(result) => Ok(result.part),
+            Err(e) => Err(e),
+        }
+    }
 }
 
 pub fn read_pairs(filename: &str) -> PairList {
@@ -124,7 +140,7 @@ impl exchange::Api for Oasis {
         &self,
         privkey: &str,
         askbid: &types::AskBid,
-        _exchange: &config::ExchangeSettings,
+        exchange: &config::ExchangeSettings,
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn error::Error>> {
@@ -141,9 +157,25 @@ impl exchange::Api for Oasis {
             pair.quote_precision,
             pair.quote_precision,
         );
+
         let qty_str = qty_int.to_str_radix(10);
         let base_token = &self.tokens.get(&pair.base).address;
         let quote_token = &self.tokens.get(&pair.quote).address;
+        let min_sell = match self.min_sell(quote_token, exchange).unwrap() {
+            geth::ResultTypes::Result(r) => {
+                let units = u64::from_str_radix(&r.result[2..], 16).unwrap();
+                let qty = exchange::units_to_quantity(units, pair.quote_precision);
+                println!(
+                    "Min-Sell {} ^{} {} = {}",
+                    &pair.quote, pair.quote_precision, units, qty
+                );
+                qty
+            }
+            geth::ResultTypes::Error(e) => {
+                println!("Err {:?}", e.error.message);
+                0.0
+            }
+        };
         let order_sheet = match askbid {
             types::AskBid::Ask => OrderSheet {
                 address: pub_addr,
@@ -171,23 +203,6 @@ impl exchange::Api for Oasis {
         sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn error::Error>> {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
-            let mut tx = geth::JsonRpcParam::new();
-            tx.insert("from".to_string(), sheet.address.clone());
-            let contract_addr = exchange.contract_address.clone();
-            tx.insert("to".to_string(), contract_addr);
-            tx.insert("data".to_string(), get_min_sell_data(&sheet.token_buy));
-            let params = (tx.clone(), Some("latest".to_string()));
-            let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let result = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
-            let min_sell = match result.part {
-                geth::ResultTypes::Result(r) => u64::from_str_radix(&r.result[2..], 16).unwrap(),
-                geth::ResultTypes::Error(e) => {
-                    println!("Err {:?}", e.error.message);
-                    0
-                }
-            };
-            println!("Min-Sell {} {}", &sheet.token_buy, min_sell);
-
             let params = (sheet.address.clone(), "latest".to_string());
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let result = geth::rpc(
