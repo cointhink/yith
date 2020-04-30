@@ -83,6 +83,19 @@ impl TokenList {
         );
         detail
     }
+
+    pub fn by_addr(&self, addr: &str) -> &TokenDetail {
+        let detail = self
+            .tokens
+            .iter()
+            .find(|(symbol, _detail)| _detail.address == addr)
+            .unwrap();
+        println!(
+            "idex by_addr {} ^{} {}",
+            detail.0, detail.1.decimals, detail.1.address
+        );
+        detail.1
+    }
 }
 
 #[allow(dead_code)]

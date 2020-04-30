@@ -78,6 +78,26 @@ impl Oasis {
             Err(e) => Err(e),
         }
     }
+
+    fn wait_for_balance_change(
+        &self,
+        token_addr: &str,
+        addr: &str,
+        exchange: &config::ExchangeSettings,
+    ) {
+        let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
+        let token = &self.tokens.by_addr(token_addr);
+        let mut tx = geth::JsonRpcParam::new();
+        tx.insert("to".to_string(), token_addr.to_string());
+        tx.insert("data".to_string(), get_balance_data(addr));
+        let params = (tx.clone(), Some("latest".to_string()));
+        let r = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
+        if let geth::ResultTypes::Result(part) = r.part {
+            let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
+            let qty = exchange::units_to_quantity(units as u64, token.decimals);
+            println!("token {} qty {}", token.name, qty);
+        }
+    }
 }
 
 pub fn read_pairs(filename: &str) -> PairList {
@@ -220,6 +240,7 @@ impl exchange::Api for Oasis {
         sheet_opt: exchange::OrderSheet,
     ) -> Result<(), Box<dyn error::Error>> {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
+            let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let params = (sheet.address.clone(), "latest".to_string());
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
             let result = geth::rpc(
@@ -264,16 +285,21 @@ impl exchange::Api for Oasis {
             let params = (eth::hex(&rlp_bytes),);
 
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let result = geth::rpc(
-                &url,
-                "eth_sendRawTransaction",
-                geth::ParamTypes::Single(params),
-            )
-            .unwrap();
-            match result.part {
-                geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
-                geth::ResultTypes::Result(r) => println!("{:?}", r),
-            };
+            self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
+            // let result = geth::rpc(
+            //     &url,
+            //     "eth_sendRawTransaction",
+            //     geth::ParamTypes::Single(params),
+            // )
+            // .unwrap();
+            // match result.part {
+            //     geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
+            //     geth::ResultTypes::Result(r) => {
+            //         let tx = r.result;
+            //         println!("GOOD TX {}", tx);
+            //         self.wait_for_balance_change(&tx, &sheet.token_buy, exchange);
+            //     }
+            // };
 
             Ok(())
         } else {
@@ -316,6 +342,15 @@ pub fn eth_data(contract: &Contract, sheet: &OrderSheet) -> Vec<u8> {
 pub fn get_min_sell_data(addr: &str) -> String {
     let mut call = Vec::<u8>::new();
     let mut func = eth::hash_abi_sig("getMinSell(address)").to_vec();
+    call.append(&mut func);
+    let mut p1 = hex::decode(eth::encode_addr2(addr)).unwrap();
+    call.append(&mut p1);
+    format!("0x{}", hex::encode(call))
+}
+
+pub fn get_balance_data(addr: &str) -> String {
+    let mut call = Vec::<u8>::new();
+    let mut func = eth::hash_abi_sig("balanceOf(address)").to_vec();
     call.append(&mut func);
     let mut p1 = hex::decode(eth::encode_addr2(addr)).unwrap();
     call.append(&mut p1);
