@@ -88,7 +88,7 @@ impl TokenList {
         let detail = self
             .tokens
             .iter()
-            .find(|(symbol, _detail)| _detail.address == addr)
+            .find(|(_symbol, detail)| detail.address == addr)
             .unwrap();
         println!(
             "idex by_addr {} ^{} {}",
