@@ -3,6 +3,7 @@ use crate::eth;
 use crate::exchange;
 use crate::exchanges;
 use crate::geth;
+use crate::time;
 use crate::types;
 use ethereum_types;
 use serde::{Deserialize, Serialize};
@@ -84,7 +85,36 @@ impl Oasis {
         token_addr: &str,
         addr: &str,
         exchange: &config::ExchangeSettings,
-    ) {
+    ) -> Option<f64> {
+        match self.balance(token_addr, addr, exchange) {
+            Some(balance) => {
+                let first_balance = balance;
+                let mut next_balance = first_balance;
+                while next_balance == first_balance {
+                    match self.balance(token_addr, addr, exchange) {
+                        Some(balance) => {
+                            println!(
+                                "first balance {} next balance {}",
+                                first_balance, next_balance,
+                            );
+                            next_balance = balance;
+                        }
+                        None => (),
+                    };
+                    time::sleep(10000);
+                }
+                Some(next_balance)
+            }
+            None => None,
+        }
+    }
+
+    fn balance(
+        &self,
+        token_addr: &str,
+        addr: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Option<f64> {
         let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
         let token = &self.tokens.by_addr(token_addr);
         let mut tx = geth::JsonRpcParam::new();
@@ -96,6 +126,9 @@ impl Oasis {
             let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
             let qty = exchange::units_to_quantity(units as u64, token.decimals);
             println!("token {} qty {}", token.name, qty);
+            Some(qty)
+        } else {
+            None
         }
     }
 }
@@ -285,21 +318,20 @@ impl exchange::Api for Oasis {
             let params = (eth::hex(&rlp_bytes),);
 
             let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
-            // let result = geth::rpc(
-            //     &url,
-            //     "eth_sendRawTransaction",
-            //     geth::ParamTypes::Single(params),
-            // )
-            // .unwrap();
-            // match result.part {
-            //     geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
-            //     geth::ResultTypes::Result(r) => {
-            //         let tx = r.result;
-            //         println!("GOOD TX {}", tx);
-            //         self.wait_for_balance_change(&tx, &sheet.token_buy, exchange);
-            //     }
-            // };
+            let result = geth::rpc(
+                &url,
+                "eth_sendRawTransaction",
+                geth::ParamTypes::Single(params),
+            )
+            .unwrap();
+            match result.part {
+                geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
+                geth::ResultTypes::Result(r) => {
+                    let tx = r.result;
+                    println!("GOOD TX {}", tx);
+                    self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
+                }
+            };
 
             Ok(())
         } else {
