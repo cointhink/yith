@@ -401,7 +401,16 @@ pub struct WithdrawlRequestSigned {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WithdrawalTransaction {
+    from: String,
+    value: String,
+    to: String,
+    data: String,
+    gas: String,
+    gas_price: String,
+    chain_id: u32,
+    nonce: String,
     sha256: String,
 }
 
@@ -422,6 +431,11 @@ pub struct WithdrawalExecuteSigned {
     #[serde(flatten)]
     withdrawal_execute: WithdrawalExecute,
     signature: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DepositExecute {
+    transaction_hash: String,
 }
 
 pub struct Switcheo {
@@ -520,7 +534,7 @@ impl Switcheo {
         amount: f64,
         token: &types::Ticker,
         api_word: &str,
-    ) {
+    ) -> Result<WithdrawlResponse, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
@@ -553,30 +567,7 @@ impl Switcheo {
         println!("{}", json);
         if status.is_success() {
             let resp = serde_json::from_str::<WithdrawlResponse>(&json).unwrap();
-            let withdrawal_execute = WithdrawalExecute {
-                id: resp.id,
-                timestamp: time::now_millis(),
-            };
-            let signature = sha_hex_sign(&resp.transaction.sha256, &secret_key);
-            let withdrawal_execute_signed = WithdrawalExecuteSigned {
-                withdrawal_execute: withdrawal_execute,
-                signature: signature,
-            };
-            let url = format!(
-                "{}/{}/{}/broadcast",
-                exchange.api_url.as_str(),
-                api_word,
-                withdrawal_execute_signed.withdrawal_execute.id
-            );
-            let resp = client
-                .post(url.as_str())
-                .json(&withdrawal_execute_signed)
-                .send()
-                .unwrap();
-            let status = resp.status();
-            println!("switcheo {} execute {:#?} {}", status, api_word, resp.url());
-            let json = resp.text().unwrap();
-            println!("{}", json);
+            Ok(resp)
         } else {
             let resp_err = serde_json::from_str::<ResponseError>(&json).unwrap();
             let order_error = exchange::OrderError {
@@ -584,7 +575,7 @@ impl Switcheo {
                 code: resp_err.error_code as i32,
             };
             println!("ERR: {}", order_error);
-            //Err(Box::new(order_error));
+            Err(Box::new(order_error))
         }
     }
 }
@@ -805,7 +796,39 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: &types::Ticker,
     ) {
-        self.withdepo(privkey, exchange, amount, token, "withdrawals")
+        let privbytes = &hex::decode(privkey).unwrap();
+        let secret_key = SecretKey::from_slice(privbytes).unwrap();
+        let client = reqwest::blocking::Client::new();
+        let response = self.withdepo(privkey, exchange, amount, token, "withdrawals");
+        match response {
+            Ok(resp) => {
+                let withdrawal_execute = WithdrawalExecute {
+                    id: resp.id,
+                    timestamp: time::now_millis(),
+                };
+                let signature = sha_hex_sign(&resp.transaction.sha256, &secret_key);
+                let withdrawal_execute_signed = WithdrawalExecuteSigned {
+                    withdrawal_execute: withdrawal_execute,
+                    signature: signature,
+                };
+
+                let url = format!(
+                    "{}/withdrawal/{}/broadcast",
+                    exchange.api_url.as_str(),
+                    withdrawal_execute_signed.withdrawal_execute.id
+                );
+                let resp = client
+                    .post(url.as_str())
+                    .json(&withdrawal_execute_signed)
+                    .send()
+                    .unwrap();
+                let status = resp.status();
+                println!("switcheo withdrawal execute {:#?} {}", status, resp.url());
+                let json = resp.text().unwrap();
+                println!("{}", json);
+            }
+            Err(_e) => (),
+        }
     }
 
     fn deposit(
@@ -815,7 +838,15 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: &types::Ticker,
     ) {
-        self.withdepo(privkey, exchange, amount, token, "deposits")
+        let response = self.withdepo(privkey, exchange, amount, token, "deposits");
+        match response {
+            Ok(_deposit_tx) => {
+                let deposit_execute = DepositExecute {
+                    transaction_hash: "".to_string(),
+                };
+            }
+            Err(_e) => {}
+        }
     }
 
     fn order_status(&self, order_id: &str) -> exchange::OrderState {
