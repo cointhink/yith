@@ -353,12 +353,12 @@ fn build_offer(
                             Ok(coin) => {
                                 let least_deposit = minimum(vec![offer_cost, coin.base_total()]);
                                 println!(
-                                    "MOVE: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4}",
+                                    "MOVE: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
                                     least_deposit,
                                     &check_ticker.symbol,
                                     source_name,
-                                    coin.base_total(),
                                     offer_cost
+                                    coin.base_total(),
                                 );
                                 exchange.api.deposit(
                                     &config.wallet_private_key,
