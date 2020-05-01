@@ -357,7 +357,7 @@ fn build_offer(
                                     least_deposit,
                                     &check_ticker.symbol,
                                     source_name,
-                                    offer_cost
+                                    offer_cost,
                                     coin.base_total(),
                                 );
                                 exchange.api.deposit(
