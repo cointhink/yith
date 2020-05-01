@@ -362,13 +362,14 @@ pub struct BalanceResponse {
     confirmed: HashMap<String, String>,
     locked: HashMap<String, String>,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceConfirming {
     id: String,
     event_type: String,
     asset_id: String,
     amount: String,
-    transaction_hash: String,
+    transaction_hash: Option<String>,
     created_at: String,
 }
 
