@@ -420,11 +420,13 @@ impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
         let mut sized_to = [0u8; 20];
         sized_to.copy_from_slice(&eth::dehex(&self.to)[..]);
         ethereum_tx_sign::RawTransaction {
-            nonce: u64::from_str_radix(&self.nonce, 16).unwrap().into(),
+            nonce: u64::from_str_radix(&self.nonce[2..], 16).unwrap().into(),
             to: Some(sized_to.into()),
             value: 0.into(),
-            gas_price: u64::from_str_radix(&self.gas_price, 16).unwrap().into(),
-            gas: u64::from_str_radix(&self.gas_price, 16).unwrap().into(),
+            gas_price: u64::from_str_radix(&self.gas_price[2..], 16)
+                .unwrap()
+                .into(),
+            gas: u64::from_str_radix(&self.gas[2..], 16).unwrap().into(),
             data: eth::dehex(&self.data),
         }
     }
