@@ -341,17 +341,24 @@ fn build_offer(
             amount_limits.push(coin.base_total());
         }
         Err(_e) => {
-            let modeword = match mode {
-                Mode::Simulate => "WARNING",
-                Mode::Real => "ERROR",
-            };
-            let err = exchange::ExchangeError::build_box(format!(
-                "{}: {} balance unknown for {}",
-                modeword, check_ticker, source_name
-            ));
-            match mode {
-                Mode::Simulate => (),
-                Mode::Real => return Err(err), // early return
+            if exchange.settings.has_balances {
+                match mode {
+                    Mode::Simulate => (), // not a limitation in simulate
+                    Mode::Real => amount_limits.push(0.0),
+                }
+            } else {
+                let modeword = match mode {
+                    Mode::Simulate => "WARNING",
+                    Mode::Real => "ERROR",
+                };
+                let err = exchange::ExchangeError::build_box(format!(
+                    "{}: {} balance unknown for {}",
+                    modeword, check_ticker, source_name
+                ));
+                match mode {
+                    Mode::Simulate => (),
+                    Mode::Real => return Err(err), // early return
+                }
             }
         }
     };
