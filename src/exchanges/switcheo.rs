@@ -420,11 +420,11 @@ impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
         let mut sized_to = [0u8; 20];
         sized_to.copy_from_slice(&eth::dehex(&self.to)[..]);
         ethereum_tx_sign::RawTransaction {
-            nonce: eth::dehex(&self.nonce)[..].into(),
+            nonce: u64::from_str_radix(&self.nonce, 16).unwrap().into(),
             to: Some(sized_to.into()),
             value: 0.into(),
-            gas_price: eth::dehex(&self.gas_price)[..].into(),
-            gas: eth::dehex(&self.gas)[..].into(),
+            gas_price: u64::from_str_radix(&self.gas_price, 16).unwrap().into(),
+            gas: u64::from_str_radix(&self.gas_price, 16).unwrap().into(),
             data: eth::dehex(&self.data),
         }
     }
@@ -580,7 +580,7 @@ impl Switcheo {
             .send()
             .unwrap();
         let status = resp.status();
-        println!("switcheo withdrawal request {:#?} {}", status, resp.url());
+        println!("switcheo {} request {:#?} {}", api_word, status, resp.url());
         let json = resp.text().unwrap();
         println!("{}", json);
         if status.is_success() {
