@@ -169,7 +169,7 @@ pub trait Api {
     }
 
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
-        println!("warning {} has no open_orders call", exchange.name);
+        println!("WARNING: {} has no open_orders call", exchange.name);
         vec![]
     }
 
@@ -182,8 +182,23 @@ pub trait Api {
         privkey: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
-        token: types::Ticker,
+        token: &types::Ticker,
     ) {
+        if exchange.has_balances {
+            println!("WARNING: withdrawl not implemented for {}", exchange.name)
+        }
+    }
+
+    fn deposit(
+        &self,
+        privkey: &str,
+        exchange: &config::ExchangeSettings,
+        amount: f64,
+        token: &types::Ticker,
+    ) {
+        if exchange.has_balances {
+            println!("WARNING: deposit not implemented for {}", exchange.name)
+        }
     }
 }
 

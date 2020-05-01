@@ -58,7 +58,7 @@ fn app(
                     &config.wallet_private_key,
                     &exchange.settings,
                     amount,
-                    token,
+                    &token,
                 );
             }
             None => println!("exchange not found"),
@@ -324,18 +324,22 @@ fn build_offer(
     mode: Mode,
 ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
     println!("build offer {} {}", exchange, offer);
-    let pub_key = eth::privkey_to_addr(&config.wallet_private_key);
+    let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
     let (askbid, market, offer) = unswap(askbid, market, offer);
     let source_name = if exchange.settings.has_balances {
         &market.source_name
     } else {
-        &pub_key
+        &pub_addr
     };
     let check_ticker = match askbid {
         types::AskBid::Ask => &market.quote,
         types::AskBid::Bid => &market.base,
     };
+
     let mut amount_limits = vec![];
+    let offer_cost = offer.cost(askbid);
+    amount_limits.push(offer_cost);
+
     match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
         Ok(coin) => {
             amount_limits.push(coin.base_total());
@@ -344,7 +348,25 @@ fn build_offer(
             if exchange.settings.has_balances {
                 match mode {
                     Mode::Simulate => (), // not a limitation in simulate
-                    Mode::Real => amount_limits.push(0.0),
+                    Mode::Real => {
+                        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
+                            Ok(coin) => {
+                                println!(
+                                    "MOVE: eth balance {} {} into {}",
+                                    coin.base_total(),
+                                    &check_ticker.symbol,
+                                    source_name
+                                );
+                                exchange.api.deposit(
+                                    &config.wallet_private_key,
+                                    &exchange.settings,
+                                    offer_cost,
+                                    &market.base,
+                                )
+                            }
+                            Err(_e) => {}
+                        }
+                    }
                 }
             } else {
                 let modeword = match mode {
@@ -376,8 +398,6 @@ fn build_offer(
         }
     };
 
-    let offer_cost = offer.cost(askbid);
-    amount_limits.push(offer_cost);
     let least_cost = minimum(amount_limits);
     let least_qty = match askbid {
         types::AskBid::Ask => least_cost / offer.quote,

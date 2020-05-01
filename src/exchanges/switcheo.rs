@@ -653,7 +653,7 @@ impl exchange::Api for Switcheo {
                                 base_qty * price
                             }
                         };
-                        self.withdrawl(privkey, exchange, qty, token);
+                        self.withdrawl(privkey, exchange, qty, &token);
                     }
                     exchange::OrderState::Cancelled => {
                         println!("order cancelled!");
@@ -729,7 +729,7 @@ impl exchange::Api for Switcheo {
         privkey: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
-        token: types::Ticker,
+        token: &types::Ticker,
     ) {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
