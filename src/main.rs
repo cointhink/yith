@@ -341,9 +341,13 @@ fn build_offer(
             amount_limits.push(coin.base_total());
         }
         Err(_e) => {
+            let modeword = match mode {
+                Mode::Simulate => "WARNING",
+                Mode::Real => "ERROR",
+            };
             let err = exchange::ExchangeError::build_box(format!(
-                "WARNING: {} balance unknown for {}",
-                check_ticker, source_name
+                "{}: {} balance unknown for {}",
+                modeword, check_ticker, source_name
             ));
             match mode {
                 Mode::Simulate => (),
