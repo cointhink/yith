@@ -4,6 +4,28 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Client {
+    url: String,
+}
+
+impl Client {
+    pub fn rpc(
+        &self,
+        method: &str,
+        params: ParamTypes,
+    ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
+        rpc(&self.url, method, params)
+    }
+}
+
+pub fn infura(pid: &str) -> Client {
+    let infura_api = "https://mainnet.infura.io/v3";
+    Client {
+        url: format!("{}/{}", infura_api, pid),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JsonRpc {
     pub jsonrpc: String,
     pub id: String,

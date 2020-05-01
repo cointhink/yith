@@ -45,19 +45,19 @@ impl PairList {
 }
 
 pub struct Oasis {
-    infura_id: String,
+    geth: geth::Client,
     pairs: PairList,
     contract: Contract,
     tokens: exchanges::idex::TokenList, // borrow from Idex
 }
 
 impl Oasis {
-    pub fn new(api_key: &str) -> Oasis {
+    pub fn new(geth: geth::Client) -> Oasis {
         let pairs = read_pairs("notes/oasis-pairs.json");
         let abi = read_abi("notes/oasis-abi.json");
         let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
         Oasis {
-            infura_id: api_key.to_string(),
+            geth: geth,
             pairs: pairs,
             contract: abi,
             tokens: tokens,
@@ -73,8 +73,7 @@ impl Oasis {
         tx.insert("to".to_string(), exchange.contract_address.clone());
         tx.insert("data".to_string(), get_min_sell_data(token));
         let params = (tx.clone(), Some("latest".to_string()));
-        let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-        match geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)) {
+        match self.geth.rpc("eth_call", geth::ParamTypes::Infura(params)) {
             Ok(result) => Ok(result.part),
             Err(e) => Err(e),
         }
@@ -115,13 +114,15 @@ impl Oasis {
         addr: &str,
         exchange: &config::ExchangeSettings,
     ) -> Option<f64> {
-        let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
         let token = &self.tokens.by_addr(token_addr);
         let mut tx = geth::JsonRpcParam::new();
         tx.insert("to".to_string(), token_addr.to_string());
         tx.insert("data".to_string(), get_balance_data(addr));
         let params = (tx.clone(), Some("latest".to_string()));
-        let r = geth::rpc(&url, "eth_call", geth::ParamTypes::Infura(params)).unwrap();
+        let r = self
+            .geth
+            .rpc("eth_call", geth::ParamTypes::Infura(params))
+            .unwrap();
         if let geth::ResultTypes::Result(part) = r.part {
             let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
             let qty = exchange::units_to_quantity(units as u64, token.decimals);
@@ -275,13 +276,13 @@ impl exchange::Api for Oasis {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let params = (sheet.address.clone(), "latest".to_string());
-            let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let result = geth::rpc(
-                &url,
-                "eth_getTransactionCount",
-                geth::ParamTypes::InfuraSingle(params),
-            )
-            .unwrap();
+            let result = self
+                .geth
+                .rpc(
+                    "eth_getTransactionCount",
+                    geth::ParamTypes::InfuraSingle(params),
+                )
+                .unwrap();
             let nonce = match result.part {
                 geth::ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
                 geth::ResultTypes::Error(e) => {
@@ -317,13 +318,10 @@ impl exchange::Api for Oasis {
             let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
             let params = (eth::hex(&rlp_bytes),);
 
-            let url = format!("{}/{}", exchange.api_url.as_str(), self.infura_id);
-            let result = geth::rpc(
-                &url,
-                "eth_sendRawTransaction",
-                geth::ParamTypes::Single(params),
-            )
-            .unwrap();
+            let result = self
+                .geth
+                .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
+                .unwrap();
             match result.part {
                 geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
                 geth::ResultTypes::Result(r) => {

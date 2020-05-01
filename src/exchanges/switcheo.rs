@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::exchange::Api;
+use crate::geth;
 use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
@@ -414,6 +415,21 @@ pub struct WithdrawalTransaction {
     sha256: String,
 }
 
+impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
+    fn into(self) -> ethereum_tx_sign::RawTransaction {
+        let mut sized_to = [0u8; 20];
+        sized_to.copy_from_slice(&eth::dehex(&self.to)[..]);
+        ethereum_tx_sign::RawTransaction {
+            nonce: eth::dehex(&self.nonce)[..].into(),
+            to: Some(sized_to.into()),
+            value: 0.into(),
+            gas_price: eth::dehex(&self.gas_price)[..].into(),
+            gas: eth::dehex(&self.gas)[..].into(),
+            data: eth::dehex(&self.data),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WithdrawlResponse {
     id: String,
@@ -439,6 +455,7 @@ pub struct DepositExecute {
 }
 
 pub struct Switcheo {
+    geth: geth::Client,
     tokens: TokenList,
     pairs: PairList,
     settings: config::ExchangeSettings,
@@ -449,7 +466,7 @@ impl Switcheo {
         &self.settings
     }
 
-    pub fn new(settings: config::ExchangeSettings) -> Switcheo {
+    pub fn new(settings: config::ExchangeSettings, client: geth::Client) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
         println!(
@@ -458,6 +475,7 @@ impl Switcheo {
             pairs.len()
         );
         Switcheo {
+            geth: client,
             tokens: tokens,
             pairs: pairs,
             settings: settings,
@@ -838,12 +856,31 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: &types::Ticker,
     ) {
-        let response = self.withdepo(privkey, exchange, amount, token, "deposits");
-        match response {
-            Ok(_deposit_tx) => {
+        let client = reqwest::blocking::Client::new();
+        let response_opt = self.withdepo(privkey, exchange, amount, token, "deposits");
+        match response_opt {
+            Ok(response) => {
+                let tx: ethereum_tx_sign::RawTransaction = response.transaction.into();
+                let private_key = ethereum_types::H256::from_slice(&eth::dehex(privkey));
+                let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
+
                 let deposit_execute = DepositExecute {
-                    transaction_hash: "".to_string(),
+                    transaction_hash: eth::hex(&rlp_bytes),
                 };
+                let url = format!(
+                    "{}/deposit/{}/broadcast",
+                    exchange.api_url.as_str(),
+                    response.id
+                );
+                let resp = client
+                    .post(url.as_str())
+                    .json(&deposit_execute)
+                    .send()
+                    .unwrap();
+                let status = resp.status();
+                println!("switcheo deposit execute {:#?} {}", status, resp.url());
+                let json = resp.text().unwrap();
+                println!("{}", json);
             }
             Err(_e) => {}
         }
