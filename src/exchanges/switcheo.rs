@@ -870,7 +870,7 @@ impl exchange::Api for Switcheo {
                     transaction_hash: eth::hex(&rlp_bytes),
                 };
                 let url = format!(
-                    "{}/deposit/{}/broadcast",
+                    "{}/deposits/{}/broadcast",
                     exchange.api_url.as_str(),
                     response.id
                 );
