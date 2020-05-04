@@ -77,10 +77,10 @@ impl TokenList {
             .find(|(symbol, _detail)| *symbol == symbol2)
             .unwrap()
             .1;
-        println!(
-            "idex lookup {} ^{} {}",
-            symbol2, detail.decimals, detail.address
-        );
+        // println!(
+        //     "idex lookup {} ^{} {}",
+        //     symbol2, detail.decimals, detail.address
+        // );
         detail
     }
 
@@ -90,10 +90,10 @@ impl TokenList {
             .iter()
             .find(|(_symbol, detail)| detail.address == addr)
             .unwrap();
-        println!(
-            "idex by_addr {} ^{} {}",
-            detail.0, detail.1.decimals, detail.1.address
-        );
+        // println!(
+        //     "idex by_addr {} ^{} {}",
+        //     detail.0, detail.1.decimals, detail.1.address
+        // );
         detail.1
     }
 }
