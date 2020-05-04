@@ -10,7 +10,7 @@ subcommands:
     - balances:
         about: list balances
         version: "1.0"
-    - open:
+    - orders:
         about: list open orders
         version: "1.0"
     - withdrawl:

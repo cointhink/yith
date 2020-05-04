@@ -42,7 +42,7 @@ fn app(
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
     }
-    if let Some(_matches) = opts.subcommand_matches("open") {
+    if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
     }
     if let Some(matches) = opts.subcommand_matches("withdrawl") {
@@ -87,21 +87,19 @@ fn app(
             "{}/{} Cost {:0.5} Profit {:0.5} {}",
             order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
         );
-        run_order(config, &mut wallet, &order, &exchanges);
+        let run_log = run_order(config, &mut wallet, &order, &exchanges);
+        if let Some(email) = config.email.as_ref() {
+            mail_log(&email, &order, &run_log)
+        }
     }
     if let Some(matches) = opts.subcommand_matches("order") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
 
         let order = build_manual_order(matches);
-        let run_out = run_order(config, &mut wallet, &order, &exchanges);
+        let run_log = run_order(config, &mut wallet, &order, &exchanges);
         if let Some(email) = config.email.as_ref() {
-            let subject = format!("{}", order.pair);
-            let out = format!(
-                "order #{} {} {:0.4} {:0.4}\n{}",
-                order.id, order.pair, order.cost, order.profit, run_out
-            );
-            email::send(email, &subject, &out);
+            mail_log(&email, &order, &run_log)
         }
     }
     Ok(0)
@@ -200,8 +198,16 @@ fn run_order(
             ask_sheets_len, ask_goods_len
         ));
     }
-
     run_out
+}
+
+fn mail_log(email: &str, order: &types::Order, run_log: &RunLog) {
+    let subject = format!("{}", order.pair);
+    let out = format!(
+        "order #{} {} {:0.4} {:0.4}\n{}",
+        order.id, order.pair, order.cost, order.profit, run_log
+    );
+    email::send(email, &subject, &out);
 }
 
 fn filter_good_sheets(
