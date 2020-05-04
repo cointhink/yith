@@ -415,7 +415,7 @@ fn build_offer(
 
     let market_min_opt = exchange
         .api
-        .market_minimum(check_ticker, &exchange.settings);
+        .market_minimum(&market.base, &exchange.settings);
     match market_min_opt {
         Some(market_minimum) => {
             if market_minimum > least_cost {
