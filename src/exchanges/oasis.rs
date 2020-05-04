@@ -123,12 +123,7 @@ impl Oasis {
         if let geth::ResultTypes::Result(part) = r.part {
             let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
             let qty = exchange::units_to_quantity(units as u64, token.decimals);
-            println!(
-                "{} oasis balance {}{}",
-                time::now_string(),
-                qty
-                token.name,
-            );
+            println!("{} oasis balance {}{}", time::now_string(), qty, token.name,);
             Some(qty)
         } else {
             None
