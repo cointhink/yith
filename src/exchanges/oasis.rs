@@ -218,15 +218,19 @@ impl exchange::Api for Oasis {
             offer.base_qty, qty_int, offer_cost, cost_int
         );
 
-        let base_token = &self.tokens.get(&pair.base).address;
-        let quote_token = &self.tokens.get(&pair.quote).address;
-        let min_sell = match self.min_sell(quote_token, exchange).unwrap() {
+        let base_token = &self.tokens.get(&pair.base);
+        let quote_token = &self.tokens.get(&pair.quote);
+        let real_quote_token = match askbid {
+            types::AskBid::Ask => quote_token,
+            types::AskBid::Bid => base_token,
+        };
+        let min_sell = match self.min_sell(&real_quote_token.address, exchange).unwrap() {
             geth::ResultTypes::Result(r) => {
                 let units = u64::from_str_radix(&r.result[2..], 16).unwrap();
                 let qty = exchange::units_to_quantity(units, pair.quote_precision);
                 println!(
                     "Min-Sell {} ^{} {} = {}",
-                    &pair.quote, pair.quote_precision, units, qty
+                    &real_quote_token.name, pair.quote_precision, units, qty
                 );
                 qty
             }
@@ -245,21 +249,26 @@ impl exchange::Api for Oasis {
             };
             println!("ERR: {}", order_error);
             return Err(Box::new(order_error));
+        } else {
+            println!(
+                "min-cost of {} met with {}{}",
+                min_sell, offer_cost, &pair.quote
+            );
         }
 
         let order_sheet = match askbid {
             types::AskBid::Ask => OrderSheet {
                 address: pub_addr,
-                token_buy: base_token.to_string(),
+                token_buy: base_token.address.clone(),
                 amount_buy: qty_str,
-                token_sell: quote_token.to_string(),
+                token_sell: quote_token.address.clone(),
                 amount_sell: cost_str,
             },
             types::AskBid::Bid => OrderSheet {
                 address: pub_addr,
-                token_buy: quote_token.to_string(),
+                token_buy: quote_token.address.clone(),
                 amount_buy: cost_str,
-                token_sell: base_token.to_string(),
+                token_sell: base_token.address.clone(),
                 amount_sell: qty_str,
             },
         };
