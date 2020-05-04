@@ -88,14 +88,11 @@ impl Oasis {
         match self.balance(token_addr, addr, exchange) {
             Some(balance) => {
                 let first_balance = balance;
+                println!("oasis first balance {}", first_balance);
                 let mut next_balance = first_balance;
                 while next_balance == first_balance {
                     match self.balance(token_addr, addr, exchange) {
                         Some(balance) => {
-                            println!(
-                                "first balance {} next balance {}",
-                                first_balance, next_balance,
-                            );
                             next_balance = balance;
                         }
                         None => (),
@@ -126,7 +123,12 @@ impl Oasis {
         if let geth::ResultTypes::Result(part) = r.part {
             let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
             let qty = exchange::units_to_quantity(units as u64, token.decimals);
-            println!("token {} qty {}", token.name, qty);
+            println!(
+                "{} oasis balance {}{}",
+                time::now_string(),
+                qty
+                token.name,
+            );
             Some(qty)
         } else {
             None

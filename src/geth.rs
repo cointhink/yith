@@ -90,8 +90,7 @@ pub fn rpc(
         params: params,
     };
     let client = reqwest::blocking::Client::new();
-    println!("{}", url);
-    println!("{}", serde_json::to_string(&jrpc).unwrap());
+    println!("{} method {}", url, jrpc.method);
     let result = client.post(url).json(&jrpc).send();
     match result {
         Ok(res) => {
