@@ -757,16 +757,16 @@ impl exchange::Api for Switcheo {
         }
     }
 
-    fn market_minimum(
+    fn market_minimums(
         &self,
         market: &exchange::Market,
         _exchange: &config::ExchangeSettings,
-    ) -> Option<f64> {
+    ) -> Option<(Option<f64>, Option<f64>)> {
         match self.tokens.get(&market.quote) {
             Some(base_token_detail) => {
                 let min_cost =
                     units_to_amount(&base_token_detail.minimum_quantity, base_token_detail);
-                Some(min_cost)
+                Some((None, Some(min_cost)))
             }
             None => None,
         }

@@ -332,7 +332,7 @@ fn build_offer(
     wallet: &wallet::Wallet,
     mode: Mode,
 ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
-    println!("build offer {} {}", exchange, offer);
+    println!("Building offer {} {}", exchange, offer);
     let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
     let (askbid, market, offer) = unswap(askbid, market, offer);
     let source_name = if exchange.settings.has_balances {
@@ -425,22 +425,48 @@ fn build_offer(
         types::AskBid::Ask => least_cost,
         types::AskBid::Bid => least_cost * offer.quote,
     };
+    let least_base = match askbid {
+        types::AskBid::Ask => least_cost / offer.quote,
+        types::AskBid::Bid => least_cost,
+    };
 
-    let market_min_opt = exchange.api.market_minimum(&market, &exchange.settings);
-    match market_min_opt {
-        Some(market_minimum) => {
-            if market_minimum > least_quote {
-                let err = exchange::ExchangeError::build_box(format!(
-                    "{} minimum of {:0.4} NOT met with {:0.4}{}",
-                    &market, market_minimum, least_quote, &market.quote
-                ));
-                return Err(err);
-            } else {
-                println!(
-                    "{} minimum {}{} met with {}{}",
-                    &market, market_minimum, &market.quote, least_quote, &market.quote
-                );
-            }
+    let minimums = exchange.api.market_minimums(&market, &exchange.settings);
+    match minimums {
+        Some((base_minimum, quote_minimum)) => {
+            match base_minimum {
+                Some(minimum) => {
+                    if minimum > least_base {
+                        let err = exchange::ExchangeError::build_box(format!(
+                            "{} base minimum {:0.4} NOT met with {:0.4}{}",
+                            &market, minimum, least_base, &market.base
+                        ));
+                        return Err(err);
+                    } else {
+                        println!(
+                            "{} base minimum {:0.4} met with {}{}",
+                            &market, minimum, least_base, &market.base
+                        );
+                    }
+                }
+                None => (),
+            };
+            match quote_minimum {
+                Some(minimum) => {
+                    if minimum > least_quote {
+                        let err = exchange::ExchangeError::build_box(format!(
+                            "{} quote minimum of {:0.4} NOT met with {:0.4}{}",
+                            &market, minimum, least_quote, &market.quote
+                        ));
+                        return Err(err);
+                    } else {
+                        println!(
+                            "{} quote minimum {:0.4} met with {}{}",
+                            &market, minimum, least_quote, &market.quote
+                        );
+                    }
+                }
+                None => (),
+            };
         }
         None => (),
     }

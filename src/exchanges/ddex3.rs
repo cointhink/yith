@@ -382,14 +382,14 @@ impl exchange::Api for Ddex3 {
                 .collect()
         }
     }
-    fn market_minimum(
+    fn market_minimums(
         &self,
         market: &exchange::Market,
         exchange: &config::ExchangeSettings,
-    ) -> Option<f64> {
+    ) -> Option<(Option<f64>, Option<f64>)> {
         let market_id = self.make_market_id(market);
         match self.pairs.get(&market_id) {
-            Ok(pair) => Some(pair.min_order_size.parse::<f64>().unwrap()),
+            Ok(pair) => Some((Some(pair.min_order_size.parse::<f64>().unwrap()), None)),
             Err(_e) => None,
         }
     }
