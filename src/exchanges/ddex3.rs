@@ -202,6 +202,7 @@ pub struct Pair {
     id: String,
     price_decimals: i32,
     amount_decimals: i32,
+    min_order_size: String,
 }
 
 #[allow(dead_code)]
@@ -379,6 +380,17 @@ impl exchange::Api for Ddex3 {
                 .iter()
                 .map(|native_order| native_order.to_exchange_order())
                 .collect()
+        }
+    }
+    fn market_minimum(
+        &self,
+        market: &exchange::Market,
+        exchange: &config::ExchangeSettings,
+    ) -> Option<f64> {
+        let market_id = self.make_market_id(market);
+        match self.pairs.get(&market_id) {
+            Ok(pair) => Some(pair.min_order_size.parse::<f64>().unwrap()),
+            Err(_e) => None,
         }
     }
 }

@@ -95,6 +95,7 @@ pub fn rpc(
     match result {
         Ok(res) => {
             let json = res.text().unwrap();
+            println!("{}", json);
             let rpc_result = serde_json::from_str::<JsonRpcResult>(&json).unwrap();
             Ok(rpc_result)
         }

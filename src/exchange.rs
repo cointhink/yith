@@ -152,14 +152,10 @@ pub trait Api {
         sheet: OrderSheet,
     ) -> Result<(), Box<dyn error::Error>>;
 
-    fn market_minimum(
-        &self,
-        ticker: &types::Ticker,
-        exchange: &config::ExchangeSettings,
-    ) -> Option<f64> {
+    fn market_minimum(&self, market: &Market, exchange: &config::ExchangeSettings) -> Option<f64> {
         println!(
             "WARNING: {} has no market_minimum call ({})",
-            exchange.name, ticker
+            exchange.name, market
         );
         None
     }

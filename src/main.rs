@@ -426,9 +426,7 @@ fn build_offer(
         types::AskBid::Bid => least_cost * offer.quote,
     };
 
-    let market_min_opt = exchange
-        .api
-        .market_minimum(&market.quote, &exchange.settings);
+    let market_min_opt = exchange.api.market_minimum(&market, &exchange.settings);
     match market_min_opt {
         Some(market_minimum) => {
             if market_minimum > least_quote {
