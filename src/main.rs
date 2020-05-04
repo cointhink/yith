@@ -391,7 +391,6 @@ fn build_offer(
         Ok(coin) => {
             let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
             amount_limits.push(wallet_coin_limit);
-            amount_limits.push(coin.base_total());
         }
         Err(_e) => {
             let _err = exchange::ExchangeError::build_box(format!(
@@ -413,21 +412,26 @@ fn build_offer(
         ));
     }
 
+    let least_quote = match askbid {
+        types::AskBid::Ask => least_cost,
+        types::AskBid::Bid => least_cost * offer.quote,
+    };
+
     let market_min_opt = exchange
         .api
-        .market_minimum(&market.base, &exchange.settings);
+        .market_minimum(&market.quote, &exchange.settings);
     match market_min_opt {
         Some(market_minimum) => {
-            if market_minimum > least_cost {
+            if market_minimum > least_quote {
                 let err = exchange::ExchangeError::build_box(format!(
                     "{} minimum of {:0.4} NOT met with {:0.4}{}",
-                    &market, market_minimum, least_cost, check_ticker
+                    &market, market_minimum, least_quote, &market.quote
                 ));
                 return Err(err);
             } else {
                 println!(
                     "{} minimum {}{} met with {}{}",
-                    &market, market_minimum, check_ticker, least_cost, &market.quote
+                    &market, market_minimum, &market.quote, least_quote, &market.quote
                 );
             }
         }

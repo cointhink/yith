@@ -220,17 +220,17 @@ impl exchange::Api for Oasis {
 
         let base_token = &self.tokens.get(&pair.base);
         let quote_token = &self.tokens.get(&pair.quote);
-        let real_quote_token = match askbid {
+        let sell_token = match askbid {
             types::AskBid::Ask => quote_token,
             types::AskBid::Bid => base_token,
         };
-        let min_sell = match self.min_sell(&real_quote_token.address, exchange).unwrap() {
+        let min_sell = match self.min_sell(&sell_token.address, exchange).unwrap() {
             geth::ResultTypes::Result(r) => {
                 let units = u64::from_str_radix(&r.result[2..], 16).unwrap();
                 let qty = exchange::units_to_quantity(units, pair.quote_precision);
                 println!(
                     "Min-Sell {} ^{} {} = {}",
-                    &real_quote_token.name, pair.quote_precision, units, qty
+                    &sell_token.name, pair.quote_precision, units, qty
                 );
                 qty
             }
