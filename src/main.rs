@@ -94,7 +94,15 @@ fn app(
         println!("{}", wallet);
 
         let order = build_manual_order(matches);
-        run_order(config, &mut wallet, &order, &exchanges);
+        let run_out = run_order(config, &mut wallet, &order, &exchanges);
+        if let Some(email) = config.email.as_ref() {
+            let subject = format!("{}", order.pair);
+            let out = format!(
+                "order #{} {} {:0.4} {:0.4}\n{}",
+                order.id, order.pair, order.cost, order.profit, run_out
+            );
+            email::send(email, &subject, &out);
+        }
     }
     Ok(0)
 }
@@ -138,14 +146,14 @@ fn run_order(
     wallet: &mut wallet::Wallet,
     order: &types::Order,
     exchanges: &config::ExchangeList,
-) {
+) -> RunLog {
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
     let ask_sheets_out = format_runs(&ask_sheets);
     let ask_sheets_len = count_sheets(&ask_sheets);
     let ask_goods = filter_good_sheets(ask_sheets);
     let ask_goods_len = count_sheets(&ask_goods);
     println!("a {}/{}", ask_goods_len, ask_sheets_len);
-    let mut run_out = "".to_string();
+    let mut run_out = RunLog::new();
 
     if ask_goods_len == ask_sheets_len {
         let sim_bid_sheets =
@@ -168,10 +176,10 @@ fn run_order(
 
             if bid_goods_len == bid_sheets_len {
                 let _bid_runs = run_sheets(config, bid_goods, exchanges);
-                run_out = format!(
+                run_out.add(format!(
                     "ask runs: \n{}\n\nsim bid runs: \n{}\n\nbid runs: \n{}",
                     ask_sheets_out, sim_bid_sheets_out, bid_sheets_out,
-                );
+                ));
             } else {
                 println!(
                     "sumbit aborted! bids {} good {} (thats bad)",
@@ -191,14 +199,7 @@ fn run_order(
         );
     }
 
-    if let Some(email) = config.email.as_ref() {
-        let subject = format!("{}", order.pair);
-        let out = format!(
-            "order #{} {} {:0.4} {:0.4}\n{}",
-            order.id, order.pair, order.cost, order.profit, run_out
-        );
-        email::send(email, &subject, &out);
-    }
+    run_out
 }
 
 fn filter_good_sheets(
@@ -705,5 +706,26 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         avg_price: 0.0,
         ask_books: asks,
         bid_books: bids,
+    }
+}
+
+struct RunLog {
+    lines: Vec<String>,
+}
+
+impl RunLog {
+    fn new() -> RunLog {
+        RunLog { lines: Vec::new() }
+    }
+
+    fn add(&mut self, line: String) {
+        println!("{}", line);
+        self.lines.push(line);
+    }
+}
+
+impl std::fmt::Display for RunLog {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.lines.join(" "))
     }
 }
