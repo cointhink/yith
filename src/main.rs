@@ -147,56 +147,58 @@ fn run_order(
     order: &types::Order,
     exchanges: &config::ExchangeList,
 ) -> RunLog {
+    let mut run_out = RunLog::new();
+
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
     let ask_sheets_out = format_runs(&ask_sheets);
+    run_out.add(format!("ask builds: \n{}", ask_sheets_out));
     let ask_sheets_len = count_sheets(&ask_sheets);
     let ask_goods = filter_good_sheets(ask_sheets);
     let ask_goods_len = count_sheets(&ask_goods);
-    println!("a {}/{}", ask_goods_len, ask_sheets_len);
-    let mut run_out = RunLog::new();
+    run_out.add(format!("a {}/{}", ask_goods_len, ask_sheets_len));
 
     if ask_goods_len == ask_sheets_len {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
         let sim_bid_sheets_out = format_runs(&sim_bid_sheets);
+        run_out.add(format!("simbid builds: \n{}", sim_bid_sheets_out));
         let sim_bid_sheets_len = count_sheets(&sim_bid_sheets);
         let sim_bid_goods = filter_good_sheets(sim_bid_sheets);
         let sim_bid_goods_len = count_sheets(&sim_bid_goods);
-        println!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len);
+        run_out.add(format!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len));
 
         if sim_bid_goods_len == sim_bid_sheets_len {
             let _ask_runs = run_sheets(config, ask_goods, exchanges);
+            run_out.add(format!("ask runs: \nNA"));
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             let bid_sheets_out = format_runs(&bid_sheets);
+            run_out.add(format!("bid builds: \n{}", bid_sheets_out));
             let bid_sheets_len = count_sheets(&bid_sheets);
             let bid_goods = filter_good_sheets(bid_sheets);
             let bid_goods_len = count_sheets(&bid_goods);
-            println!("b {}/{}", bid_goods_len, bid_sheets_len);
+            run_out.add(format!("b {}/{}", bid_goods_len, bid_sheets_len));
 
             if bid_goods_len == bid_sheets_len {
                 let _bid_runs = run_sheets(config, bid_goods, exchanges);
-                run_out.add(format!(
-                    "ask runs: \n{}\n\nsim bid runs: \n{}\n\nbid runs: \n{}",
-                    ask_sheets_out, sim_bid_sheets_out, bid_sheets_out,
-                ));
+                run_out.add(format!("bid runs: \nNA"));
             } else {
-                println!(
+                run_out.add(format!(
                     "sumbit aborted! bids {} good {} (thats bad)",
                     bid_sheets_len, bid_goods_len
-                );
+                ));
             }
         } else {
-            println!(
+            run_out.add(format!(
                 "submit aborted! sim_bid {} good {} (thats bad)",
                 sim_bid_sheets_len, sim_bid_goods_len
-            );
+            ));
         }
     } else {
-        println!(
+        run_out.add(format!(
             "submit aborted! asks {} good {} (thats bad)",
             ask_sheets_len, ask_goods_len
-        );
+        ));
     }
 
     run_out
@@ -726,6 +728,6 @@ impl RunLog {
 
 impl std::fmt::Display for RunLog {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "{}", self.lines.join(" "))
+        write!(f, "{}", self.lines.join("\n"))
     }
 }
