@@ -158,7 +158,7 @@ pub trait Api {
         exchange: &config::ExchangeSettings,
     ) -> Option<f64> {
         println!(
-            "warning {} has no market_minimum call ({})",
+            "WARNING: {} has no market_minimum call ({})",
             exchange.name, ticker
         );
         None
