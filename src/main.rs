@@ -24,7 +24,7 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let wallet = wallet::Wallet::load_file(wallet_filename)
         .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c.to_string()));
-    println!("Yith {:#?} ", config_filename);
+    println!("Yith {:#?} {}", config_filename, time::now_string());
     let redis = redis::Redis {
         url: &config.redis_url,
     };

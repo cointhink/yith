@@ -12,7 +12,7 @@ pub fn now() -> Duration {
 
 pub fn now_string() -> String {
     let now = chrono::Local::now();
-    now.format("%FT%H:%M:%S%.1f").to_string()
+    now.format("%FT%T%.3f").to_string()
 }
 
 pub fn sleep(ms: u64) {
