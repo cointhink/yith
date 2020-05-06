@@ -296,14 +296,10 @@ impl exchange::Api for Oasis {
                     0
                 }
             };
-            println!("TX Count/next nonce {}", nonce);
             let gas_prices = geth::ethgasstation();
             let gas_price = (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64;
             let gas_price_gwei = gas_price / 1_000_000_000u64;
-            println!(
-                "gas prices {:?} final price {}gwei",
-                gas_prices, gas_price_gwei
-            );
+            println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
 
             let mut contract_addra = [0u8; 20];
             let contract_addr = exchange.contract_address.clone();
