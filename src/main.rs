@@ -70,9 +70,6 @@ fn app(
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);
 
-        //show_orders(&exchanges, &config.wallet_private_key);
-        //println!("");
-
         let order = match matches.value_of("arb_file") {
             Some(filename) => {
                 println!("loading {}", filename);
