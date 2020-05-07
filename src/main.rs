@@ -17,13 +17,13 @@ fn main() {
     let opt_matches = clap::App::from_yaml(opt_yaml).get_matches();
     let config_filename = opt_matches.value_of("config").unwrap_or(config::FILENAME);
     let config = config::read_config(config_filename)
-        .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c.to_string()));
+        .unwrap_or_else(|c| panic!("{} {}", config_filename, c));
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename, &config)
-        .unwrap_or_else(|c| panic!("{} {:?}", exchanges_filename, c.to_string()));
+        .unwrap_or_else(|c| panic!("{} {}", exchanges_filename, c));
     let wallet_filename = "wallet.yaml";
     let wallet = wallet::Wallet::load_file(wallet_filename)
-        .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c.to_string()));
+        .unwrap_or_else(|c| panic!("{} {}", wallet_filename, c));
     println!("Yith {:#?} {}", config_filename, time::now_string());
     let redis = redis::Redis {
         url: &config.redis_url.clone(),
