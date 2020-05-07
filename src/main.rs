@@ -15,7 +15,7 @@ mod wallet;
 fn main() {
     let opt_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
     let opt_matches = clap::App::from_yaml(opt_yaml).get_matches();
-    let config_filename = opt_matches.value_of("config").unwrap_or("config.yaml");
+    let config_filename = opt_matches.value_of("config").unwrap_or(config::FILENAME);
     let config = config::read_config(config_filename)
         .unwrap_or_else(|c| panic!("{} {:?}", config_filename, c.to_string()));
     let exchanges_filename = "exchanges.yaml";
@@ -26,18 +26,19 @@ fn main() {
         .unwrap_or_else(|c| panic!("{} {:?}", wallet_filename, c.to_string()));
     println!("Yith {:#?} {}", config_filename, time::now_string());
     let redis = redis::Redis {
-        url: &config.redis_url,
+        url: &config.redis_url.clone(),
     };
-    app(&config, wallet, exchanges, redis, opt_matches).unwrap();
+    config::CONFIG.set(config).unwrap();
+    app(wallet, exchanges, redis, opt_matches).unwrap();
 }
 
 fn app(
-    config: &config::Config,
     mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
     redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
+    let config = config::CONFIG.get().unwrap();
     if let Some(_matches) = opts.subcommand_matches("balances") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         println!("{}", wallet);

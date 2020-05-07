@@ -1,9 +1,13 @@
 use crate::exchange;
 use crate::exchanges;
 use crate::geth;
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;
+
+pub static FILENAME: &'static str = "config.yaml";
+pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
