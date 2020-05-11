@@ -1,3 +1,4 @@
+use crate::price;
 use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -59,6 +60,22 @@ impl Wallet {
             }
         }
         Err(WalletError {})
+    }
+
+    pub fn print_with_price(&self) {
+        let coin_gecko = price::CoinGecko::new();
+        let coin_ids = self
+            .coins
+            .iter()
+            .map(|c| c.ticker_symbol.as_ref())
+            .collect::<Vec<&str>>();
+        let quote_symbol = "usd";
+        let prices = coin_gecko.prices(coin_ids, quote_symbol);
+        for coin in &self.coins {
+            let percoin = prices.get(&coin.ticker_symbol).unwrap();
+            let total_eth = coin.base_total() * percoin;
+            println!("{} {:0.5}{}", coin, total_eth, quote_symbol);
+        }
     }
 }
 

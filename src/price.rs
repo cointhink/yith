@@ -14,15 +14,9 @@ pub struct Coin {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Price {
-    symbol: String,
-    price: f64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 pub struct PriceResponse {
     #[serde(flatten)]
-    prices: HashMap<String, Price>,
+    prices: HashMap<String, HashMap<String, f64>>,
 }
 
 pub struct CoinGecko {
@@ -52,21 +46,33 @@ impl CoinGecko {
         }
     }
 
-    pub fn prices(&self, coin_symbols: Vec<&str>) -> Option<f64> {
-        let coin_ids = coin_symbols
-            .iter()
-            .map(|s| self.symbol_to_id(s))
-            .collect::<Vec<&str>>();
+    pub fn prices(&self, coin_symbols: Vec<&str>, quote_symbol: &str) -> HashMap<String, f64> {
+        let mut coin_mapping: HashMap<&str, &str> = HashMap::new();
+        for symbol in coin_symbols {
+            coin_mapping.insert(self.symbol_to_id(symbol), symbol);
+        }
+
         let url = format!(
-            "{}/simple/price?vs_currencies=eth&ids={}",
+            "{}/simple/price?vs_currencies={}&ids={}",
             COIN_GECKO_API,
-            coin_ids.join(",")
+            quote_symbol,
+            coin_mapping
+                .keys()
+                .map(|sp| *sp) // such rust
+                .collect::<Vec<&str>>()
+                .join(",")
         );
         println!("{}", url);
         let resp = self.client.get(&url).send().unwrap();
-        let prices = resp.json::<PriceResponse>().unwrap();
-        println!("{:?}", prices);
-        Some(0.0)
+        let price_data = resp.json::<PriceResponse>().unwrap();
+        let mut prices: HashMap<String, f64> = HashMap::new();
+        for (symbol, quotedata) in price_data.prices {
+            prices.insert(
+                coin_mapping.get(symbol.as_str()).unwrap().to_string(), //rust wha, &symbol breaks, symbol.as_str() works
+                *quotedata.get(quote_symbol).unwrap(),
+            );
+        }
+        prices
     }
 }
 

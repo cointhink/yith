@@ -42,7 +42,7 @@ fn app(
     let config = config::CONFIG.get().unwrap();
     if let Some(_matches) = opts.subcommand_matches("balances") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
-        println!("{}", wallet);
+        wallet.print_with_price();
     }
     if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
