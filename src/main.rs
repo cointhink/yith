@@ -69,7 +69,7 @@ fn app(
 
     if let Some(matches) = opts.subcommand_matches("run") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
-        println!("{}", wallet);
+        wallet.print_with_price();
 
         let order = match matches.value_of("arb_file") {
             Some(filename) => {
@@ -93,7 +93,7 @@ fn app(
     }
     if let Some(matches) = opts.subcommand_matches("order") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
-        println!("{}", wallet);
+        wallet.print_with_price();
 
         let order = build_manual_order(matches);
         let run_log = run_order(config, &mut wallet, &order, &exchanges);

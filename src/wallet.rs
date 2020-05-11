@@ -1,6 +1,8 @@
 use crate::price;
+use crate::time;
 use crate::types;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::fs;
 
@@ -71,11 +73,26 @@ impl Wallet {
             .collect::<Vec<&str>>();
         let quote_symbol = "usd";
         let prices = coin_gecko.prices(coin_ids, quote_symbol);
+        println!("[wallet {}]", time::now_string());
+        let mut subtotals: HashMap<&str, f64> = HashMap::new();
         for coin in &self.coins {
-            let percoin = prices.get(&coin.ticker_symbol).unwrap();
-            let total_eth = coin.base_total() * percoin;
-            println!("{} {:0.5}{}", coin, total_eth, quote_symbol);
+            if coin.source != "limit" {
+                let percoin = prices.get(&coin.ticker_symbol).unwrap();
+                let quote_total = coin.base_total() * percoin;
+                let source = coin.source.as_ref(); // rust hashmap ptr wha
+                if !subtotals.contains_key(source) {
+                    subtotals.insert(source, 0.0);
+                }
+                subtotals.insert(source, subtotals.get(source).unwrap() + quote_total);
+                println!("{} {:0.5}{}", coin, quote_total, quote_symbol);
+            }
         }
+        let mut total = 0.0;
+        for (source, subtotal) in subtotals {
+            println!("{} = {:0.5}{}", source, subtotal, quote_symbol);
+            total = total + subtotal;
+        }
+        println!("total = {:0.5}{}", total, quote_symbol);
     }
 }
 
