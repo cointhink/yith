@@ -1,3 +1,4 @@
+use crate::price;
 use crate::types;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -86,6 +87,13 @@ impl fmt::Display for WalletCoin {
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "[wallet]\n")?;
+        let coin_gecko = price::CoinGecko::new();
+        let coin_ids = self
+            .coins
+            .iter()
+            .map(|c| c.ticker_symbol.as_ref())
+            .collect::<Vec<&str>>();
+        let prices = coin_gecko.prices(coin_ids);
         self.coins.iter().try_for_each(|c| write!(f, "{}\n", c))?;
         write!(f, "")
     }

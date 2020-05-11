@@ -7,6 +7,7 @@ mod etherscan;
 mod exchange;
 mod exchanges;
 mod geth;
+mod price;
 mod redis;
 mod time;
 mod types;
