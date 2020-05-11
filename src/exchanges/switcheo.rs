@@ -411,7 +411,7 @@ pub struct WithdrawalTransaction {
     data: String,
     gas: String,
     gas_price: String,
-    chain_id: u32,
+    chain_id: String,
     nonce: String,
     sha256: String,
 }
