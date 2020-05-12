@@ -142,7 +142,7 @@ pub struct Offer {
 
 impl fmt::Display for Offer {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}@{}", self.base_qty, self.quote)
+        write!(f, "{:0.5}@{:0.5}", self.base_qty, self.quote)
     }
 }
 

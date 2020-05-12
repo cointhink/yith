@@ -169,8 +169,6 @@ impl exchange::Api for Zeroex {
             exchange.api_url.as_str(),
             market.id("-")
         );
-        println!("0x limit order build {}", url);
-        println!("{:#?}", sheet);
         let client = reqwest::blocking::Client::new();
         println!("{}", url);
         println!("{}", serde_json::to_string(&sheet).unwrap());
