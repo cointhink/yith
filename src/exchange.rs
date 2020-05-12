@@ -174,6 +174,7 @@ pub trait Api {
     }
 
     fn order_status(&self, order_id: &str) -> OrderState {
+        println!("WARNING: no order_status call");
         OrderState::Open
     }
 

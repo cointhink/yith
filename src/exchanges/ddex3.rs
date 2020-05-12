@@ -306,7 +306,7 @@ impl exchange::Api for Ddex3 {
         private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet_opt: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Ddex3(sheet) = sheet_opt {
             let privbytes = &hex::decode(private_key).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
@@ -337,22 +337,14 @@ impl exchange::Api for Ddex3 {
             let response = serde_json::from_str::<BuildResponse>(&json).unwrap();
             println!("{:#?} {} {}", status, url, json);
             if response.status == 0 {
-                Ok(())
+                Ok(sheet.id.clone())
             } else {
-                let order_error = exchange::OrderError {
-                    msg: response.desc,
-                    code: response.status as i32,
-                };
-                println!("ERR: {}", order_error);
-                Err(Box::new(order_error))
+                Err(exchange::ExchangeError::build_box(response.desc))
             }
         } else {
-            let order_error = exchange::OrderError {
-                msg: "wrong order type passed to submit".to_string(),
-                code: 12 as i32,
-            };
-            println!("ERR: {}", order_error);
-            Err(Box::new(order_error))
+            Err(exchange::ExchangeError::build_box(format!(
+                "wrong ordersheet type!"
+            )))
         }
     }
 

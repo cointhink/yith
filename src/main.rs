@@ -514,7 +514,7 @@ fn run_sheet(
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
     {
         Ok(order_id) => {
-            wait_order(config, &exchange, order_id);
+            wait_order(config, &exchange, &order_id);
             Ok(order_id)
         }
         Err(e) => Err(e),
@@ -566,7 +566,7 @@ fn unswap(
     (askbid_align, exmarket, swoffer)
 }
 
-fn wait_order(config: &config::Config, exchange: &config::Exchange, order_id: String) {
+fn wait_order(config: &config::Config, exchange: &config::Exchange, order_id: &str) {
     let mut open_orders: Vec<exchange::Order> = vec![];
     while open_orders.len() > 0 {
         open_orders = exchange

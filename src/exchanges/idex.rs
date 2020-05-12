@@ -50,6 +50,12 @@ pub struct NonceResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderResponse {
+    order_hash: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenDetail {
     pub name: String,
     pub address: String,
@@ -177,7 +183,7 @@ impl exchange::Api for Idex {
         privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
@@ -194,10 +200,15 @@ impl exchange::Api for Idex {
             println!("{:?}", signed);
             let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
             let status = resp.status();
-            let json = resp.text();
+            let json = resp.text().unwrap();
             println!("{} {} {:?}", url, status, json);
-        };
-        Ok(())
+            let order_response = serde_json::from_str::<OrderResponse>(&json).unwrap();
+            Ok(order_response.order_hash)
+        } else {
+            Err(exchange::ExchangeError::build_box(format!(
+                "wrong ordersheet type!"
+            )))
+        }
     }
 
     fn balances<'a>(

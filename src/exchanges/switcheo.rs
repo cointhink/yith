@@ -690,7 +690,7 @@ impl exchange::Api for Switcheo {
         privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         if let exchange::OrderSheet::Switcheo(order) = sheet {
@@ -714,7 +714,7 @@ impl exchange::Api for Switcheo {
             println!("switcheo submit {}", json);
             let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
             let status = resp.status();
-            println!("{} {:?}", resp.status(), resp.text());
+            println!("{} {:?}", status, resp.text());
             if status.is_success() {
                 // wait for success
                 //let order_ids = gather_ids(sig_sheet.signatures);
@@ -748,12 +748,17 @@ impl exchange::Api for Switcheo {
                         println!("order whatnow!");
                     }
                 }
-                Ok(())
+                Ok(order.id.clone())
             } else {
-                Ok(())
+                Err(exchange::ExchangeError::build_box(format!(
+                    "switcheo order post {}",
+                    status
+                )))
             }
         } else {
-            Ok(())
+            Err(exchange::ExchangeError::build_box(format!(
+                "wrong ordersheet type!"
+            )))
         }
     }
 

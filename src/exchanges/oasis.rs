@@ -278,7 +278,7 @@ impl exchange::Api for Oasis {
         private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet_opt: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn error::Error>> {
+    ) -> Result<String, Box<dyn error::Error>> {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let params = (sheet.address.clone(), "latest".to_string());
@@ -325,22 +325,20 @@ impl exchange::Api for Oasis {
                 .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
                 .unwrap();
             match result.part {
-                geth::ResultTypes::Error(e) => println!("RPC ERR {:?}", e),
+                geth::ResultTypes::Error(e) => {
+                    Err(exchange::ExchangeError::build_box(e.error.message))
+                }
                 geth::ResultTypes::Result(r) => {
                     let tx = r.result;
                     println!("GOOD TX {}", tx);
                     self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
+                    Ok(tx)
                 }
-            };
-
-            Ok(())
+            }
         } else {
-            let order_error = exchange::OrderError {
-                msg: "wrong order type passed to submit".to_string(),
-                code: 12 as i32,
-            };
-            println!("ERR: {}", order_error);
-            Err(Box::new(order_error))
+            Err(exchange::ExchangeError::build_box(format!(
+                "wrong ordersheet type!"
+            )))
         }
     }
 

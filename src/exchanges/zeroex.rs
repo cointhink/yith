@@ -197,7 +197,7 @@ impl exchange::Api for Zeroex {
         _privkey: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let client = reqwest::blocking::Client::new();
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("SUBMIT 0x order {}", url);
@@ -205,7 +205,7 @@ impl exchange::Api for Zeroex {
         let resp = client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         println!("{:#?}", resp.text());
-        Ok(())
+        Ok("radar-order-0".to_string())
     }
 
     fn open_orders(

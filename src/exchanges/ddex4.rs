@@ -173,9 +173,9 @@ impl exchange::Api for Ddex4 {
         _private_key: &str,
         _exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         println!("HYDRO order! {:#?}", sheet);
-        Ok(())
+        Ok(format!("ddex4-order-id"))
     }
 
     fn open_orders(
