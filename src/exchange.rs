@@ -150,7 +150,7 @@ pub trait Api {
         private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet: OrderSheet,
-    ) -> Result<(), Box<dyn error::Error>>;
+    ) -> Result<String, Box<dyn error::Error>>;
 
     fn market_minimums(
         &self,

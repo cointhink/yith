@@ -493,11 +493,11 @@ fn run_sheets(
     sheets: Vec<(String, Vec<exchange::OrderSheet>)>,
     exchanges: &config::ExchangeList,
 ) {
-    sheets.into_iter().for_each(|(en, t)| {
+    sheets.into_iter().for_each(|(exg_name, t)| {
         t.into_iter().for_each(move |sheet| {
-            let _m = match exchanges.find_by_name(&en) {
+            let _m = match exchanges.find_by_name(&exg_name) {
                 Some(exchange) => run_sheet(config, sheet, exchange),
-                None => Ok(()),
+                None => Ok(format!("{} not found", exg_name)),
             };
         });
     });
@@ -507,15 +507,15 @@ fn run_sheet(
     config: &config::Config,
     sheet: exchange::OrderSheet,
     exchange: &config::Exchange,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<String, Box<dyn std::error::Error>> {
     println!("** RUN sheet {} {:?}", exchange, sheet);
     match exchange
         .api
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
     {
-        Ok(_sheet) => {
-            wait_order(config, &exchange);
-            Ok(())
+        Ok(order_id) => {
+            wait_order(config, &exchange, order_id);
+            Ok(order_id)
         }
         Err(e) => Err(e),
     }
@@ -566,7 +566,7 @@ fn unswap(
     (askbid_align, exmarket, swoffer)
 }
 
-fn wait_order(config: &config::Config, exchange: &config::Exchange) {
+fn wait_order(config: &config::Config, exchange: &config::Exchange, order_id: String) {
     let mut open_orders: Vec<exchange::Order> = vec![];
     while open_orders.len() > 0 {
         open_orders = exchange
