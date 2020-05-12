@@ -1,5 +1,3 @@
-#![allow(non_snake_case)]
-
 use crate::config;
 use crate::eth;
 use crate::exchange;
@@ -45,7 +43,7 @@ pub struct OrderForm {
 pub struct Order {
     order_hash: String,
     r#type: String,
-    state: String,
+    state: OrderState,
     base_token_address: String,
     quote_token_address: String,
     remaining_base_token_amount: String,
@@ -64,21 +62,38 @@ pub struct Order {
     "createdDate": "2020-03-18 17:41:39",
 */
 
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
+enum OrderState {
+    #[serde(rename = "OPEN")]
+    Open,
+    #[serde(rename = "FILLED")]
+    Filled,
+    #[serde(rename = "CANCELLED")]
+    Cancelled,
+    #[serde(rename = "EXPIRED")]
+    Expired,
+    #[serde(rename = "UNFUNDED")]
+    Unfunded,
+}
+
+impl Into<exchange::OrderState> for OrderState {
+    fn into(self) -> exchange::OrderState {
+        match self {
+            OrderState::Open => exchange::OrderState::Open,
+            OrderState::Filled => exchange::OrderState::Filled,
+            OrderState::Cancelled => exchange::OrderState::Cancelled,
+            OrderState::Expired => exchange::OrderState::Expired,
+            OrderState::Unfunded => exchange::OrderState::Unfunded,
+        }
+    }
+}
+
 impl Order {
     pub fn to_exchange_order(&self) -> exchange::Order {
         let side = match self.r#type.as_str() {
             "ASK" => Ok(exchange::BuySell::Sell),
             "BID" => Ok(exchange::BuySell::Buy),
             _ => Err(self.r#type.clone()),
-        }
-        .unwrap();
-        let state = match self.state.as_str() {
-            "OPEN" => Ok(exchange::OrderState::Open),
-            "FILLED" => Ok(exchange::OrderState::Filled),
-            "CANCELLED" => Ok(exchange::OrderState::Cancelled),
-            "EXPIRED" => Ok(exchange::OrderState::Expired),
-            "UNFUNDED" => Ok(exchange::OrderState::Unfunded),
-            _ => Err(()),
         }
         .unwrap();
         let date =
@@ -92,7 +107,7 @@ impl Order {
         exchange::Order {
             id: self.order_hash.clone(),
             side: side,
-            state: state,
+            state: self.state.into(),
             market: market,
             base_qty: f64::from_str(self.remaining_base_token_amount.as_str()).unwrap(),
             quote: f64::from_str(self.price.as_str()).unwrap(),
@@ -230,6 +245,18 @@ impl exchange::Api for Zeroex {
             .map(|native_order| native_order.to_exchange_order())
             //.filter(|order| order.state != exchange::OrderState::Cancelled)
             .collect()
+    }
+
+    fn order_status(
+        &self,
+        order_id: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::OrderState {
+        let url = format!("{}/orders/{}", exchange.api_url.as_str(), order_id);
+        let client = reqwest::blocking::Client::new();
+        let resp = client.get(url.as_str()).send().unwrap();
+        let order = resp.json::<Order>().unwrap();
+        order.state.into()
     }
 }
 

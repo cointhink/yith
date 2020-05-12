@@ -7,7 +7,6 @@ use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
-use std::cell;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
@@ -489,6 +488,7 @@ impl Switcheo {
         &self,
         order_id: &str,
         first_status: exchange::OrderState,
+        exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
         let mut status: exchange::OrderState = first_status;
         loop {
@@ -500,7 +500,7 @@ impl Switcheo {
                 println!("waiting");
                 time::sleep(1000);
                 println!("checking again {} {:?}", order_id, status);
-                status = self.order_status(order_id);
+                status = self.order_status(order_id, exchange);
             } else {
                 println!("status good! {} {:?}", order_id, status);
                 break;
@@ -509,45 +509,6 @@ impl Switcheo {
         status
     }
 
-    #[allow(dead_code)]
-    pub fn wait_on_ids(&self, ids: Vec<String>) {
-        let cache = HashMap::<String, cell::Cell<Option<exchange::OrderState>>>::new();
-        let mut stats = ids.into_iter().fold(cache, |mut m, i| {
-            let c = cell::Cell::new(Option::<exchange::OrderState>::None);
-            m.insert(i, c);
-            m
-        });
-        loop {
-            stats.iter_mut().for_each(|(id, cell)| {
-                let refresh = match cell.get_mut() {
-                    None => true,
-                    Some(os) => match os {
-                        exchange::OrderState::Pending | exchange::OrderState::Open => true,
-                        _ => false,
-                    },
-                };
-                if refresh {
-                    let status = self.order_status(&id);
-                    cell.set(Some(status));
-                    //println!("waiting {} = {:?}", id, status);
-                }
-            });
-            if stats
-                .iter_mut()
-                .any(|(_id, status_opt)| match status_opt.get_mut() {
-                    None => true,
-                    Some(os) => match os {
-                        exchange::OrderState::Pending | exchange::OrderState::Open => true,
-                        _ => false,
-                    },
-                })
-            {
-                time::sleep(1000);
-            } else {
-                break;
-            }
-        }
-    }
     pub fn withdepo(
         &self,
         privkey: &str,
@@ -718,7 +679,7 @@ impl exchange::Api for Switcheo {
             if status.is_success() {
                 // wait for success
                 //let order_ids = gather_ids(sig_sheet.signatures);
-                let id_status = self.wait_on_order(&order.id, order.order_status.finto());
+                let id_status = self.wait_on_order(&order.id, order.order_status.finto(), exchange);
                 match id_status {
                     exchange::OrderState::Filled => {
                         println!("order filled!");
@@ -894,7 +855,11 @@ impl exchange::Api for Switcheo {
         }
     }
 
-    fn order_status(&self, order_id: &str) -> exchange::OrderState {
+    fn order_status(
+        &self,
+        order_id: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::OrderState {
         let url = format!("{}/orders/{}", self.settings().api_url.as_str(), order_id);
         println!("{}", url);
         let client = reqwest::blocking::Client::new();

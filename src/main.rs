@@ -567,12 +567,10 @@ fn unswap(
 }
 
 fn wait_order(config: &config::Config, exchange: &config::Exchange, order_id: &str) {
-    let mut open_orders: Vec<exchange::Order> = vec![];
-    while open_orders.len() > 0 {
-        open_orders = exchange
-            .api
-            .open_orders(&config.wallet_private_key, &exchange.settings);
-        println!("{} {:?}", exchange.settings.name, open_orders);
+    let mut state = exchange::OrderState::Open;
+    while state == exchange::OrderState::Open {
+        state = exchange.api.order_status(order_id, &exchange.settings);
+        println!("{} {} => {:?}", exchange.settings.name, order_id, state);
         let delay = std::time::Duration::from_secs(3);
         std::thread::sleep(delay);
     }
