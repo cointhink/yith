@@ -1,12 +1,12 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::time;
 use crate::types;
 use chrono;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
-use std::time;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct OrderSheet {
@@ -169,10 +169,8 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        let expire_time = (time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap()
-        // 2min minimum + transittime
-        + std::time::Duration::new(120 + 5, 0))
-        .as_secs();
+        let expire_time = (time::now() + std::time::Duration::new(120 + 5, 0)).as_secs(); // 2min minimum + transittime
+
         let sheet = OrderSheet {
             r#type: side,
             quantity: format!("{}", qty),
@@ -215,7 +213,7 @@ impl exchange::Api for Zeroex {
     ) -> Result<String, Box<dyn std::error::Error>> {
         let client = reqwest::blocking::Client::new();
         let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("SUBMIT 0x order {}", url);
+        println!("{}", url);
         println!("{}", serde_json::to_string(&sheet).unwrap());
         let resp = client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
@@ -272,7 +270,11 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let exg_hash = eth::hash_msg(&exg_with_header);
     let (v, r, s) = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     let form_sig_bytes = eth::sigparts_to_vrs(v, r, s);
-    format!("0x{}02", hex::encode(&form_sig_bytes[..]))
+    format!(
+        "0x{}{}",
+        hex::encode(&form_sig_bytes[..]),
+        hex::encode(vec![SignatureType::Eip712 as u8])
+    )
 }
 
 pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {

@@ -40,7 +40,7 @@ fn app(
     let config = config::CONFIG.get().unwrap();
 
     if let Some(_matches) = opts.subcommand_matches("balances") {
-        load_wallet(&mut wallet.coins, &exchanges, &config);
+        scan_wallet(&mut wallet.coins, &exchanges, &config);
         wallet.print_with_price();
     }
 
@@ -67,7 +67,7 @@ fn app(
     }
 
     if let Some(matches) = opts.subcommand_matches("run") {
-        load_wallet(&mut wallet.coins, &exchanges, &config);
+        scan_wallet(&mut wallet.coins, &exchanges, &config);
         wallet.print_with_price();
 
         let order = match matches.value_of("arb_file") {
@@ -88,7 +88,7 @@ fn app(
     }
 
     if let Some(matches) = opts.subcommand_matches("order") {
-        load_wallet(&mut wallet.coins, &exchanges, &config);
+        scan_wallet(&mut wallet.coins, &exchanges, &config);
         wallet.print_with_price();
 
         let order = build_manual_order(matches);
@@ -100,7 +100,7 @@ fn app(
     Ok(0)
 }
 
-fn load_wallet(
+fn scan_wallet(
     coins: &mut Vec<wallet::WalletCoin>,
     exchanges: &config::ExchangeList,
     config: &config::Config,
@@ -511,7 +511,7 @@ fn run_sheet(
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
     {
         Ok(order_id) => {
-            wait_order(config, &exchange, &order_id);
+            wait_order(&exchange, &order_id);
             Ok(order_id)
         }
         Err(e) => Err(e),
@@ -563,7 +563,7 @@ fn unswap(
     (askbid_align, exmarket, swoffer)
 }
 
-fn wait_order(config: &config::Config, exchange: &config::Exchange, order_id: &str) {
+fn wait_order(exchange: &config::Exchange, order_id: &str) {
     let mut state = exchange::OrderState::Open;
     while state == exchange::OrderState::Open {
         state = exchange.api.order_status(order_id, &exchange.settings);

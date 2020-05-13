@@ -457,18 +457,13 @@ pub struct DepositExecute {
 }
 
 pub struct Switcheo {
-    geth: geth::Client,
     tokens: TokenList,
     pairs: PairList,
-    settings: config::ExchangeSettings,
+    pub settings: config::ExchangeSettings,
 }
 
 impl Switcheo {
-    fn settings(&self) -> &config::ExchangeSettings {
-        &self.settings
-    }
-
-    pub fn new(settings: config::ExchangeSettings, client: geth::Client) -> Switcheo {
+    pub fn new(settings: config::ExchangeSettings) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
         println!(
@@ -477,7 +472,6 @@ impl Switcheo {
             pairs.len()
         );
         Switcheo {
-            geth: client,
             tokens: tokens,
             pairs: pairs,
             settings: settings,
@@ -860,7 +854,7 @@ impl exchange::Api for Switcheo {
         order_id: &str,
         exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
-        let url = format!("{}/orders/{}", self.settings().api_url.as_str(), order_id);
+        let url = format!("{}/orders/{}", self.settings.api_url.as_str(), order_id);
         println!("{}", url);
         let client = reqwest::blocking::Client::new();
         let resp = client.get(url.as_str()).send().unwrap();
