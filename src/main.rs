@@ -21,7 +21,7 @@ fn main() {
     let config: config::Config = config::read_type(config_filename);
 
     let exchanges_filename = "exchanges.yaml";
-    let exchanges = config::read_exchanges(exchanges_filename, &config)
+    let exchanges = config::hydrate_exchanges(exchanges_filename, &config)
         .unwrap_or_else(|c| panic!("{} {}", exchanges_filename, c));
 
     let wallet_filename = "wallet.yaml";
@@ -38,29 +38,30 @@ fn app(
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let config = config::CONFIG.get().unwrap();
+
     if let Some(_matches) = opts.subcommand_matches("balances") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         wallet.print_with_price();
     }
+
     if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
     }
-    if let Some(matches) = opts.subcommand_matches("withdrawl") {
-        let exchange = exchanges.find_by_name(matches.value_of("exchange").unwrap());
-        let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
+
+    if let Some(matches) = opts.subcommand_matches("withdrawal") {
+        let exchange_name = matches.value_of("exchange").unwrap();
+        let amount_str = matches.value_of("amount").unwrap();
         let symbol = matches.value_of("token").unwrap();
         let token = types::Ticker {
             symbol: symbol.to_uppercase(),
         };
-        match exchange {
-            Some(exchange) => {
-                exchange.api.withdrawl(
-                    &config.wallet_private_key,
-                    &exchange.settings,
-                    amount,
-                    &token,
-                );
-            }
+        match exchanges.find_by_name(exchange_name) {
+            Some(exchange) => exchange.api.withdrawl(
+                &config.wallet_private_key,
+                &exchange.settings,
+                amount_str.parse::<f64>().unwrap(),
+                &token,
+            ),
             None => println!("exchange not found"),
         }
     }
@@ -80,15 +81,12 @@ fn app(
             }
         };
 
-        println!(
-            "{}/{} Cost {:0.5} Profit {:0.5} {}",
-            order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
-        );
         let run_log = run_order(config, &mut wallet, &order, &exchanges);
         if let Some(email) = config.email.as_ref() {
             mail_log(&email, &order, &run_log)
         }
     }
+
     if let Some(matches) = opts.subcommand_matches("order") {
         load_wallet(&mut wallet.coins, &exchanges, &config);
         wallet.print_with_price();
@@ -143,6 +141,10 @@ fn run_order(
     exchanges: &config::ExchangeList,
 ) -> RunLog {
     let mut run_out = RunLog::new();
+    run_out.add(format!(
+        "{}/{} Cost {:0.5} Profit {:0.5} {}",
+        order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
+    ));
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
     let ask_sheets_out = format_runs(&ask_sheets);
@@ -164,7 +166,7 @@ fn run_order(
 
         if sim_bid_goods_len == sim_bid_sheets_len {
             let _ask_runs = run_sheets(config, ask_goods, exchanges);
-            run_out.add(format!("ask runs: \nNA"));
+            run_out.add(format!("ask runs: \n"));
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             let bid_sheets_out = format_runs(&bid_sheets);
@@ -176,7 +178,7 @@ fn run_order(
 
             if bid_goods_len == bid_sheets_len {
                 let _bid_runs = run_sheets(config, bid_goods, exchanges);
-                run_out.add(format!("bid runs: \nNA"));
+                run_out.add(format!("bid runs: \n"));
             } else {
                 run_out.add(format!(
                     "sumbit aborted! bids {} good {} (thats bad)",

@@ -12,8 +12,8 @@ subcommands:
     - orders:
         about: list open orders
         version: "1.0"
-    - withdrawl:
-        about: withdrawl
+    - withdrawal:
+        about: withdrawal a balance
         version: "1.0"
         args:
             - exchange:

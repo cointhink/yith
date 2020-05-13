@@ -92,7 +92,7 @@ impl ExchangeList {
     }
 }
 
-pub fn read_exchanges(
+pub fn hydrate_exchanges(
     filename: &str,
     config: &Config,
 ) -> Result<ExchangeList, Box<dyn std::error::Error>> {
