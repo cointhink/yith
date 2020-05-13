@@ -96,31 +96,33 @@ pub fn read_exchanges(
     filename: &str,
     config: &Config,
 ) -> Result<ExchangeList, Box<dyn std::error::Error>> {
-    let yaml = fs::read_to_string(filename)?;
-    let exchange_settings: Vec<ExchangeSettings> = serde_yaml::from_str(&yaml)?;
-    let elist: Vec<Exchange> = vec![];
-    let mut list = ExchangeList { exchanges: elist };
-    for settings in exchange_settings.into_iter() {
-        let api: Box<dyn exchange::Api> = match settings.protocol {
-            ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
-            ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3::new(settings.clone())),
-            ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
-            ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new(
-                settings.clone(),
-                geth::infura(&config.infura_project_id),
-            )),
-            ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
-                settings.clone(),
-                &config.idex_key,
-            )),
-            ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(geth::infura(
-                &config.infura_project_id,
-            ))),
-        };
-        list.exchanges.push(Exchange {
-            api: api,
-            settings: settings,
-        });
-    }
-    Ok(list)
+    let exchange_settings: Vec<ExchangeSettings> = read_type(filename);
+    let exchanges = exchange_settings
+        .into_iter()
+        .map(|settings| {
+            let api: Box<dyn exchange::Api> = match settings.protocol {
+                ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
+                ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3::new(settings.clone())),
+                ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
+                ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new(
+                    settings.clone(),
+                    geth::infura(&config.infura_project_id),
+                )),
+                ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
+                    settings.clone(),
+                    &config.idex_key,
+                )),
+                ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(geth::infura(
+                    &config.infura_project_id,
+                ))),
+            };
+            Exchange {
+                api: api,
+                settings: settings,
+            }
+        })
+        .collect();
+    Ok(ExchangeList {
+        exchanges: exchanges,
+    })
 }
