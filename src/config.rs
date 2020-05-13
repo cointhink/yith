@@ -2,6 +2,7 @@ use crate::exchange;
 use crate::exchanges;
 use crate::geth;
 use once_cell::sync::OnceCell;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fs;
@@ -21,10 +22,13 @@ pub struct Config {
     pub email: Option<String>,
 }
 
-pub fn read_config(filename: &str) -> Result<Config, Box<dyn std::error::Error>> {
-    let yaml = fs::read_to_string(filename)?;
-    let config: Config = serde_yaml::from_str(&yaml)?;
-    Ok(config)
+pub fn read_type<T>(filename: &str) -> T
+where
+    T: DeserializeOwned,
+{
+    let yaml = fs::read_to_string(filename).unwrap_or_else(|err| panic!("{} {}", filename, err));
+    let obj: T = serde_yaml::from_str(&yaml).unwrap_or_else(|err| panic!("{} {}", filename, err));
+    obj
 }
 
 pub struct Exchange {

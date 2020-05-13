@@ -14,29 +14,27 @@ mod types;
 mod wallet;
 
 fn main() {
-    let opt_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
-    let opt_matches = clap::App::from_yaml(opt_yaml).get_matches();
-    let config_filename = opt_matches.value_of("config").unwrap_or(config::FILENAME);
-    let config = config::read_config(config_filename)
-        .unwrap_or_else(|c| panic!("{} {}", config_filename, c));
+    let options_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
+    let options = clap::App::from_yaml(options_yaml).get_matches();
+
+    let config_filename = options.value_of("config").unwrap_or(config::FILENAME);
+    let config: config::Config = config::read_type(config_filename);
+
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::read_exchanges(exchanges_filename, &config)
         .unwrap_or_else(|c| panic!("{} {}", exchanges_filename, c));
+
     let wallet_filename = "wallet.yaml";
-    let wallet = wallet::Wallet::load_file(wallet_filename)
-        .unwrap_or_else(|c| panic!("{} {}", wallet_filename, c));
+    let wallet: wallet::Wallet = config::read_type(wallet_filename);
+
+    config::CONFIG.set(config).unwrap(); // set-once global
     println!("Yith {:#?} {}", config_filename, time::now_string());
-    let redis = redis::Redis {
-        url: &config.redis_url.clone(),
-    };
-    config::CONFIG.set(config).unwrap();
-    app(wallet, exchanges, redis, opt_matches).unwrap();
+    app(wallet, exchanges, options).unwrap();
 }
 
 fn app(
     mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
-    redis: redis::Redis,
     opts: clap::ArgMatches,
 ) -> Result<u32, Box<dyn std::error::Error>> {
     let config = config::CONFIG.get().unwrap();
@@ -77,8 +75,8 @@ fn app(
                 types::Order::from_file(filename.to_string())
             }
             None => {
-                let mut client = redis::rdsetup(&config.redis_url)?;
-                redis.rd_next(&mut client)
+                let mut redis = redis::Redis::new(&config.redis_url);
+                redis.rd_next()
             }
         };
 
