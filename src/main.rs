@@ -82,7 +82,7 @@ fn app(
         };
 
         let run_log = run_order(config, &mut wallet, &order, &exchanges);
-        if let Some(email) = config.email.as_ref() {
+        if let Some(email) = &config.email {
             mail_log(&email, &order, &run_log)
         }
     }
@@ -147,8 +147,7 @@ fn run_order(
     ));
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
-    let ask_sheets_out = format_runs(&ask_sheets);
-    run_out.add(format!("ask builds: \n{}", ask_sheets_out));
+    run_out.add(format!("ask builds: \n{}", format_runs(&ask_sheets)));
     let ask_sheets_len = count_sheets(&ask_sheets);
     let ask_goods = filter_good_sheets(ask_sheets);
     let ask_goods_len = count_sheets(&ask_goods);
@@ -157,8 +156,7 @@ fn run_order(
     if ask_goods_len == ask_sheets_len {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
-        let sim_bid_sheets_out = format_runs(&sim_bid_sheets);
-        run_out.add(format!("simbid builds: \n{}", sim_bid_sheets_out));
+        run_out.add(format!("simbid builds: \n{}", format_runs(&sim_bid_sheets)));
         let sim_bid_sheets_len = count_sheets(&sim_bid_sheets);
         let sim_bid_goods = filter_good_sheets(sim_bid_sheets);
         let sim_bid_goods_len = count_sheets(&sim_bid_goods);
@@ -166,11 +164,10 @@ fn run_order(
 
         if sim_bid_goods_len == sim_bid_sheets_len {
             let _ask_runs = run_sheets(config, ask_goods, exchanges);
-            run_out.add(format!("ask runs: \n"));
+            run_out.add(format!("ask runs: (logging not implemented)\n"));
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
-            let bid_sheets_out = format_runs(&bid_sheets);
-            run_out.add(format!("bid builds: \n{}", bid_sheets_out));
+            run_out.add(format!("bid builds: \n{}", format_runs(&bid_sheets)));
             let bid_sheets_len = count_sheets(&bid_sheets);
             let bid_goods = filter_good_sheets(bid_sheets);
             let bid_goods_len = count_sheets(&bid_goods);
@@ -178,7 +175,7 @@ fn run_order(
 
             if bid_goods_len == bid_sheets_len {
                 let _bid_runs = run_sheets(config, bid_goods, exchanges);
-                run_out.add(format!("bid runs: \n"));
+                run_out.add(format!("bid runs: (logging not implemented)\n"));
             } else {
                 run_out.add(format!(
                     "sumbit aborted! bids {} good {} (thats bad)",

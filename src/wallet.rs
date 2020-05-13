@@ -34,12 +34,6 @@ impl WalletCoin {
 }
 
 impl Wallet {
-    pub fn load_file(filename: &str) -> Result<Wallet, Box<dyn std::error::Error>> {
-        let yaml = fs::read_to_string(filename)?;
-        let wallet: Wallet = serde_yaml::from_str(&yaml)?;
-        Ok(wallet)
-    }
-
     pub fn coin_limit(&self, name: &str) -> f64 {
         match self.find_coin_by_symbol(name) {
             Ok(coin) => coin.amounts[0].base_qty,
