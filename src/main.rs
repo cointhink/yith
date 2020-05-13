@@ -511,6 +511,7 @@ fn run_sheet(
         .submit(&config.wallet_private_key, &exchange.settings, sheet)
     {
         Ok(order_id) => {
+            println!("* {} ORDER ID {}", exchange.settings.name, order_id);
             wait_order(&exchange, &order_id);
             Ok(order_id)
         }
