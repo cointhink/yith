@@ -192,7 +192,8 @@ impl exchange::Api for Zeroex {
             form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
             println!("{:#?}", form);
             let privkey_bytes = &hex::decode(privkey).unwrap();
-            form.signature = order_sign(privkey_bytes, &mut form);
+            let order_hash = order_hash(&form);
+            form.signature = order_sign(privkey_bytes, order_hash);
             Ok(exchange::OrderSheet::Zeroex(form))
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
@@ -211,14 +212,21 @@ impl exchange::Api for Zeroex {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let client = reqwest::blocking::Client::new();
-        let url = format!("{}/orders", exchange.api_url.as_str());
-        println!("{}", url);
-        println!("{}", serde_json::to_string(&sheet).unwrap());
-        let resp = client.post(url.as_str()).json(&sheet).send()?;
-        println!("{:#?} {}", resp.status(), resp.url());
-        println!("{:#?}", resp.text());
-        Ok("radar-order-0".to_string())
+        if let exchange::OrderSheet::Zeroex(order) = sheet {
+            let client = reqwest::blocking::Client::new();
+            let url = format!("{}/orders", exchange.api_url.as_str());
+            println!("{}", url);
+            println!("{}", serde_json::to_string(&order).unwrap());
+            let resp = client.post(url.as_str()).json(&order).send()?;
+            println!("{:#?} {}", resp.status(), resp.url());
+            println!("{:#?}", resp.text());
+            let order_hash = eth::hex(&order_hash(&order));
+            Ok(order_hash)
+        } else {
+            Err(exchange::ExchangeError::build_box(format!(
+                "wrong ordersheet type!"
+            )))
+        }
     }
 
     fn open_orders(
@@ -258,8 +266,7 @@ impl exchange::Api for Zeroex {
     }
 }
 
-pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
-    let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
+pub fn order_hash(form: &OrderForm) -> [u8; 32] {
     let form_tokens = order_tokens(&form);
     let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
     let form_hash = eth::hash_msg(&form_tokens_bytes);
@@ -267,7 +274,11 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, form: &mut OrderForm) -> String {
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
     let eip191_header = hex::decode("1901").unwrap();
     let exg_with_header: Vec<u8> = [&eip191_header[..], &exg_tokens_bytes[..]].concat();
-    let exg_hash = eth::hash_msg(&exg_with_header);
+    eth::hash_msg(&exg_with_header)
+}
+
+pub fn order_sign(privkey_bytes: &Vec<u8>, exg_hash: [u8; 32]) -> String {
+    let secret_key = SecretKey::from_slice(privkey_bytes).expect("bad secret key bytes");
     let (v, r, s) = eth::sign_bytes_vrs(&exg_hash, &secret_key);
     let form_sig_bytes = eth::sigparts_to_vrs(v, r, s);
     format!(
@@ -379,6 +390,28 @@ mod tests {
         }
     }
 
+    fn docs0x_order_form() -> OrderForm {
+        OrderForm {
+            chain_id: 1,
+            maker_address: "0x320c38912b1611a0706c0a74427f64fa5dc3598e".to_string(),
+            taker_address: "0x0000000000000000000000000000000000000000".to_string(),
+            fee_recipient_address: "0xc898fbee1cc94c0ff077faa5449915a506eff384".to_string(),
+            sender_address: "0x0000000000000000000000000000000000000000".to_string(),
+            maker_asset_amount: "47479678912656000".to_string(),
+            taker_asset_amount: "43835664000000000000".to_string(),
+            maker_fee: "0".to_string(),
+            taker_fee: "0".to_string(),
+            expiration_time_seconds: "1576876106".to_string(),
+            salt: "1576832996".to_string(),
+            exchange_address: "0x61935cbdd02287b511119ddb11aeb42f1593b7ef".to_string(),
+            maker_asset_data: "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string(),
+            taker_asset_data: "0xf47261b00000000000000000000000004fbb350052bca5417566f188eb2ebce5b19bc964".to_string(),
+            maker_fee_asset_data: "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string(),
+            taker_fee_asset_data: "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string(),
+            signature: "0x1b619623be7d177f19c2e987fa974ded5c000dd5c6dfdcb7cd17da31fe2cd94aef19ab0ffb2b29f66142a754ddb165c0d2ddc98fcb45ca7a348e4c05c77216c60103".to_string(),
+        }
+    }
+
     #[test]
     fn test_eip712_domain_sep() {
         let good_exchange_hash_v2: &str =
@@ -443,10 +476,19 @@ mod tests {
                 .unwrap()
         )
     }
+
+    #[test]
+    fn test_order_hash() {
+        let order_hash = order_hash(&docs0x_order_form());
+        let good_hash = "0xa1e06a98da1e56bd61e81c3d9de8cbe443618ad3d77a9ba6cf0562aeaa29e1a6";
+        assert_eq!(eth::hex(&order_hash), good_hash)
+    }
+
     #[test]
     fn test_order_sign() {
         let privkey_bytes = &hex::decode(PRIVKEY).unwrap();
-        let signature = order_sign(privkey_bytes, &mut blank_order_form());
+        let order_hash = order_hash(&blank_order_form());
+        let signature = order_sign(privkey_bytes, order_hash);
         let good_sig = "0x1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a02";
         assert_eq!(signature, good_sig)
     }
