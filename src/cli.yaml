@@ -1,5 +1,4 @@
-name: myapp
-version: "1.0"
+name: yith
 args:
     - config:
         long: config
