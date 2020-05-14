@@ -299,6 +299,10 @@ fn build_book(
         .iter()
         .take(1) // first offer
         .map(|offer| {
+            let check_ticker = match askbid {
+                types::AskBid::Ask => &book.market.quote,
+                types::AskBid::Bid => &book.market.base,
+            };
             println!(
                 "** {} {} {} {} => {}{}",
                 match mode {
@@ -309,7 +313,7 @@ fn build_book(
                 &book.market,
                 offer,
                 offer.cost(*askbid),
-                &book.market.quote
+                check_ticker
             );
             build_offer(config, askbid, &exchange, offer, &book.market, wallet, mode)
         })
@@ -355,7 +359,7 @@ fn build_offer(
                             Ok(coin) => {
                                 let least_deposit = minimum(vec![offer_cost, coin.base_total()]);
                                 println!(
-                                    "MOVE: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
+                                    "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
                                     least_deposit,
                                     &check_ticker.symbol,
                                     source_name,
@@ -426,6 +430,10 @@ fn build_offer(
     let minimums = exchange.api.market_minimums(&market, &exchange.settings);
     match minimums {
         Some((base_minimum, quote_minimum)) => {
+            println!(
+                "{} market minimums {} base_minimum={:?} quote_minimum={:?}",
+                exchange.settings.name, market, base_minimum, quote_minimum
+            );
             match base_minimum {
                 Some(minimum) => {
                     if minimum > least_base {
@@ -461,7 +469,12 @@ fn build_offer(
                 None => (),
             };
         }
-        None => (),
+        None => {
+            println!(
+                "{} market minimums {} WARNING: no data",
+                exchange.settings.name, market
+            );
+        }
     }
 
     match mode {
