@@ -593,17 +593,17 @@ fn format_runs(
 ) -> String {
     runs.iter()
         .enumerate()
-        .fold(String::new(), |mut m, (idx, (en, t))| {
+        .fold(String::new(), |mut m, (idx, (exg_name, t))| {
             let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, r)| {
                 let part = match r {
                     Ok(sheet) => format!("{:?}", sheet),
                     Err(err) => err.to_string(),
                 };
-                let out = format!("offr #{}: {} {}", idx, en, part);
+                let out = format!("offr #{}: {} {}", idx, exg_name, part);
                 m.push_str(&out);
                 m
             });
-            m.push_str(&format!("{}: {}", en, line));
+            m.push_str(&format!("{}: {}", exg_name, line));
             m
         })
 }
