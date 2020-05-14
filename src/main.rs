@@ -352,7 +352,7 @@ fn build_offer(
             amount_limits.push(coin.base_total());
             println!(
                 "added amount_limit of {} from wallet balance",
-                coin.base_total
+                coin.base_total()
             );
         }
         Err(_e) => {
