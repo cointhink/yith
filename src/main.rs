@@ -349,11 +349,16 @@ fn build_offer(
 
     match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
         Ok(coin) => {
-            amount_limits.push(coin.base_total());
-            println!(
-                "added amount_limit of {} from wallet balance",
-                coin.base_total()
-            );
+            match mode {
+                Mode::Simulate => (), // not a limitation in simulate
+                Mode::Real => {
+                    amount_limits.push(coin.base_total());
+                    println!(
+                        "added amount_limit of {} from wallet balance",
+                        coin.base_total()
+                    )
+                }
+            }
         }
         Err(_e) => {
             if exchange.settings.has_balances {
