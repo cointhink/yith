@@ -562,12 +562,20 @@ fn unswap(
 }
 
 fn wait_order(exchange: &config::Exchange, order_id: &str) {
-    let mut state = exchange::OrderState::Open;
-    while state == exchange::OrderState::Open {
-        state = exchange.api.order_status(order_id, &exchange.settings);
-        println!("{} {} => {:?}", exchange.settings.name, order_id, state);
-        let delay = std::time::Duration::from_secs(3);
-        std::thread::sleep(delay);
+    let mut state = exchange::OrderState::Pending;
+    let waiting_states = vec![exchange::OrderState::Pending, exchange::OrderState::Open];
+    let mut repeat = true;
+    while repeat {
+        repeat = match waiting_states.iter().find(|&s| *s == state) {
+            Some(_s) => {
+                state = exchange.api.order_status(order_id, &exchange.settings);
+                println!("{} {} => {:?}", exchange.settings.name, order_id, state);
+                let delay = std::time::Duration::from_secs(3);
+                std::thread::sleep(delay);
+                true
+            }
+            None => false,
+        }
     }
 }
 
