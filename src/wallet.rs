@@ -33,6 +33,23 @@ impl WalletCoin {
 }
 
 impl Wallet {
+    pub fn reset(&mut self) {
+        let marked: Vec<Option<usize>> = self
+            .coins
+            .iter()
+            .enumerate()
+            .map(|(idx, c)| if c.source == "limit" { Some(idx) } else { None })
+            .collect();
+        for mark in marked {
+            match mark {
+                Some(idx) => {
+                    self.coins.remove(idx);
+                }
+                None => (),
+            }
+        }
+    }
+
     pub fn coin_limit(&self, name: &str) -> f64 {
         match self.find_coin_by_symbol(name) {
             Ok(coin) => coin.amounts[0].base_qty,

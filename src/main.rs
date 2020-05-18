@@ -163,6 +163,9 @@ fn run_order(
             let _ask_runs = run_sheets(config, ask_goods, exchanges);
             run_out.add(format!("ask runs: (logging not implemented)\n"));
 
+            // wallet refresh
+            wallet.reset();
+
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             run_out.add(format!("bid builds: \n{}", format_runs(&bid_sheets)));
             let bid_sheets_len = count_sheets(&bid_sheets);
