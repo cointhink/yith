@@ -537,8 +537,13 @@ fn run_sheet(
     {
         Ok(order_id) => {
             println!("* {} ORDER ID {}", exchange.settings.name, order_id);
-            wait_order(&exchange, &order_id);
-            Ok(order_id)
+            match wait_order(&exchange, &order_id) {
+                exchange::OrderState::Filled => Ok(order_id),
+                state => Err(exchange::ExchangeError::build_box(format!(
+                    "transaction {:?}",
+                    state
+                ))),
+            }
         }
         Err(e) => Err(e),
     }
@@ -589,7 +594,7 @@ fn unswap(
     (askbid_align, exmarket, swoffer)
 }
 
-fn wait_order(exchange: &config::Exchange, order_id: &str) {
+fn wait_order(exchange: &config::Exchange, order_id: &str) -> exchange::OrderState {
     let mut state = exchange::OrderState::Pending;
     let waiting_states = vec![exchange::OrderState::Pending, exchange::OrderState::Open];
     let mut repeat = true;
@@ -605,6 +610,7 @@ fn wait_order(exchange: &config::Exchange, order_id: &str) {
             None => false,
         }
     }
+    state
 }
 
 fn minimum(amounts: &Vec<f64>) -> f64 {
@@ -760,11 +766,11 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
 
     types::Order {
         id: "manual".to_string(),
-        date: "now".to_string(),
+        date: time::now_string(),
         pair: pair,
         cost: quantity * price,
         profit: 0.0,
-        avg_price: 0.0,
+        avg_price: price,
         ask_books: asks,
         bid_books: bids,
     }
