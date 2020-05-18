@@ -165,6 +165,7 @@ fn run_order(
 
             // wallet refresh
             wallet.reset();
+            scan_wallet(&mut wallet.coins, &exchanges);
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             run_out.add(format!("bid builds: \n{}", format_runs(&bid_sheets)));
