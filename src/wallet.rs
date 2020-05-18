@@ -39,7 +39,7 @@ impl Wallet {
             .iter()
             .enumerate()
             .fold(vec![], |mut acc, (idx, c)| {
-                if c.source == "limit" {
+                if c.source != "limit" {
                     acc.push(idx)
                 }
                 acc
