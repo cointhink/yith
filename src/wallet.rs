@@ -34,19 +34,18 @@ impl WalletCoin {
 
 impl Wallet {
     pub fn reset(&mut self) {
-        let marked: Vec<Option<usize>> = self
+        let marked: Vec<usize> = self
             .coins
             .iter()
             .enumerate()
-            .map(|(idx, c)| if c.source == "limit" { Some(idx) } else { None })
-            .collect();
-        for mark in marked {
-            match mark {
-                Some(idx) => {
-                    self.coins.remove(idx);
+            .fold(vec![], |mut acc, (idx, c)| {
+                if c.source == "limit" {
+                    acc.push(idx)
                 }
-                None => (),
-            }
+                acc
+            });
+        for mark in marked {
+            self.coins.remove(mark);
         }
     }
 
