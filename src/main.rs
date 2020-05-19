@@ -48,7 +48,8 @@ fn app(
         show_orders(&exchanges, &config.wallet_private_key);
     }
 
-    if let Some(matches) = opts.subcommand_matches("withdrawal") {
+    if let Some(matches) = opts.subcommand_matches("transfer") {
+        let direction = matches.value_of("direction").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let amount_str = matches.value_of("amount").unwrap();
         let symbol = matches.value_of("token").unwrap();
@@ -56,12 +57,21 @@ fn app(
             symbol: symbol.to_uppercase(),
         };
         match exchanges.find_by_name(exchange_name) {
-            Some(exchange) => exchange.api.withdrawl(
-                &config.wallet_private_key,
-                &exchange.settings,
-                amount_str.parse::<f64>().unwrap(),
-                &token,
-            ),
+            Some(exchange) => match direction {
+                "withdrawal" => exchange.api.withdrawl(
+                    &config.wallet_private_key,
+                    &exchange.settings,
+                    amount_str.parse::<f64>().unwrap(),
+                    &token,
+                ),
+                "deposit" => exchange.api.deposit(
+                    &config.wallet_private_key,
+                    &exchange.settings,
+                    amount_str.parse::<f64>().unwrap(),
+                    &token,
+                ),
+                _ => println!("bad direction"),
+            },
             None => println!("exchange not found"),
         }
     }

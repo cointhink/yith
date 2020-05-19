@@ -5,7 +5,7 @@ use crate::exchange::Api;
 use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::fs;
@@ -409,9 +409,22 @@ pub struct WithdrawalTransaction {
     data: String,
     gas: String,
     gas_price: String,
-    chain_id: String,
+    #[serde(deserialize_with = "js_floaty_str")]
+    u32: u32, // /v2/withdrawals returns chain_id: "1"
     nonce: String,
     sha256: String,
+}
+
+pub enum TransferDirection {
+    Withdrawal,
+    Deposit,
+}
+
+pub fn js_floaty_str<'de, D>(v: D) -> Result<u32, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(1)
 }
 
 impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
@@ -508,7 +521,7 @@ impl Switcheo {
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-        api_word: &str,
+        direction: TransferDirection,
     ) -> Result<WithdrawlResponse, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
@@ -528,6 +541,10 @@ impl Switcheo {
             withdrawl_request: withdrawl_request,
             address: address,
             signature: signature,
+        };
+        let api_word = match direction {
+            TransferDirection::Withdrawal => "withdrawals",
+            TransferDirection::Deposit => "deposits",
         };
         let url = format!("{}/{}", exchange.api_url.as_str(), api_word);
         let client = reqwest::blocking::Client::new();
@@ -779,7 +796,13 @@ impl exchange::Api for Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let client = reqwest::blocking::Client::new();
-        let response = self.withdepo(privkey, exchange, amount, token, "withdrawals");
+        let response = self.withdepo(
+            privkey,
+            exchange,
+            amount,
+            token,
+            TransferDirection::Withdrawal,
+        );
         match response {
             Ok(resp) => {
                 let withdrawal_execute = WithdrawalExecute {
@@ -819,7 +842,8 @@ impl exchange::Api for Switcheo {
         token: &types::Ticker,
     ) {
         let client = reqwest::blocking::Client::new();
-        let response_opt = self.withdepo(privkey, exchange, amount, token, "deposits");
+        let response_opt =
+            self.withdepo(privkey, exchange, amount, token, TransferDirection::Deposit);
         match response_opt {
             Ok(response) => {
                 let tx: ethereum_tx_sign::RawTransaction = response.transaction.into();
