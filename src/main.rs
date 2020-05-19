@@ -384,13 +384,10 @@ fn build_offer(
         }
         Err(_e) => {
             if exchange.settings.has_balances {
-                match mode {
-                    Mode::Simulate => (), // not a limitation in simulate
-                    Mode::Real => {
-                        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
-                            Ok(coin) => {
-                                let least_deposit = minimum(&vec![offer_cost, coin.base_total()]);
-                                println!(
+                match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
+                    Ok(coin) => {
+                        let least_deposit = minimum(&vec![offer_cost, coin.base_total()]);
+                        println!(
                                     "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
                                     least_deposit,
                                     &check_ticker.symbol,
@@ -398,16 +395,17 @@ fn build_offer(
                                     offer_cost,
                                     coin.base_total(),
                                 );
-                                exchange.api.deposit(
-                                    &config.wallet_private_key,
-                                    &exchange.settings,
-                                    least_deposit,
-                                    &market.base,
-                                )
-                            }
-                            Err(_e) => {}
+                        match mode {
+                            Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
+                            Mode::Real => exchange.api.deposit(
+                                &config.wallet_private_key,
+                                &exchange.settings,
+                                least_deposit,
+                                &market.base,
+                            ),
                         }
                     }
+                    Err(_e) => {}
                 }
             } else {
                 let modeword = match mode {
