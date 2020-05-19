@@ -402,8 +402,29 @@ pub struct WithdrawlRequestSigned {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawalBuildResponse {
+    id: String,
+    transaction: WithdrawalTransaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WithdrawalTransaction {
+    hash: String,
+    message: String,
+    sha256: String,
+    chain_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DepositBuildResponse {
+    id: String,
+    transaction: DepositTransaction,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DepositTransaction {
     from: String,
     value: String,
     to: String,
@@ -421,7 +442,7 @@ pub enum TransferDirection {
     Deposit,
 }
 
-impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
+impl Into<ethereum_tx_sign::RawTransaction> for DepositTransaction {
     fn into(self) -> ethereum_tx_sign::RawTransaction {
         let mut sized_to = [0u8; 20];
         sized_to.copy_from_slice(&eth::dehex(&self.to)[..]);
@@ -436,12 +457,6 @@ impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
             data: eth::dehex(&self.data),
         }
     }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WithdrawalBuildResponse {
-    id: String,
-    transaction: WithdrawalTransaction,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -529,7 +544,7 @@ impl Switcheo {
         amount: f64,
         token: &types::Ticker,
         direction: TransferDirection,
-    ) -> Result<WithdrawalBuildResponse, Box<dyn std::error::Error>> {
+    ) -> Result<String, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
@@ -565,8 +580,7 @@ impl Switcheo {
         let json = resp.text().unwrap();
         println!("{}", json);
         if status.is_success() {
-            let resp = serde_json::from_str::<WithdrawalBuildResponse>(&json).unwrap();
-            Ok(resp)
+            Ok(json)
         } else {
             let resp_err = serde_json::from_str::<ResponseError>(&json).unwrap();
             let order_error = exchange::OrderError {
@@ -811,7 +825,8 @@ impl exchange::Api for Switcheo {
             TransferDirection::Withdrawal,
         );
         match response {
-            Ok(resp) => {
+            Ok(json) => {
+                let resp = serde_json::from_str::<WithdrawalBuildResponse>(&json).unwrap();
                 let withdrawal_execute = WithdrawalExecute {
                     id: resp.id,
                     timestamp: time::now_millis(),
@@ -836,9 +851,18 @@ impl exchange::Api for Switcheo {
                 println!("switcheo withdrawal execute {:#?} {}", status, resp.url());
                 let json = resp.text().unwrap();
                 println!("{}", json);
-                let response = serde_json::from_str::<TransferResponseOk>(&json).unwrap();
-                let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
-                println!("tx {}", tx);
+                if status.is_success() {
+                    let v: Value = serde_json::from_str(&json).unwrap();
+                    if v["error"] == Value::Null {
+                        let response = serde_json::from_str::<TransferResponseOk>(&json).unwrap();
+                        let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
+                        println!("tx {}", tx);
+                    } else {
+                        let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
+                    }
+                } else {
+                    println!("http err");
+                }
             }
             Err(_e) => (),
         }
@@ -855,7 +879,8 @@ impl exchange::Api for Switcheo {
         let response_opt =
             self.withdepo(privkey, exchange, amount, token, TransferDirection::Deposit);
         match response_opt {
-            Ok(response) => {
+            Ok(json) => {
+                let response = serde_json::from_str::<DepositBuildResponse>(&json).unwrap();
                 let tx: ethereum_tx_sign::RawTransaction = response.transaction.into();
                 let private_key = ethereum_types::H256::from_slice(&eth::dehex(privkey));
                 let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
@@ -877,8 +902,7 @@ impl exchange::Api for Switcheo {
                 println!("switcheo deposit execute {:#?} {}", status, resp.url());
                 let json = resp.text().unwrap();
                 println!("{}", json);
-                let v: Value = serde_json::from_str(&json).unwrap();
-                if v["error"] == Value::Null {
+                if status.is_success() {
                     let response = serde_json::from_str::<TransferResponseOk>(&json).unwrap();
                     let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
                     println!("tx {}", tx);
