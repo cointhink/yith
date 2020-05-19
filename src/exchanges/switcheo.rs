@@ -409,8 +409,8 @@ pub struct WithdrawalTransaction {
     data: String,
     gas: String,
     gas_price: String,
-    #[serde(deserialize_with = "js_floaty_str")]
-    u32: u32, // /v2/withdrawals returns chain_id: "1"
+    #[serde(skip_deserializing)]
+    chain_id: u32, // v2/withdrawals returns "1". v2/deposits returns 1
     nonce: String,
     sha256: String,
 }
@@ -418,13 +418,6 @@ pub struct WithdrawalTransaction {
 pub enum TransferDirection {
     Withdrawal,
     Deposit,
-}
-
-pub fn js_floaty_str<'de, D>(v: D) -> Result<u32, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    Ok(1)
 }
 
 impl Into<ethereum_tx_sign::RawTransaction> for WithdrawalTransaction {
