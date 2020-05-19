@@ -20,6 +20,7 @@ pub struct Config {
     pub idex_key: String,
     pub infura_project_id: String,
     pub email: Option<String>,
+    pub spread_premium: Option<f64>,
 }
 
 pub fn read_type<T>(filename: &str) -> T

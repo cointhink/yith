@@ -346,8 +346,26 @@ fn build_offer(
         types::AskBid::Bid => &market.base,
     };
 
+    // add premium
+    let mut offer_quote_adjusted = offer.quote;
+    if let Some(premium) = config.spread_premium {
+        let adjustor = match askbid {
+            types::AskBid::Ask => 1.0 + premium,
+            types::AskBid::Bid => 1.0,
+        };
+        offer_quote_adjusted = offer_quote_adjusted * adjustor;
+        println!(
+            "offer quote {} adjusted {} ({}) to {}",
+            offer.quote, premium, adjustor, offer_quote_adjusted
+        );
+    }
+    let premium_offer = types::Offer {
+        base_qty: offer.base_qty,
+        quote: offer_quote_adjusted,
+    };
+
     let mut amount_limits = vec![];
-    let offer_cost = offer.cost(askbid);
+    let offer_cost = premium_offer.cost(askbid);
     amount_limits.push(offer_cost);
     println!("added amount_limit of {} from offer_cost", offer_cost);
 
@@ -427,7 +445,7 @@ fn build_offer(
     let least_cost = minimum(&amount_limits);
     println!("least_cost {} = min of {:?}", least_cost, &amount_limits);
     let least_qty = match askbid {
-        types::AskBid::Ask => least_cost / offer.quote,
+        types::AskBid::Ask => least_cost / premium_offer.quote,
         types::AskBid::Bid => least_cost,
     };
     if least_cost < offer_cost {
@@ -439,10 +457,10 @@ fn build_offer(
 
     let least_quote = match askbid {
         types::AskBid::Ask => least_cost,
-        types::AskBid::Bid => least_cost * offer.quote,
+        types::AskBid::Bid => least_cost * premium_offer.quote,
     };
     let least_base = match askbid {
-        types::AskBid::Ask => least_cost / offer.quote,
+        types::AskBid::Ask => least_cost / premium_offer.quote,
         types::AskBid::Bid => least_cost,
     };
 
@@ -496,20 +514,19 @@ fn build_offer(
         }
     }
 
+    let capped_offer = types::Offer {
+        base_qty: least_qty,
+        quote: premium_offer.quote,
+    };
+
     match mode {
-        Mode::Real => {
-            let capped_offer = types::Offer {
-                base_qty: least_qty,
-                quote: offer.quote,
-            };
-            exchange.api.build(
-                &config.wallet_private_key,
-                &askbid,
-                &exchange.settings,
-                &market,
-                &capped_offer,
-            )
-        }
+        Mode::Real => exchange.api.build(
+            &config.wallet_private_key,
+            &askbid,
+            &exchange.settings,
+            &market,
+            &capped_offer,
+        ),
         Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
     }
 }
