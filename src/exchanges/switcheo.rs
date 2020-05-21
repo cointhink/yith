@@ -558,7 +558,7 @@ impl Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
-        let units = amount_to_units(amount, token_detail.precision, token_detail);
+        let units = amount_to_units(amount, token_detail.precision, token_detail.decimals);
         let withdrawl_request = WithdrawlRequest {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
@@ -632,12 +632,12 @@ impl exchange::Api for Switcheo {
             contract_hash: exchange.contract_address.to_string(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: float_precision_string(offer.quote, pair.precision),
             quantity: amount_to_units(
                 offer.base_qty,
                 base_token_detail.precision,
-                base_token_detail,
+                base_token_detail.decimals,
             ),
+            price: amount_to_units(offer.quote, pair.precision, base_token_detail.decimals),
             side: askbid.into(),
             timestamp: now_millis,
             use_native_tokens: false,
@@ -1037,13 +1037,10 @@ pub fn split_market_pair(pair: &str) -> (String, String) {
     (parts[0].to_string(), parts[1].to_string())
 }
 
-pub fn amount_to_units(amount: f64, precision: i32, token: &TokenDetail) -> String {
-    let qty_int = exchange::quantity_in_base_units(amount, precision, token.decimals);
+pub fn amount_to_units(amount: f64, precision: i32, decimals: i32) -> String {
+    let qty_int = exchange::quantity_in_base_units(amount, precision, decimals);
     let qty_str = qty_int.to_str_radix(10);
-    println!(
-        "{}^{} {}^{} => \"{}\"",
-        amount, precision, token.symbol, token.decimals, qty_str
-    );
+    println!("{}#{}^{} => \"{}\"", amount, precision, decimals, qty_str);
     qty_str
 }
 
@@ -1088,21 +1085,10 @@ mod tests {
 
     #[test]
     fn test_amount_to_units() {
-        let token = TokenDetail {
-            symbol: "BAT".to_string(),
-            name: "BAT".to_string(),
-            r#type: "wut".to_string(),
-            hash: "abc".to_string(),
-            decimals: 18,
-            transfer_decimals: 18,
-            precision: 2,
-            minimum_quantity: "0".to_string(),
-            trading_active: true,
-            is_stablecoin: false,
-            stablecoin_type: None,
-        };
-        let units = amount_to_units(2.3, 2, &token);
-        assert_eq!(units, "2300000000000000000") // float sigma fun
+        let units = amount_to_units(2.3, 2, 18);
+        assert_eq!(units, "2300000000000000000"); // float sigma fun
+        let units2 = amount_to_units(0.0001234, 6, 8);
+        assert_eq!(units2, "12300"); // float sigma fun
     }
 
     #[test]
