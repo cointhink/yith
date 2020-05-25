@@ -187,6 +187,17 @@ mod tests {
     static GOOD_ADDR: &str = "ed6d484f5c289ec8c6b6f934ef6419230169f534";
 
     #[test]
+    fn test_hash_msg() {
+        let bytes = [0u8; 0]; // empty string
+        let hash = hash_msg(&bytes.to_vec());
+        assert_eq!(
+            hex::encode(hash),
+            "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" // old keccak
+        );
+        // new sha3-256 "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a"
+    }
+
+    #[test]
     fn test_pubkey_to_addr() {
         let pubkey_bytes = hex::decode(PUBKEY).unwrap();
         let mut pubkey_sized_bytes = [0u8; 65];
