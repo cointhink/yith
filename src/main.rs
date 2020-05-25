@@ -58,23 +58,28 @@ fn app(
         show_orders(&exchanges, &config.wallet_private_key);
         None
     } else if let Some(matches) = opts.subcommand_matches("transfer") {
-        let direction = matches.value_of("direction").unwrap();
+        let direction_str = matches.value_of("direction").unwrap();
+        let direction = match exchange::TransferDirection::read(direction_str) {
+            Some(dir) => dir,
+            None => {
+                return Some(errors::MainError::build_box(format!(
+                    "bad transfer direction"
+                )))
+            }
+        };
+        //let direction = matches.value_of("direction").unwrap().into();
         let amount_str = matches.value_of("amount").unwrap();
         let symbol = matches.value_of("token").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
-        match exchanges.find_by_name(exchange_name) {
-            Some(exchange) => run_transfer(
-                &config.wallet_private_key,
-                &direction,
-                &exchange,
-                &amount_str,
-                &symbol.into(),
-            ),
-            None => Some(errors::MainError::build_box(format!(
-                "exchange not found: {}",
-                exchange_name
-            ))),
-        }
+        let exchange = exchanges.find_by_name(exchange_name).unwrap();
+
+        run_transfer(
+            &config.wallet_private_key,
+            direction,
+            &exchange,
+            &amount_str,
+            &symbol.into(),
+        )
     } else if let Some(matches) = opts.subcommand_matches("order") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
@@ -114,13 +119,13 @@ fn app(
 
 fn run_transfer(
     private_key: &str,
-    direction: &str,
+    direction: exchange::TransferDirection,
     exchange: &config::Exchange,
     amount_str: &str,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
     match direction {
-        "withdrawal" => {
+        exchange::TransferDirection::Withdrawal => {
             exchange.api.withdrawl(
                 private_key,
                 &exchange.settings,
@@ -129,7 +134,7 @@ fn run_transfer(
             );
             None
         }
-        "deposit" => {
+        exchange::TransferDirection::Deposit => {
             exchange.api.deposit(
                 private_key,
                 &exchange.settings,

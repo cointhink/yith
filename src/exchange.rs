@@ -9,6 +9,41 @@ use std::collections;
 use std::error;
 use std::fmt;
 
+#[derive(Debug)]
+pub enum TransferDirection {
+    Deposit,
+    Withdrawal,
+}
+
+impl TransferDirection {
+    pub fn read(direction: &str) -> Option<Self> {
+        match direction {
+            "withdrawal" => Some(Self::Withdrawal),
+            "deposit" => Some(Self::Deposit),
+            _ => None,
+        }
+    }
+}
+
+// impl From<&str> for TransferDirection {
+//     fn from(direction: &str) -> Self {
+//         match direction {
+//             "withdrawal" => Self::Withdrawal,
+//             "deposit" => Self::Deposit,
+//         }
+//     }
+// }
+
+impl std::fmt::Display for TransferDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let word = match self {
+            Self::Deposit => "Deposit",
+            Self::Withdrawal => "Withdrawal",
+        };
+        write!(f, "{}", word)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum OrderSheet {
