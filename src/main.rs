@@ -2,11 +2,13 @@ use clap;
 
 mod config;
 mod email;
+mod errors;
 mod eth;
 mod etherscan;
 mod exchange;
 mod exchanges;
 mod geth;
+mod log;
 mod price;
 mod redis;
 mod time;
@@ -51,13 +53,11 @@ fn app(
     if let Some(_matches) = opts.subcommand_matches("balances") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
-    }
-
-    if let Some(_matches) = opts.subcommand_matches("orders") {
+        None
+    } else if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
-    }
-
-    if let Some(matches) = opts.subcommand_matches("transfer") {
+        None
+    } else if let Some(matches) = opts.subcommand_matches("transfer") {
         let direction = matches.value_of("direction").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let amount_str = matches.value_of("amount").unwrap();
@@ -74,9 +74,18 @@ fn app(
             &symbol,
             &token,
         );
-    }
+        None
+    } else if let Some(matches) = opts.subcommand_matches("order") {
+        scan_wallet(&mut wallet.coins, &exchanges);
+        wallet.print_with_price();
 
-    if let Some(matches) = opts.subcommand_matches("run") {
+        let order = build_manual_order(matches);
+        let run_log = run_order(config, &mut wallet, &order, &exchanges);
+        if let Some(email) = config.email.as_ref() {
+            mail_log(&email, &order, &run_log)
+        }
+        None
+    } else if let Some(matches) = opts.subcommand_matches("run") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
 
@@ -95,19 +104,12 @@ fn app(
         if let Some(email) = &config.email {
             mail_log(&email, &order, &run_log)
         }
+        None
+    } else {
+        Some(errors::MainError::build_box(format!(
+            "option not understood"
+        )))
     }
-
-    if let Some(matches) = opts.subcommand_matches("order") {
-        scan_wallet(&mut wallet.coins, &exchanges);
-        wallet.print_with_price();
-
-        let order = build_manual_order(matches);
-        let run_log = run_order(config, &mut wallet, &order, &exchanges);
-        if let Some(email) = config.email.as_ref() {
-            mail_log(&email, &order, &run_log)
-        }
-    }
-    None
 }
 
 fn run_transfer(
@@ -175,8 +177,8 @@ fn run_order(
     wallet: &mut wallet::Wallet,
     order: &types::Order,
     exchanges: &config::ExchangeList,
-) -> RunLog {
-    let mut run_out = RunLog::new();
+) -> log::RunLog {
+    let mut run_out = log::RunLog::new();
     run_out.add(format!(
         "{}/{} Cost {:0.5} Profit {:0.5} {}",
         order.pair.base, order.pair.quote, order.cost, order.profit, order.id,
@@ -237,7 +239,7 @@ fn run_order(
     run_out
 }
 
-fn mail_log(email: &str, order: &types::Order, run_log: &RunLog) {
+fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
     let subject = format!("{}", order.pair);
     let out = format!(
         "order #{} {} {:0.4} {:0.4}\n{}",
@@ -831,26 +833,5 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         avg_price: price,
         ask_books: asks,
         bid_books: bids,
-    }
-}
-
-struct RunLog {
-    lines: Vec<String>,
-}
-
-impl RunLog {
-    fn new() -> RunLog {
-        RunLog { lines: Vec::new() }
-    }
-
-    fn add(&mut self, line: String) {
-        println!("{}", line);
-        self.lines.push(line);
-    }
-}
-
-impl std::fmt::Display for RunLog {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        write!(f, "{}", self.lines.join("\n"))
     }
 }
