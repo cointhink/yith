@@ -65,24 +65,15 @@ fn app(
         let token = types::Ticker {
             symbol: symbol.to_uppercase(),
         };
-        match exchanges.find_by_name(exchange_name) {
-            Some(exchange) => match direction {
-                "withdrawal" => exchange.api.withdrawl(
-                    &config.wallet_private_key,
-                    &exchange.settings,
-                    amount_str.parse::<f64>().unwrap(),
-                    &token,
-                ),
-                "deposit" => exchange.api.deposit(
-                    &config.wallet_private_key,
-                    &exchange.settings,
-                    amount_str.parse::<f64>().unwrap(),
-                    &token,
-                ),
-                _ => println!("bad direction"),
-            },
-            None => println!("exchange not found"),
-        }
+        run_transfer(
+            &config.wallet_private_key,
+            &direction,
+            &exchanges,
+            &exchange_name,
+            &amount_str,
+            &symbol,
+            &token,
+        );
     }
 
     if let Some(matches) = opts.subcommand_matches("run") {
@@ -117,6 +108,35 @@ fn app(
         }
     }
     None
+}
+
+fn run_transfer(
+    private_key: &str,
+    direction: &str,
+    exchanges: &config::ExchangeList,
+    exchange_name: &str,
+    amount_str: &str,
+    symbol: &str,
+    token: &types::Ticker,
+) {
+    match exchanges.find_by_name(exchange_name) {
+        Some(exchange) => match direction {
+            "withdrawal" => exchange.api.withdrawl(
+                private_key,
+                &exchange.settings,
+                amount_str.parse::<f64>().unwrap(),
+                token,
+            ),
+            "deposit" => exchange.api.deposit(
+                private_key,
+                &exchange.settings,
+                amount_str.parse::<f64>().unwrap(),
+                token,
+            ),
+            _ => println!("bad direction"),
+        },
+        None => println!("exchange not found"),
+    }
 }
 
 fn scan_wallet(coins: &mut Vec<wallet::WalletCoin>, exchanges: &config::ExchangeList) {
