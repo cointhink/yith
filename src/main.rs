@@ -120,24 +120,36 @@ fn run_transfer(
     amount_str: &str,
     symbol: &str,
     token: &types::Ticker,
-) {
+) -> Option<Box<dyn std::error::Error>> {
     match exchanges.find_by_name(exchange_name) {
         Some(exchange) => match direction {
-            "withdrawal" => exchange.api.withdrawl(
-                private_key,
-                &exchange.settings,
-                amount_str.parse::<f64>().unwrap(),
-                token,
-            ),
-            "deposit" => exchange.api.deposit(
-                private_key,
-                &exchange.settings,
-                amount_str.parse::<f64>().unwrap(),
-                token,
-            ),
-            _ => println!("bad direction"),
+            "withdrawal" => {
+                exchange.api.withdrawl(
+                    private_key,
+                    &exchange.settings,
+                    amount_str.parse::<f64>().unwrap(),
+                    token,
+                );
+                None
+            }
+            "deposit" => {
+                exchange.api.deposit(
+                    private_key,
+                    &exchange.settings,
+                    amount_str.parse::<f64>().unwrap(),
+                    token,
+                );
+                None
+            }
+            _ => Some(errors::MainError::build_box(format!(
+                "bad direction: {}",
+                direction
+            ))),
         },
-        None => println!("exchange not found"),
+        None => Some(errors::MainError::build_box(format!(
+            "exchange {} not found",
+            exchange_name
+        ))),
     }
 }
 
