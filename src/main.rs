@@ -28,15 +28,24 @@ fn main() {
     let wallet: wallet::Wallet = config::read_type(wallet_filename);
 
     config::CONFIG.set(config).unwrap(); // set-once global
+
     println!("Yith {:#?} {}", config_filename, time::now_string());
-    app(wallet, exchanges, options).unwrap();
+    match app(wallet, exchanges, options) {
+        None => {
+            std::process::exit(0);
+        }
+        Some(err) => {
+            eprintln!("stderr: {}", err);
+            std::process::exit(1);
+        }
+    }
 }
 
 fn app(
     mut wallet: wallet::Wallet,
     exchanges: config::ExchangeList,
     opts: clap::ArgMatches,
-) -> Result<u32, Box<dyn std::error::Error>> {
+) -> Option<Box<dyn std::error::Error>> {
     let config = config::CONFIG.get().unwrap();
 
     if let Some(_matches) = opts.subcommand_matches("balances") {
@@ -107,7 +116,7 @@ fn app(
             mail_log(&email, &order, &run_log)
         }
     }
-    Ok(0)
+    None
 }
 
 fn scan_wallet(coins: &mut Vec<wallet::WalletCoin>, exchanges: &config::ExchangeList) {
