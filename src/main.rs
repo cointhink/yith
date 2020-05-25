@@ -59,22 +59,22 @@ fn app(
         None
     } else if let Some(matches) = opts.subcommand_matches("transfer") {
         let direction = matches.value_of("direction").unwrap();
-        let exchange_name = matches.value_of("exchange").unwrap();
         let amount_str = matches.value_of("amount").unwrap();
         let symbol = matches.value_of("token").unwrap();
-        let token = types::Ticker {
-            symbol: symbol.to_uppercase(),
-        };
-        run_transfer(
-            &config.wallet_private_key,
-            &direction,
-            &exchanges,
-            &exchange_name,
-            &amount_str,
-            &symbol,
-            &token,
-        );
-        None
+        let exchange_name = matches.value_of("exchange").unwrap();
+        match exchanges.find_by_name(exchange_name) {
+            Some(exchange) => run_transfer(
+                &config.wallet_private_key,
+                &direction,
+                &exchange,
+                &amount_str,
+                &symbol.into(),
+            ),
+            None => Some(errors::MainError::build_box(format!(
+                "exchange not found: {}",
+                exchange_name
+            ))),
+        }
     } else if let Some(matches) = opts.subcommand_matches("order") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
@@ -115,40 +115,32 @@ fn app(
 fn run_transfer(
     private_key: &str,
     direction: &str,
-    exchanges: &config::ExchangeList,
-    exchange_name: &str,
+    exchange: &config::Exchange,
     amount_str: &str,
-    symbol: &str,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
-    match exchanges.find_by_name(exchange_name) {
-        Some(exchange) => match direction {
-            "withdrawal" => {
-                exchange.api.withdrawl(
-                    private_key,
-                    &exchange.settings,
-                    amount_str.parse::<f64>().unwrap(),
-                    token,
-                );
-                None
-            }
-            "deposit" => {
-                exchange.api.deposit(
-                    private_key,
-                    &exchange.settings,
-                    amount_str.parse::<f64>().unwrap(),
-                    token,
-                );
-                None
-            }
-            _ => Some(errors::MainError::build_box(format!(
-                "bad direction: {}",
-                direction
-            ))),
-        },
-        None => Some(errors::MainError::build_box(format!(
-            "exchange {} not found",
-            exchange_name
+    match direction {
+        "withdrawal" => {
+            exchange.api.withdrawl(
+                private_key,
+                &exchange.settings,
+                amount_str.parse::<f64>().unwrap(),
+                token,
+            );
+            None
+        }
+        "deposit" => {
+            exchange.api.deposit(
+                private_key,
+                &exchange.settings,
+                amount_str.parse::<f64>().unwrap(),
+                token,
+            );
+            None
+        }
+        _ => Some(errors::MainError::build_box(format!(
+            "bad direction: {}",
+            direction
         ))),
     }
 }

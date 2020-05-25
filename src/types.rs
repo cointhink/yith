@@ -134,6 +134,14 @@ impl fmt::Display for Ticker {
     }
 }
 
+impl From<&str> for Ticker {
+    fn from(symbol: &str) -> Self {
+        Ticker {
+            symbol: symbol.to_uppercase(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Offer {
     pub base_qty: f64,
