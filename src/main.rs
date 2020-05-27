@@ -426,8 +426,9 @@ fn build_offer(
                 Mode::Real => {
                     amount_limits.push(coin.base_total());
                     println!(
-                        "added amount_limit of {} from wallet balance",
-                        coin.base_total()
+                        "added amount_limit of {} from {} balance",
+                        coin.base_total(),
+                        source_name
                     )
                 }
             }
