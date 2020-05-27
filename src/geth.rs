@@ -135,8 +135,7 @@ pub fn ethgasstation() -> EthGasStationResult {
     let result = client.get(url).send().unwrap();
     result.json::<EthGasStationResult>().unwrap()
 }
-pub fn ethgasstation_fast_gwei() -> u64 {
+pub fn ethgasstation_fast() -> u64 {
     let gas_prices = ethgasstation();
-    let gas_price = (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64;
-    gas_price / 1_000_000_000u64
+    (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64
 }

@@ -282,7 +282,8 @@ impl exchange::Api for Oasis {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let nonce = self.geth.nonce(&sheet.address)?;
-            let gas_price_gwei = geth::ethgasstation_fast_gwei();
+            let gas_price_fast = geth::ethgasstation_fast();
+            let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
             println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
 
             let mut contract_addra = [0u8; 20];
@@ -292,7 +293,7 @@ impl exchange::Api for Oasis {
                 nonce: ethereum_types::U256::from(nonce),
                 to: Some(ethereum_types::H160::from(contract_addra)),
                 value: ethereum_types::U256::zero(),
-                gas_price: ethereum_types::U256::from(gas_price),
+                gas_price: ethereum_types::U256::from(gas_price_fast),
                 gas: ethereum_types::U256::from(310240),
                 data: eth_data(&self.contract, &sheet),
             };
