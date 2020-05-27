@@ -372,7 +372,7 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
         eth::encode_addr(&wd.token),
         eth::encode_uint256(&wd.amount),
         eth::encode_addr(&wd.address),
-        eth::encode_addr(&wd.nonce),
+        eth::encode_uint256(&wd.nonce),
     ];
     parts_hash(parts)
 }
