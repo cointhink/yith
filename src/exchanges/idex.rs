@@ -1,6 +1,7 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::geth;
 use crate::types;
 use reqwest::header;
 use secp256k1::SecretKey;
@@ -106,17 +107,19 @@ impl TokenList {
 
 #[allow(dead_code)]
 pub struct Idex {
+    geth: geth::Client,
     settings: config::ExchangeSettings,
     client: reqwest::blocking::Client,
     tokens: TokenList,
 }
 
 impl Idex {
-    pub fn new(settings: config::ExchangeSettings, api_key: &str) -> Idex {
+    pub fn new(settings: config::ExchangeSettings, api_key: &str, geth: geth::Client) -> Idex {
         let client = Idex::build_http_client(api_key).unwrap();
         let tokens = TokenList::read_tokens("notes/idex-tokens.json");
         println!("idex loaded {} tokens", tokens.tokens.len());
         Idex {
+            geth: geth,
             settings: settings,
             client: client,
             tokens: tokens,
@@ -231,6 +234,19 @@ impl exchange::Api for Idex {
                 (symbol.clone(), f64)
             })
             .collect()
+    }
+    fn deposit(
+        &self,
+        privkey: &str,
+        exchange: &config::ExchangeSettings,
+        amount: f64,
+        token: &types::Ticker,
+    ) {
+        let method = if token.symbol == "ETH" {
+            "depositToken(address,uint256)"
+        } else {
+            "deposit()"
+        };
     }
 }
 
