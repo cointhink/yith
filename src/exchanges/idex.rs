@@ -237,20 +237,27 @@ impl exchange::Api for Idex {
     }
     fn deposit(
         &self,
-        privkey: &str,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
     ) {
         println!("depositing {} amount {}", token.symbol, amount);
-        let data = if token.symbol == "ETH" {
-            deposit_data()
+        let (data, value) = if token.symbol == "ETH" {
+            let bigint = exchange::quantity_in_base_units(amount, 18, 18);
+            (
+                deposit_data(),
+                ethereum_types::U256::from_dec_str(&bigint.to_str_radix(10)).unwrap(),
+            )
         } else {
             let base_token = &self.tokens.get(&token.symbol);
-            deposit_token_data(&base_token.address, "0")
+            (
+                deposit_token_data(&base_token.address, "0"),
+                ethereum_types::U256::zero(),
+            )
         };
 
-        let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
+        let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.geth.nonce(&pub_addr).unwrap();
         let gas_price_fast = geth::ethgasstation_fast();
         let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
@@ -262,10 +269,25 @@ impl exchange::Api for Idex {
         let tx = ethereum_tx_sign::RawTransaction {
             nonce: ethereum_types::U256::from(nonce),
             to: Some(ethereum_types::H160::from(contract_addra)),
-            value: ethereum_types::U256::zero(),
+            value: value,
             gas_price: ethereum_types::U256::from(gas_price_fast),
             gas: ethereum_types::U256::from(310240),
             data: data,
+        };
+        let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
+        let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
+        let params = (eth::hex(&rlp_bytes),);
+        let result = self
+            .geth
+            .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
+            .unwrap();
+        match result.part {
+            geth::ResultTypes::Error(e) => Err(exchange::ExchangeError::build_box(e.error.message)),
+            geth::ResultTypes::Result(r) => {
+                let tx = r.result;
+                println!("GOOD TX {}", tx);
+                Ok(tx)
+            }
         };
     }
 }
@@ -283,6 +305,8 @@ pub fn deposit_token_data(token_address: &str, amount: &str) -> Vec<u8> {
 
 pub fn deposit_data() -> Vec<u8> {
     let mut call = Vec::<u8>::new();
+    let mut func = eth::hash_abi_sig("deposit()").to_vec();
+    call.append(&mut func);
     call
 }
 
