@@ -281,24 +281,8 @@ impl exchange::Api for Oasis {
     ) -> Result<String, Box<dyn error::Error>> {
         if let exchange::OrderSheet::Oasis(sheet) = sheet_opt {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
-            let params = (sheet.address.clone(), "latest".to_string());
-            let result = self
-                .geth
-                .rpc(
-                    "eth_getTransactionCount",
-                    geth::ParamTypes::InfuraSingle(params),
-                )
-                .unwrap();
-            let nonce = match result.part {
-                geth::ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
-                geth::ResultTypes::Error(e) => {
-                    println!("Err {:?}", e.error.message);
-                    0
-                }
-            };
-            let gas_prices = geth::ethgasstation();
-            let gas_price = (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64;
-            let gas_price_gwei = gas_price / 1_000_000_000u64;
+            let nonce = self.geth.nonce(&sheet.address)?;
+            let gas_price_gwei = geth::ethgasstation_fast_gwei();
             println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
 
             let mut contract_addra = [0u8; 20];

@@ -1,7 +1,9 @@
+use crate::errors;
 use bs58;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Client {
@@ -15,6 +17,17 @@ impl Client {
         params: ParamTypes,
     ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
         rpc(&self.url, method, params)
+    }
+
+    pub fn nonce(&self, addr: &str) -> Result<u32, Box<dyn error::Error>> {
+        let params = (addr.to_string(), "latest".to_string());
+        let result = self
+            .rpc("eth_getTransactionCount", ParamTypes::InfuraSingle(params))
+            .unwrap();
+        match result.part {
+            ResultTypes::Result(r) => Ok(u32::from_str_radix(&r.result[2..], 16)?),
+            ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
+        }
     }
 }
 
@@ -121,4 +134,9 @@ pub fn ethgasstation() -> EthGasStationResult {
     let client = reqwest::blocking::Client::new();
     let result = client.get(url).send().unwrap();
     result.json::<EthGasStationResult>().unwrap()
+}
+pub fn ethgasstation_fast_gwei() -> u64 {
+    let gas_prices = ethgasstation();
+    let gas_price = (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64;
+    gas_price / 1_000_000_000u64
 }
