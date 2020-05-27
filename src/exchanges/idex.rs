@@ -242,12 +242,48 @@ impl exchange::Api for Idex {
         amount: f64,
         token: &types::Ticker,
     ) {
-        let method = if token.symbol == "ETH" {
-            "depositToken(address,uint256)"
+        println!("depositing {} amount {}", token.symbol, amount);
+        let data = if token.symbol == "ETH" {
+            deposit_data()
         } else {
-            "deposit()"
+            let base_token = &self.tokens.get(&token.symbol);
+            deposit_token_data(&base_token.address, "0")
+        };
+
+        let pub_addr = format!("0x{}", eth::privkey_to_addr(privkey));
+        let nonce = self.geth.nonce(&pub_addr).unwrap();
+        let gas_price_fast = geth::ethgasstation_fast();
+        let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
+        println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
+
+        let mut contract_addra = [0u8; 20];
+        let contract_addr = exchange.contract_address.clone();
+        contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
+        let tx = ethereum_tx_sign::RawTransaction {
+            nonce: ethereum_types::U256::from(nonce),
+            to: Some(ethereum_types::H160::from(contract_addra)),
+            value: ethereum_types::U256::zero(),
+            gas_price: ethereum_types::U256::from(gas_price_fast),
+            gas: ethereum_types::U256::from(310240),
+            data: data,
         };
     }
+}
+
+pub fn deposit_token_data(token_address: &str, amount: &str) -> Vec<u8> {
+    let mut call = Vec::<u8>::new();
+    let mut func = eth::hash_abi_sig("depositToken(address,uint256)").to_vec();
+    call.append(&mut func);
+    let mut p1 = hex::decode(eth::encode_addr2(token_address)).unwrap();
+    call.append(&mut p1);
+    let mut p2 = hex::decode(eth::encode_uint256(amount)).unwrap();
+    call.append(&mut p2);
+    call
+}
+
+pub fn deposit_data() -> Vec<u8> {
+    let mut call = Vec::<u8>::new();
+    call
 }
 
 pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32] {
