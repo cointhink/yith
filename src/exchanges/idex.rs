@@ -40,6 +40,24 @@ pub struct OrderSheetSigned {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WithdrawRequest {
+    address: String,
+    amount: String,
+    token: String,
+    nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WithdrawRequestSigned {
+    #[serde(flatten)]
+    withdraw_request: WithdrawRequest,
+    v: u8,
+    r: String,
+    s: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceResponse {
     #[serde(flatten)]
     balances: HashMap<String, String>,
@@ -235,6 +253,44 @@ impl exchange::Api for Idex {
             })
             .collect()
     }
+
+    fn withdrawl(
+        &self,
+        private_key: &str,
+        exchange: &config::ExchangeSettings,
+        amount: f64,
+        token: &types::Ticker,
+    ) {
+        let url = format!("{}/withdraw", exchange.api_url.as_str());
+        let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
+        let nonce = self.geth.nonce(&pub_addr).unwrap();
+        let base_token = &self.tokens.get(&token.symbol);
+        let bigint = exchange::quantity_in_base_units(amount, 18, 18);
+        let withdraw = WithdrawRequest {
+            address: pub_addr,
+            amount: bigint.to_str_radix(10),
+            token: base_token.address.clone(),
+            nonce: nonce.to_string(),
+        };
+        println!("{:?}", withdraw);
+        let params_hash_bytes = withdraw_params_hash(&withdraw, &exchange.contract_address);
+        let params_hash = eth::ethsign_hash_msg(&params_hash_bytes[..].to_vec());
+        let private_key_bytes = &hex::decode(private_key).unwrap();
+        let secret_key = SecretKey::from_slice(private_key_bytes).unwrap();
+        let (v, r, s) = eth::sign_bytes_vrs(&params_hash, &secret_key);
+        let signed = WithdrawRequestSigned {
+            withdraw_request: withdraw,
+            v: v,
+            r: eth::hex(&r),
+            s: eth::hex(&s),
+        };
+        let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
+        let status = resp.status();
+        let json = resp.text().unwrap();
+        println!("{} {} {:?}", url, status, json);
+        //{"error":"Invalid withdrawal signature. Please try again."}
+    }
+
     fn deposit(
         &self,
         private_key: &str,
@@ -310,9 +366,20 @@ pub fn deposit_data() -> Vec<u8> {
     call
 }
 
+pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8; 32] {
+    let parts: Vec<Vec<u8>> = vec![
+        eth::encode_addr(contract_address),
+        eth::encode_addr(&wd.token),
+        eth::encode_uint256(&wd.amount),
+        eth::encode_addr(&wd.address),
+        eth::encode_addr(&wd.nonce),
+    ];
+    parts_hash(parts)
+}
+
 pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32] {
     let expires = order.expires.to_string();
-    let mut parts: Vec<Vec<u8>> = vec![
+    let parts: Vec<Vec<u8>> = vec![
         eth::encode_addr(contract_address),
         eth::encode_addr(&order.token_buy),
         eth::encode_uint256(&order.amount_buy),
@@ -322,10 +389,15 @@ pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32]
         eth::encode_uint256(&order.nonce),
         eth::encode_addr(&order.address),
     ];
+    parts_hash(parts)
+}
+
+pub fn parts_hash(mut parts: Vec<Vec<u8>>) -> [u8; 32] {
     let hash_hex = parts.iter_mut().fold(Vec::<u8>::new(), |mut memo, part| {
         memo.append(part);
         memo
     });
+    println!("parts {}", std::str::from_utf8(&hash_hex).unwrap());
     let hashes = hex::decode(&hash_hex).unwrap();
     eth::hash_msg(&hashes)
 }
