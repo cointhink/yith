@@ -64,6 +64,18 @@ pub struct BalanceResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderStatusRequest {
+    order_hash: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderStatusResponse {
+    status: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct NonceResponse {
     nonce: u128, //docs wrong
 }
@@ -345,6 +357,28 @@ impl exchange::Api for Idex {
                 Ok(tx)
             }
         };
+    }
+
+    fn order_status(
+        &self,
+        order_id: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::OrderState {
+        let url = format!("{}/withdraw", exchange.api_url.as_str());
+        let order_status = OrderStatusRequest {
+            order_hash: order_id.to_string(),
+        };
+        let resp = self
+            .client
+            .get(url.as_str())
+            .json(&order_status)
+            .send()
+            .unwrap();
+        let status = resp.status();
+        let json = resp.text().unwrap();
+        println!("{} {} {:?}", url, status, json);
+        let response = serde_json::from_str::<OrderStatusResponse>(&json).unwrap();
+        exchange::OrderState::Open
     }
 }
 
