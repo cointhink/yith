@@ -364,13 +364,13 @@ impl exchange::Api for Idex {
         order_id: &str,
         exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
-        let url = format!("{}/withdraw", exchange.api_url.as_str());
+        let url = format!("{}/returnOrderStatus", exchange.api_url.as_str());
         let order_status = OrderStatusRequest {
             order_hash: order_id.to_string(),
         };
         let resp = self
             .client
-            .get(url.as_str())
+            .post(url.as_str())
             .json(&order_status)
             .send()
             .unwrap();
