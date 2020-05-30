@@ -1,3 +1,4 @@
+use crate::exchanges;
 use crate::price;
 use crate::time;
 use crate::types;
@@ -8,31 +9,18 @@ use std::fmt;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Wallet {
     pub coins: Vec<WalletCoin>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct WalletCoin {
-    pub ticker_symbol: String,
-    pub contract: String,
-    pub source: String,
-    pub amounts: Vec<types::Offer>,
-}
-
-impl WalletCoin {
-    pub fn build(ticker: &str, contract: &str, name: &str, balance: f64) -> WalletCoin {
-        WalletCoin {
-            ticker_symbol: ticker.to_string(),
-            contract: contract.to_string(),
-            source: name.to_string(),
-            amounts: vec![types::Offer {
-                base_qty: balance,
-                quote: 1.0,
-            }],
-        }
-    }
+    pub tokens: exchanges::idex::TokenList, // borrow from Idex
 }
 
 impl Wallet {
+    pub fn build() -> Wallet {
+        let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
+        Wallet {
+            coins: vec![],
+            tokens: tokens,
+        }
+    }
+
     pub fn reset(&mut self) {
         self.coins.retain(|c| c.source == "limit");
     }
@@ -90,6 +78,29 @@ impl Wallet {
             total = total + subtotal;
         }
         println!("total = {:0.5}{}", total, quote_symbol);
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WalletCoin {
+    pub ticker_symbol: String,
+    pub contract: String,
+    pub source: String,
+    pub amounts: Vec<types::Offer>,
+}
+
+impl WalletCoin {
+    pub fn build(ticker: &str, contract: &str, name: &str, balance: f64) -> WalletCoin {
+        let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
+        WalletCoin {
+            ticker_symbol: ticker.to_string(),
+            contract: contract.to_string(),
+            source: name.to_string(),
+            amounts: vec![types::Offer {
+                base_qty: balance,
+                quote: 1.0,
+            }],
+        }
     }
 }
 
