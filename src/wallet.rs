@@ -9,16 +9,12 @@ use std::fmt;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Wallet {
     pub coins: Vec<WalletCoin>,
-    pub tokens: exchanges::idex::TokenList, // borrow from Idex
 }
 
 impl Wallet {
     pub fn build() -> Wallet {
         let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
-        Wallet {
-            coins: vec![],
-            tokens: tokens,
-        }
+        Wallet { coins: vec![] }
     }
 
     pub fn reset(&mut self) {
