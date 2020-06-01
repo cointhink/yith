@@ -111,11 +111,11 @@ pub fn hydrate_exchanges(
                 ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
                     settings.clone(),
                     &config.idex_key,
-                    geth::infura(&config.infura_project_id),
+                    geth::Client::build_infura(&config.infura_project_id),
                 )),
-                ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(geth::infura(
-                    &config.infura_project_id,
-                ))),
+                ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(
+                    geth::Client::build_infura(&config.infura_project_id),
+                )),
             };
             Exchange {
                 api: api,

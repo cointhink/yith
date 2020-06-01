@@ -11,6 +11,13 @@ pub struct Client {
 }
 
 impl Client {
+    pub fn build_infura(project_id: &str) -> Client {
+        let infura_api = "https://mainnet.infura.io/v3";
+        Client {
+            url: format!("{}/{}", infura_api, project_id),
+        }
+    }
+
     pub fn rpc(
         &self,
         method: &str,
@@ -28,13 +35,6 @@ impl Client {
             ResultTypes::Result(r) => Ok(u32::from_str_radix(&r.result[2..], 16)?),
             ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
         }
-    }
-}
-
-pub fn infura(pid: &str) -> Client {
-    let infura_api = "https://mainnet.infura.io/v3";
-    Client {
-        url: format!("{}/{}", infura_api, pid),
     }
 }
 
@@ -138,4 +138,10 @@ pub fn ethgasstation() -> EthGasStationResult {
 pub fn ethgasstation_fast() -> u64 {
     let gas_prices = ethgasstation();
     (gas_prices.fast as f64 * 100_000_000u64 as f64) as u64
+}
+
+pub fn erc20_enable(client: Client, token_addr: &str, trusted_contract_addr: &str) {}
+
+pub fn erc20_allowance(client: Client, token_addr: &str, trusted_contract_addr: &str) -> f64 {
+    1.0
 }
