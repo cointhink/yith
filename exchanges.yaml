@@ -5,7 +5,7 @@
     has_balances: true
     protocol: idex
     contract_address: 0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208
-    api_url: https://api.idex.market/
+    api_url: https://api.idex.market
     taker_fee: 0.2
     maker_fee: 0.1
   -

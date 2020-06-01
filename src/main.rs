@@ -80,7 +80,7 @@ fn app(
             &amount_str,
             &symbol.into(),
         )
-    } else if let Some(matches) = opts.subcommand_matches("order") {
+    } else if let Some(matches) = opts.subcommand_matches("trade") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
 

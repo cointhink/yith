@@ -39,7 +39,7 @@ subcommands:
             - arb_file:
                 help: order file
                 index: 1
-    - order:
+    - trade:
         about: manual order
         version: "1.0"
         args:

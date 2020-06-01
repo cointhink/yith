@@ -73,6 +73,18 @@ pub struct OrderStatusRequest {
 #[serde(rename_all = "camelCase")]
 pub struct OrderStatusResponse {
     status: String,
+    market: String,
+    r#type: String,
+}
+
+impl Into<exchange::OrderState> for OrderStatusResponse {
+    fn into(self) -> exchange::OrderState {
+        match self.status.as_ref() {
+            "open" => exchange::OrderState::Open,
+            "cancelled" => exchange::OrderState::Cancelled,
+            _ => panic!(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -187,10 +199,25 @@ impl exchange::Api for Idex {
             base_token.decimals,
         );
         let quote_qty = exchange::quantity_in_base_units(
-            offer.cost(*askbid),
-            base_token.decimals,
-            base_token.decimals,
+            offer.cost(types::AskBid::Ask),
+            quote_token.decimals,
+            quote_token.decimals,
         );
+        let (buy_token, buy_amount, sell_token, sell_amount) = match askbid {
+            types::AskBid::Ask => (
+                base_token.address.clone(),
+                base_qty.to_str_radix(10),
+                quote_token.address.clone(),
+                quote_qty.to_str_radix(10),
+            ),
+            types::AskBid::Bid => (
+                quote_token.address.clone(),
+                quote_qty.to_str_radix(10),
+                base_token.address.clone(),
+                base_qty.to_str_radix(10),
+            ),
+        };
+
         let url = format!(
             "{}/returnNextNonce?address=0x{}",
             exchange.api_url.as_str(),
@@ -201,10 +228,10 @@ impl exchange::Api for Idex {
         println!("{} {}", url, status);
         let nonce_response = resp.json::<NonceResponse>().unwrap();
         Ok(exchange::OrderSheet::Idex(OrderSheet {
-            token_buy: base_token.address.clone(), //market.base_contract.clone(),
-            amount_buy: base_qty.to_str_radix(10),
-            token_sell: quote_token.address.clone(), //market.quote_contract.clone(),
-            amount_sell: quote_qty.to_str_radix(10),
+            token_buy: buy_token,
+            amount_buy: buy_amount,
+            token_sell: sell_token,
+            amount_sell: sell_amount,
             address: format!("0x{}", address),
             nonce: nonce_response.nonce.to_string(),
             expires: 10000,
@@ -379,7 +406,7 @@ impl exchange::Api for Idex {
         let json = resp.text().unwrap();
         println!("{} {} {:?}", url, status, json);
         let response = serde_json::from_str::<OrderStatusResponse>(&json).unwrap();
-        exchange::OrderState::Open
+        response.into()
     }
 }
 
