@@ -36,7 +36,7 @@ pub struct OrderSheetOrder {
 pub struct OrderSheetSignedOrder {
     #[serde(flatten)]
     order_sheet: OrderSheetOrder,
-    nonce: u128,
+    nonce: String,
     address: String,
     v: u8,
     r: String,
@@ -304,7 +304,7 @@ impl exchange::Api for Idex {
             let pub_addr = eth::privkey_to_addr(privkey);
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
 
-            let address = eth::privkey_to_addr(privkey);
+            let address = format!("0x{}", eth::privkey_to_addr(privkey));
             let nonce = time::now_millis();
 
             let mut orders: Vec<OrderSheetSignedOrder> = vec![];
@@ -319,7 +319,7 @@ impl exchange::Api for Idex {
                     let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
                     let so = OrderSheetSignedOrder {
                         order_sheet: o,
-                        nonce: order_nonce,
+                        nonce: order_nonce.to_string(),
                         address: address.clone(),
                         r: eth::hex(&r),
                         s: eth::hex(&s),
