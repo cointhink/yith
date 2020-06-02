@@ -21,13 +21,9 @@ pub enum BuySell {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
-    address: String,
-    token_buy: String,
-    amount_buy: String,
-    token_sell: String,
-    amount_sell: String,
+    hash: String,
+    amount: String,
     nonce: String,
-    expires: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,6 +95,37 @@ pub struct OrderResponse {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderBookRequest {
+    market: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderBookResponse {
+    bids: Vec<OrderBookEntry>,
+    asks: Vec<OrderBookEntry>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrderBookEntry {
+    price: String,
+    total: String,
+    order_hash: String,
+    amount: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TradeRequest {
+    address: String,
+    amount: String,
+    order_hash: String,
+    nonce: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TokenDetail {
     pub name: String,
     pub address: String,
@@ -133,7 +160,7 @@ impl TokenList {
         detail
     }
 
-    pub fn by_addr(&self, addr: &str) -> &TokenDetail {
+    pub fn by_addr(&self, addr: &str) -> (&String, &TokenDetail) {
         let detail = self
             .tokens
             .iter()
@@ -143,7 +170,7 @@ impl TokenList {
         //     "idex by_addr {} ^{} {}",
         //     detail.0, detail.1.decimals, detail.1.address
         // );
-        detail.1
+        detail
     }
 }
 
@@ -193,49 +220,64 @@ impl exchange::Api for Idex {
         let address = eth::privkey_to_addr(privkey);
         let base_token = self.tokens.get(&market.base.symbol);
         let quote_token = self.tokens.get(&market.quote.symbol);
-        let base_qty = exchange::quantity_in_base_units(
-            offer.base_qty,
-            base_token.decimals,
-            base_token.decimals,
-        );
-        let quote_qty = exchange::quantity_in_base_units(
-            offer.cost(types::AskBid::Ask),
-            quote_token.decimals,
-            quote_token.decimals,
-        );
-        let (buy_token, buy_amount, sell_token, sell_amount) = match askbid {
-            types::AskBid::Ask => (
-                base_token.address.clone(),
-                base_qty.to_str_radix(10),
-                quote_token.address.clone(),
-                quote_qty.to_str_radix(10),
+        let amount = match askbid {
+            types::AskBid::Ask => exchange::quantity_in_base_units(
+                offer.base_qty,
+                base_token.decimals,
+                base_token.decimals,
             ),
-            types::AskBid::Bid => (
-                quote_token.address.clone(),
-                quote_qty.to_str_radix(10),
-                base_token.address.clone(),
-                base_qty.to_str_radix(10),
+            types::AskBid::Bid => exchange::quantity_in_base_units(
+                offer.cost(types::AskBid::Ask),
+                quote_token.decimals,
+                quote_token.decimals,
             ),
         };
 
-        let url = format!(
-            "{}/returnNextNonce?address=0x{}",
-            exchange.api_url.as_str(),
-            address
-        );
-        let resp = self.client.get(url.as_str()).send().unwrap();
-        let status = resp.status();
-        println!("{} {}", url, status);
-        let nonce_response = resp.json::<NonceResponse>().unwrap();
-        Ok(exchange::OrderSheet::Idex(OrderSheet {
-            token_buy: buy_token,
-            amount_buy: buy_amount,
-            token_sell: sell_token,
-            amount_sell: sell_amount,
-            address: format!("0x{}", address),
-            nonce: nonce_response.nonce.to_string(),
-            expires: 10000,
-        }))
+        let url = format!("{}/returnOrderBook", exchange.api_url.as_str(),);
+        let market_name = format!("{}_{}", &market.quote.symbol, &market.base.symbol);
+        let order_book_request = OrderBookRequest {
+            market: market_name,
+        };
+        let resp = self
+            .client
+            .post(url.as_str())
+            .json(&order_book_request)
+            .send()
+            .unwrap();
+        let json = resp.text().unwrap();
+        println!("{}", json);
+        let book = serde_json::from_str::<OrderBookResponse>(&json).unwrap();
+        let side = match askbid {
+            types::AskBid::Ask => book.asks,
+            types::AskBid::Bid => book.bids,
+        };
+        println!("{:?} {:?}", askbid, side);
+        let best = side.iter().find(|&o| {
+            o.price.parse::<f64>().unwrap() <= offer.quote
+                && o.amount.parse::<f64>().unwrap() >= offer.base_qty
+        });
+        println!("BEST for {}@{} {:?}", offer.base_qty, offer.quote, best);
+
+        if let Some(winner) = best {
+            let url = format!(
+                "{}/returnNextNonce?address=0x{}",
+                exchange.api_url.as_str(),
+                address
+            );
+            let resp = self.client.get(url.as_str()).send().unwrap();
+            let status = resp.status();
+            println!("{} {}", url, status);
+            let nonce_response = resp.json::<NonceResponse>().unwrap();
+            Ok(exchange::OrderSheet::Idex(OrderSheet {
+                hash: winner.order_hash.clone(),
+                amount: amount.to_str_radix(10),
+                nonce: nonce_response.nonce.to_string(),
+            }))
+        } else {
+            Err(exchange::ExchangeError::build_box(format!(
+                "No offers availble to match"
+            )))
+        }
     }
 
     fn submit(
@@ -246,24 +288,24 @@ impl exchange::Api for Idex {
     ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
+            let pub_addr = eth::privkey_to_addr(privkey);
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
-            let order_hash_bytes = order_params_hash(&order_sheet, &exchange.contract_address);
-            let order_hash = eth::ethsign_hash_msg(&order_hash_bytes[..].to_vec());
-            let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
-            let signed = OrderSheetSigned {
-                order_sheet: order_sheet,
-                v: v,
-                r: eth::hex(&r),
-                s: eth::hex(&s),
+            let url = format!("{}/trade", exchange.api_url.as_str());
+            let trade_request = TradeRequest {
+                address: pub_addr,
+                amount: order_sheet.amount,
+                order_hash: order_sheet.hash,
+                nonce: order_sheet.nonce,
             };
-            let url = format!("{}/order", exchange.api_url.as_str(),);
-            println!("{:?}", signed);
-            let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
-            let status = resp.status();
+            let resp = self
+                .client
+                .post(url.as_str())
+                .json(&trade_request)
+                .send()
+                .unwrap();
             let json = resp.text().unwrap();
-            println!("{} {} {:?}", url, status, json);
-            let order_response = serde_json::from_str::<OrderResponse>(&json).unwrap();
-            Ok(order_response.order_hash)
+            println!("{}", json);
+            Ok("orderid".to_string())
         } else {
             Err(exchange::ExchangeError::build_box(format!(
                 "wrong ordersheet type!"
@@ -440,16 +482,16 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
 }
 
 pub fn order_params_hash(order: &OrderSheet, contract_address: &str) -> [u8; 32] {
-    let expires = order.expires.to_string();
+    //    let expires = order.expires.to_string();
     let parts: Vec<Vec<u8>> = vec![
-        eth::encode_addr(contract_address),
-        eth::encode_addr(&order.token_buy),
-        eth::encode_uint256(&order.amount_buy),
-        eth::encode_addr(&order.token_sell),
-        eth::encode_uint256(&order.amount_sell),
-        eth::encode_uint256(&expires),
-        eth::encode_uint256(&order.nonce),
-        eth::encode_addr(&order.address),
+        // eth::encode_addr(contract_address),
+        // eth::encode_addr(&order.token_buy),
+        // eth::encode_uint256(&order.amount_buy),
+        // eth::encode_addr(&order.token_sell),
+        // eth::encode_uint256(&order.amount_sell),
+        // eth::encode_uint256(&expires),
+        // eth::encode_uint256(&order.nonce),
+        // eth::encode_addr(&order.address),
     ];
     parts_hash(parts)
 }
