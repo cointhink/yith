@@ -28,7 +28,7 @@ pub struct OrderSheet {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderSheetOrder {
-    hash: String,
+    order_hash: String,
     amount: String,
 }
 
@@ -37,6 +37,7 @@ pub struct OrderSheetSignedOrder {
     #[serde(flatten)]
     order_sheet: OrderSheetOrder,
     nonce: u128,
+    address: String,
     v: u8,
     r: String,
     s: String,
@@ -263,7 +264,7 @@ impl exchange::Api for Idex {
                     buy_token.decimals,
                 );
                 let order = OrderSheetOrder {
-                    hash: o.order_hash.clone(),
+                    order_hash: o.order_hash.clone(),
                     amount: amount.to_str_radix(10),
                 };
                 orders.push(order);
@@ -319,6 +320,7 @@ impl exchange::Api for Idex {
                     let so = OrderSheetSignedOrder {
                         order_sheet: o,
                         nonce: order_nonce,
+                        address: address.clone(),
                         r: eth::hex(&r),
                         s: eth::hex(&s),
                         v: v,
@@ -509,7 +511,7 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
 pub fn trade_params_hash(order: &OrderSheetOrder, address: &str, nonce: u128) -> [u8; 32] {
     let nonce_str = format!("{:x}", nonce);
     let parts: Vec<Vec<u8>> = vec![
-        eth::encode_addr2(&order.hash),
+        eth::encode_addr2(&order.order_hash),
         eth::encode_uint256(&order.amount),
         eth::encode_addr2(address),
         eth::encode_uint256_num(nonce), // dynamic value starts after the 4th param
