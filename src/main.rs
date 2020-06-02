@@ -437,7 +437,7 @@ fn build_offer(
             if exchange.settings.has_balances {
                 match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
                     Ok(coin) => {
-                        let least_deposit = minimum(&vec![offer_cost, coin.base_total()]);
+                        let least_deposit = eth::minimum(&vec![offer_cost, coin.base_total()]);
                         println!(
                                     "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
                                     least_deposit,
@@ -491,7 +491,7 @@ fn build_offer(
         }
     };
 
-    let least_cost = minimum(&amount_limits);
+    let least_cost = eth::minimum(&amount_limits);
     println!("least_cost {} = min of {:?}", least_cost, &amount_limits);
     let least_qty = match askbid {
         types::AskBid::Ask => least_cost / premium_offer.quote,
@@ -681,12 +681,6 @@ fn wait_order(exchange: &config::Exchange, order_id: &str) -> exchange::OrderSta
         }
     }
     state
-}
-
-fn minimum(amounts: &Vec<f64>) -> f64 {
-    amounts
-        .iter()
-        .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo })
 }
 
 fn format_runs(
