@@ -313,13 +313,13 @@ impl exchange::Api for Idex {
                 .into_iter()
                 .enumerate()
                 .for_each(|(idx, o)| {
-                    let order_nonce = nonce + (idx as u128);
-                    let order_hash_bytes = trade_params_hash(&o, &address, order_nonce);
+                    let order_nonce = (nonce + (idx as u128)).to_string();
+                    let order_hash_bytes = trade_params_hash(&o, &address, &order_nonce);
                     let order_hash = eth::ethsign_hash_msg(&order_hash_bytes[..].to_vec());
                     let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
                     let so = OrderSheetSignedOrder {
                         order_sheet: o,
-                        nonce: order_nonce.to_string(),
+                        nonce: order_nonce,
                         address: address.clone(),
                         r: eth::hex(&r),
                         s: eth::hex(&s),
@@ -508,13 +508,12 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
     parts_hash(parts)
 }
 
-pub fn trade_params_hash(order: &OrderSheetOrder, address: &str, nonce: u128) -> [u8; 32] {
-    let nonce_str = format!("{:x}", nonce);
+pub fn trade_params_hash(order: &OrderSheetOrder, address: &str, nonce: &str) -> [u8; 32] {
     let parts: Vec<Vec<u8>> = vec![
         eth::encode_addr2(&order.order_hash),
         eth::encode_uint256(&order.amount),
         eth::encode_addr2(address),
-        eth::encode_uint256_num(nonce), // dynamic value starts after the 4th param
+        eth::encode_uint256(nonce),
     ];
     parts_hash(parts)
 }
