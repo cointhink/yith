@@ -259,7 +259,7 @@ mod tests {
         let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
         let pubkey = recover_sig_addr(&hash_bytes, v, r, s);
         let addr = pubkey_to_addr(pubkey);
-        assert_eq!(hex(&addr), format!("0x{}", GOOD_ADDR));
+        assert_eq!(hex::encode(&addr), GOOD_ADDR);
     }
 
     #[test]
