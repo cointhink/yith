@@ -122,14 +122,8 @@ pub fn encode_addr2(str: &str) -> Vec<u8> {
 }
 
 pub fn encode_uint256(numstr: &str) -> Vec<u8> {
-    // 256bits/32bytes
-    let num = numstr.parse::<u128>().unwrap();
-    let number = format!("{:x}", num);
-    left_pad_zero(number.as_bytes().to_vec(), 64)
-}
-
-pub fn encode_uint256_num(num: u128) -> Vec<u8> {
-    // 256bits/32bytes
+    // 256bits/32bytes/64hexchars
+    let num = ethereum_types::U256::from_dec_str(numstr).unwrap();
     let number = format!("{:x}", num);
     left_pad_zero(number.as_bytes().to_vec(), 64)
 }
@@ -176,42 +170,6 @@ pub fn minimum(amounts: &Vec<f64>) -> f64 {
         .iter()
         .fold(std::f64::MAX, |memo, f| if *f < memo { *f } else { memo })
 }
-
-/*
-web3 is giant
-pub fn encode(private_key: &str, gas_price: u128, tx: &exchanges::ddex3::OrderTx) -> Vec<u8> {
-    const ETH_CHAIN_ID: u32 = 1;
-
-    println!("fullsign relayer {}", tx.relayer);
-    let relayer_bytes = hex::decode(tx.relayer[2..].as_bytes()).unwrap();
-    let to = Some(web3::types::H160::from_slice(&relayer_bytes));
-    let tx = ethereum_tx_sign::RawTransaction {
-        nonce: web3::types::U256::from(0),
-        to: to,
-        value: web3::types::U256::zero(),
-        gas_price: web3::types::U256::from(gas_price),
-        gas: web3::types::U256::from(tx.gas_token_amount.parse::<u128>().unwrap()),
-        data: hex::decode(&tx.data[2..].as_bytes()).unwrap(), //encoded ABI of the contract method
-    };
-
-    /*
-    trader:0x9b827e7ee9f127a24eb5243e839007c417c8ac18
-    relayer:0x49497a4d914ae91d34ce80030fe620687bf333fd
-    baseToken:0x1c95b093d6c236d3ef7c796fe33f9cc6b8606714
-    quoteToken:0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-    baseTokenAmount:5
-    quoteTokenAmount:11316000000000000
-    gasTokenAmount:1520000000000000
-    data:0x02000007b64089450064012c0
-    */
-    let mut keydata: [u8; 32] = Default::default();
-    keydata.copy_from_slice(&hex::decode(private_key).unwrap());
-    let private_key = web3::types::H256(keydata);
-    let sig_bytes = tx.sign(&private_key, &ETH_CHAIN_ID);
-    println!("sig_bytes len {}", sig_bytes.len());
-    sig_bytes
-}
-*/
 
 #[cfg(test)]
 mod tests {
@@ -300,6 +258,17 @@ mod tests {
         let hash = hash_msg(&idex_encoded);
         let good_hash = "0xb10e2d527612073b26eecdfd717e6a320cf44b4afac2b0732d9fcbe2b7fa0cf6";
         assert_eq!(hex::encode(hash), good_hash[2..]);
+        let little_encoded = encode_uint256("1");
+        let little_string = String::from_utf8(little_encoded).unwrap();
+        let good_little_encoded =
+            "0000000000000000000000000000000000000000000000000000000000000001";
+        assert_eq!(little_string, good_little_encoded);
+        let big_encoded = encode_uint256(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639935",
+        );
+        let big_string = String::from_utf8(big_encoded).unwrap();
+        let good_big_encoded = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        assert_eq!(big_string, good_big_encoded);
     }
 
     #[test]
