@@ -100,7 +100,7 @@ pub fn sigparts_to_rsv(v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
     sig
 }
 
-pub fn recover_sig_addr(msg: &[u8], v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
+pub fn recover_sig_addr(msg: &[u8], v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 20] {
     let secp = Secp256k1::new();
     let secp_msg = Message::from_slice(&msg).unwrap();
     let id = secp256k1::recovery::RecoveryId::from_i32(v as i32 - 27).unwrap();
@@ -109,7 +109,8 @@ pub fn recover_sig_addr(msg: &[u8], v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65]
     data[32..64].copy_from_slice(&s);
     let sig = secp256k1::recovery::RecoverableSignature::from_compact(&data, id).unwrap();
     let pubkey = secp.recover(&secp_msg, &sig).unwrap();
-    pubkey.serialize_uncompressed()
+    let pubkey_bytes = pubkey.serialize_uncompressed();
+    pubkey_to_addr(pubkey_bytes)
 }
 
 pub fn hex(bytes: &[u8]) -> String {
@@ -257,8 +258,7 @@ mod tests {
         let privkey_bytes: Vec<u8> = hex::decode(PRIVKEY).unwrap();
         let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
         let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
-        let pubkey = recover_sig_addr(&hash_bytes, v, r, s);
-        let addr = pubkey_to_addr(pubkey);
+        let addr = recover_sig_addr(&hash_bytes, v, r, s);
         assert_eq!(hex::encode(&addr), GOOD_ADDR);
     }
 
