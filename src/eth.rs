@@ -100,6 +100,18 @@ pub fn sigparts_to_rsv(v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
     sig
 }
 
+pub fn recover_sig_addr(msg: &[u8], v: u8, r: [u8; 32], s: [u8; 32]) -> [u8; 65] {
+    let secp = Secp256k1::new();
+    let secp_msg = Message::from_slice(&msg).unwrap();
+    let id = secp256k1::recovery::RecoveryId::from_i32(v as i32 - 27).unwrap();
+    let mut data = [0u8; 64];
+    data[0..32].copy_from_slice(&r);
+    data[32..64].copy_from_slice(&s);
+    let sig = secp256k1::recovery::RecoverableSignature::from_compact(&data, id).unwrap();
+    let pubkey = secp.recover(&secp_msg, &sig).unwrap();
+    pubkey.serialize_uncompressed()
+}
+
 pub fn hex(bytes: &[u8]) -> String {
     format!("0x{}", hex::encode(bytes))
 }
@@ -236,6 +248,18 @@ mod tests {
         let sig_bytes = sigparts_to_vrs(v, r, s);
         let good_sig = "1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a";
         assert_eq!(hex::encode(&sig_bytes[..]), good_sig);
+    }
+
+    #[test]
+    fn test_recover_sig_addr() {
+        let hash: &[u8] = b"fdc94db5a7aff3bdf03c9dc6188381c6f8fba3ead062c16a6c8b2a59427dd408";
+        let hash_bytes: Vec<u8> = hex::decode(hash).unwrap();
+        let privkey_bytes: Vec<u8> = hex::decode(PRIVKEY).unwrap();
+        let private_key = SecretKey::from_slice(&privkey_bytes).unwrap();
+        let (v, r, s) = sign_bytes_vrs(&hash_bytes, &private_key);
+        let pubkey = recover_sig_addr(&hash_bytes, v, r, s);
+        let addr = pubkey_to_addr(pubkey);
+        assert_eq!(hex(&addr), format!("0x{}", GOOD_ADDR));
     }
 
     #[test]
