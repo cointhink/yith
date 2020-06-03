@@ -121,12 +121,6 @@ pub fn dehex(bytes: &str) -> Vec<u8> {
     hex::decode(bytes.trim_start_matches("0x")).unwrap()
 }
 
-pub fn encode_addr(str: &str) -> Vec<u8> {
-    // 160bits/20bytes
-    let hexletters = str[2..].to_lowercase();
-    hexletters.as_bytes().to_vec()
-}
-
 pub fn encode_addr2(str: &str) -> Vec<u8> {
     // 160bits/20bytes
     let hexletters = str[2..].to_lowercase();

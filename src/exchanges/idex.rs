@@ -496,10 +496,10 @@ pub fn deposit_data() -> Vec<u8> {
 
 pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8; 32] {
     let parts: Vec<Vec<u8>> = vec![
-        eth::encode_addr(contract_address),
-        eth::encode_addr(&wd.token),
+        encode_addr(contract_address),
+        encode_addr(&wd.token),
         eth::encode_uint256(&wd.amount),
-        eth::encode_addr(&wd.address),
+        encode_addr(&wd.address),
         eth::encode_uint256(&wd.nonce),
     ];
     parts_hash(parts)
@@ -507,12 +507,19 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
 
 pub fn trade_params_hash(order: &OrderSheetOrder, address: &str, nonce: &str) -> [u8; 32] {
     let parts: Vec<Vec<u8>> = vec![
-        eth::encode_addr(&order.order_hash),
+        encode_addr(&order.order_hash),
         eth::encode_uint256(&order.amount),
-        eth::encode_addr(address),
+        encode_addr(address),
         eth::encode_uint256(nonce),
     ];
     parts_hash(parts)
+}
+
+// Idex uses unpadded value for addresses
+pub fn encode_addr(str: &str) -> Vec<u8> {
+    // 160bits/20bytes
+    let hexletters = str[2..].to_lowercase();
+    hexletters.as_bytes().to_vec()
 }
 
 pub fn parts_hash(mut parts: Vec<Vec<u8>>) -> [u8; 32] {
