@@ -507,9 +507,9 @@ pub fn withdraw_params_hash(wd: &WithdrawRequest, contract_address: &str) -> [u8
 
 pub fn trade_params_hash(order: &OrderSheetOrder, address: &str, nonce: &str) -> [u8; 32] {
     let parts: Vec<Vec<u8>> = vec![
-        eth::encode_addr2(&order.order_hash),
+        eth::encode_addr(&order.order_hash),
         eth::encode_uint256(&order.amount),
-        eth::encode_addr2(address),
+        eth::encode_addr(address),
         eth::encode_uint256(nonce),
     ];
     parts_hash(parts)
