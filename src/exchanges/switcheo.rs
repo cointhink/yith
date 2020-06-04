@@ -384,7 +384,7 @@ pub struct SignatureBody {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WithdrawlRequest {
+pub struct TransferRequest {
     amount: String,
     asset_id: String,
     blockchain: String,
@@ -393,9 +393,9 @@ pub struct WithdrawlRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WithdrawlRequestSigned {
+pub struct TransferRequestSigned {
     #[serde(flatten)]
-    withdrawl_request: WithdrawlRequest,
+    transfer_request: TransferRequest,
     signature: String,
     address: String,
 }
@@ -555,7 +555,7 @@ impl Switcheo {
         status
     }
 
-    pub fn withdepo(
+    pub fn transfer(
         &self,
         privkey: &str,
         exchange: &config::ExchangeSettings,
@@ -567,7 +567,7 @@ impl Switcheo {
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
         let units = amount_to_units(amount, token_detail.precision, token_detail.decimals);
-        let withdrawl_request = WithdrawlRequest {
+        let withdrawl_request = TransferRequest {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
             amount: units,
@@ -578,8 +578,8 @@ impl Switcheo {
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
         let signature = eth::ethsign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
-        let withdrawl_request_sign = WithdrawlRequestSigned {
-            withdrawl_request: withdrawl_request,
+        let transfer_request_sign = TransferRequestSigned {
+            transfer_request: withdrawl_request,
             address: address,
             signature: signature,
         };
@@ -591,7 +591,7 @@ impl Switcheo {
         let client = reqwest::blocking::Client::new();
         let resp = client
             .post(url.as_str())
-            .json(&withdrawl_request_sign)
+            .json(&transfer_request_sign)
             .send()
             .unwrap();
         let status = resp.status();
@@ -845,7 +845,7 @@ impl exchange::Api for Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let client = reqwest::blocking::Client::new();
-        let response = self.withdepo(
+        let response = self.transfer(
             privkey,
             exchange,
             amount,
@@ -899,7 +899,7 @@ impl exchange::Api for Switcheo {
     ) {
         let client = reqwest::blocking::Client::new();
         let response_opt =
-            self.withdepo(privkey, exchange, amount, token, TransferDirection::Deposit);
+            self.transfer(privkey, exchange, amount, token, TransferDirection::Deposit);
         match response_opt {
             Ok(json) => {
                 let response = serde_json::from_str::<DepositBuildResponse>(&json).unwrap();
