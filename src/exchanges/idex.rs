@@ -22,6 +22,7 @@ pub enum BuySell {
 #[serde(rename_all = "camelCase")]
 pub struct OrderSheet {
     orders: Vec<OrderSheetOrder>,
+    starting_nonce: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -204,6 +205,20 @@ impl Idex {
             .default_headers(headers)
             .build()
     }
+
+    pub fn nonce(&self, privkey: &str) -> usize {
+        let pub_addr = eth::privkey_to_addr(privkey);
+        let url = format!(
+            "{}/returnNextNonce?address=0x{}",
+            self.settings.api_url.as_str(),
+            pub_addr
+        );
+        let resp = self.client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        println!("{} {}", url, status);
+        let nonce = resp.json::<NonceResponse>().unwrap().nonce;
+        nonce as usize
+    }
 }
 
 impl exchange::Api for Idex {
@@ -215,8 +230,10 @@ impl exchange::Api for Idex {
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
+        let pub_addr = eth::privkey_to_addr(privkey);
         let base_token = self.tokens.get(&market.base.symbol);
         let quote_token = self.tokens.get(&market.quote.symbol);
+        let nonce = self.nonce(privkey); // call before OrderBook #speed
 
         let url = format!("{}/returnOrderBook", exchange.api_url.as_str(),);
         let market_name = format!("{}_{}", &market.quote.symbol, &market.base.symbol);
@@ -284,7 +301,10 @@ impl exchange::Api for Idex {
         });
 
         if orders.len() > 0 {
-            Ok(exchange::OrderSheet::Idex(OrderSheet { orders: orders }))
+            Ok(exchange::OrderSheet::Idex(OrderSheet {
+                orders: orders,
+                starting_nonce: nonce,
+            }))
         } else {
             Err(exchange::ExchangeError::build_box(format!(
                 "No offers availble to match"
@@ -300,17 +320,17 @@ impl exchange::Api for Idex {
     ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Idex(order_sheet) = sheet {
             let privbytes = &hex::decode(privkey).unwrap();
-            let pub_addr = eth::privkey_to_addr(privkey);
             let secret_key = SecretKey::from_slice(privbytes).unwrap();
 
             let address = format!("0x{}", eth::privkey_to_addr(privkey));
             let mut orders: Vec<OrderSheetSignedOrder> = vec![];
+            let starting_nonce = order_sheet.starting_nonce;
             order_sheet
                 .orders
                 .into_iter()
                 .enumerate()
                 .for_each(|(idx, o)| {
-                    let order_nonce = (idx + 1).to_string();
+                    let order_nonce = (starting_nonce + idx).to_string();
                     let order_hash_bytes = trade_params_hash(&o, &address, &order_nonce);
                     let order_hash = eth::ethsign_hash_msg(&order_hash_bytes[..].to_vec());
                     let (v, r, s) = eth::sign_bytes_vrs(&order_hash, &secret_key);
@@ -368,7 +388,7 @@ impl exchange::Api for Idex {
     ) {
         let url = format!("{}/withdraw", exchange.api_url.as_str());
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
-        let nonce = self.geth.nonce(&pub_addr).unwrap();
+        let nonce = self.nonce(private_key);
         let base_token = &self.tokens.get(&token.symbol);
         let bigint = exchange::quantity_in_base_units(amount, 18, 18);
         let withdraw = WithdrawRequest {
@@ -527,7 +547,6 @@ pub fn parts_hash(mut parts: Vec<Vec<u8>>) -> [u8; 32] {
         memo.append(part);
         memo
     });
-    println!("parts {}", std::str::from_utf8(&hash_hex).unwrap());
     let hashes = hex::decode(&hash_hex).unwrap();
     eth::hash_msg(&hashes)
 }
