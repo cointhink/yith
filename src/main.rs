@@ -59,18 +59,34 @@ fn app(
         show_orders(&exchanges, &config.wallet_private_key);
         None
     } else if let Some(matches) = opts.subcommand_matches("erc20") {
+        let action = matches.value_of("action").unwrap();
         let token = matches.value_of("token").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let exchange = exchanges.find_by_name(exchange_name).unwrap();
         let geth = geth::Client::build_infura(&config.infura_project_id);
-        let allowance = erc20::Erc20::allowance(
-            geth,
-            &config.wallet_private_key,
-            &token,
-            &exchange.settings.contract_address,
-        )
-        .unwrap();
-        println!("erc20 {} {} {}", token, exchange_name, allowance);
+        match action {
+            "allowance" => {
+                let allowance = erc20::Erc20::allowance(
+                    geth,
+                    &config.wallet_private_key,
+                    &token,
+                    &exchange.settings.contract_address,
+                )
+                .unwrap();
+                println!("erc20 {} {} {}", token, exchange_name, allowance);
+            }
+            "approve" => {
+                let approve = erc20::Erc20::approve(
+                    geth,
+                    &config.wallet_private_key,
+                    &token,
+                    &exchange.settings.contract_address,
+                )
+                .unwrap();
+                println!("erc20 {} {} {}", token, exchange_name, approve);
+            }
+            _ => (),
+        }
         None
     } else if let Some(matches) = opts.subcommand_matches("transfer") {
         let direction_str = matches.value_of("direction").unwrap();

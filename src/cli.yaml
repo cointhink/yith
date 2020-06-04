@@ -71,11 +71,15 @@ subcommands:
         about: erc20 helper
         version: "1.0"
         args:
+            - action:
+                help: allowance | approve
+                required: true
+                index: 1
             - token:
                 help: exchange name
                 required: true
-                index: 1
+                index: 2
             - exchange:
                 help: exchange name
                 required: true
-                index: 2
+                index: 3
