@@ -10,7 +10,7 @@ impl Erc20 {
         private_key: &str,
         token_addr: &str,
         trusted_contract_addr: &str,
-    ) -> Result<i128, Box<dyn std::error::Error>> {
+    ) -> Result<u128, Box<dyn std::error::Error>> {
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let data = allowance_data(&pub_addr, trusted_contract_addr);
         let mut tx = geth::JsonRpcParam::new();
@@ -21,7 +21,7 @@ impl Erc20 {
             Ok(result) => match result.part {
                 geth::ResultTypes::Result(part) => {
                     println!("{:?}", part.result);
-                    Ok(i128::from_str_radix(&part.result[2..], 16).unwrap())
+                    Ok(u128::from_str_radix(&part.result[2..], 16).unwrap())
                 }
                 geth::ResultTypes::Error(err) => {
                     println!("{:?}", err);
