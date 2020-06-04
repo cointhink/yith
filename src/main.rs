@@ -2,6 +2,7 @@ use clap;
 
 mod config;
 mod email;
+mod erc20;
 mod errors;
 mod eth;
 mod etherscan;
@@ -56,6 +57,20 @@ fn app(
         None
     } else if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
+        None
+    } else if let Some(matches) = opts.subcommand_matches("erc20") {
+        let token = matches.value_of("token").unwrap();
+        let exchange_name = matches.value_of("exchange").unwrap();
+        let exchange = exchanges.find_by_name(exchange_name).unwrap();
+        let geth = geth::Client::build_infura(&config.infura_project_id);
+        let allowance = erc20::Erc20::allowance(
+            geth,
+            &config.wallet_private_key,
+            &token,
+            &exchange.settings.contract_address,
+        )
+        .unwrap();
+        println!("erc20 {} {} {}", token, exchange_name, allowance);
         None
     } else if let Some(matches) = opts.subcommand_matches("transfer") {
         let direction_str = matches.value_of("direction").unwrap();

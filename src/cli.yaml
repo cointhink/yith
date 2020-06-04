@@ -67,3 +67,15 @@ subcommands:
                 help: quote_token
                 required: true
                 index: 6
+    - erc20:
+        about: erc20 helper
+        version: "1.0"
+        args:
+            - token:
+                help: exchange name
+                required: true
+                index: 1
+            - exchange:
+                help: exchange name
+                required: true
+                index: 2
