@@ -75,6 +75,20 @@ pub struct OrderStatusRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct OrderResponse {
+    date: String,
+    market: String,
+    r#type: String,
+    status: String,
+    price: String,
+    amount: String,
+    total: String,
+    order_hash: String,
+    uuid: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderStatusResponse {
     status: String,
     market: String,
@@ -98,8 +112,8 @@ pub struct NonceResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct OrderResponse {
-    order_hash: String,
+pub struct ErrorResponse {
+    error: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -347,9 +361,16 @@ impl exchange::Api for Idex {
             println!("{}", serde_json::to_string(&orders).unwrap());
             let url = format!("{}/trade", exchange.api_url.as_str());
             let resp = self.client.post(url.as_str()).json(&orders).send().unwrap();
-            let json = resp.text().unwrap();
-            println!("{}", json);
-            Ok("orderid".to_string())
+            println!("{} {}", url, resp.status());
+            if resp.status().is_success() {
+                let json = resp.text().unwrap();
+                let response = serde_json::from_str::<OrderResponse>(&json).unwrap();
+                Ok(response.order_hash)
+            } else {
+                let json = resp.text().unwrap();
+                let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
+                Err(exchange::ExchangeError::build_box(response.error))
+            }
         } else {
             Err(exchange::ExchangeError::build_box(format!(
                 "wrong ordersheet type!"

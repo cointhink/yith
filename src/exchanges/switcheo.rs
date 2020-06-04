@@ -500,10 +500,16 @@ pub struct DepositExecute {
     transaction_hash: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TimestampResponse {
+    timestamp: u128,
+}
+
 pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
     pub settings: config::ExchangeSettings,
+    client: reqwest::blocking::Client,
 }
 
 impl Switcheo {
@@ -515,10 +521,12 @@ impl Switcheo {
             tokens.len(),
             pairs.len()
         );
+        let client = reqwest::blocking::Client::new();
         Switcheo {
             tokens: tokens,
             pairs: pairs,
             settings: settings,
+            client: client,
         }
     }
 
@@ -563,9 +571,10 @@ impl Switcheo {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
             amount: units,
-            timestamp: time::now_millis(),
+            timestamp: self.nonce(),
             contract_hash: exchange.contract_address.clone(),
         };
+        println!("{:?}", withdrawl_request);
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
         let signature = eth::ethsign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
@@ -600,6 +609,15 @@ impl Switcheo {
             println!("ERR: {}", order_error);
             Err(Box::new(order_error))
         }
+    }
+
+    pub fn nonce(&self) -> u128 {
+        let url = format!("{}/timestamp", self.settings.api_url.as_str());
+        let resp = self.client.get(url.as_str()).send().unwrap();
+        let status = resp.status();
+        let timestamp = resp.json::<TimestampResponse>().unwrap().timestamp;
+        println!("{} {} timestamp: {}", url, status, timestamp);
+        timestamp
     }
 }
 
