@@ -15,6 +15,7 @@ mod redis;
 mod time;
 mod types;
 mod wallet;
+mod weth;
 
 fn main() {
     let options_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
@@ -58,6 +59,32 @@ fn app(
     } else if let Some(_matches) = opts.subcommand_matches("orders") {
         show_orders(&exchanges, &config.wallet_private_key);
         None
+    } else if let Some(matches) = opts.subcommand_matches("weth") {
+        let action = matches.value_of("action").unwrap();
+        let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
+        let geth = geth::Client::build_infura(&config.infura_project_id);
+        let amount_str = exchange::quantity_in_base_units(amount, 18, 18).to_string();
+        match action {
+            "wrap" => {
+                weth::Weth::wrap(
+                    geth,
+                    &config.wallet_private_key,
+                    weth::Direction::Wrap,
+                    &amount_str,
+                );
+                None
+            }
+            "unwrap" => {
+                weth::Weth::wrap(
+                    geth,
+                    &config.wallet_private_key,
+                    weth::Direction::Unwrap,
+                    &amount_str,
+                );
+                None
+            }
+            _ => None,
+        }
     } else if let Some(matches) = opts.subcommand_matches("erc20") {
         let action = matches.value_of("action").unwrap();
         let token = matches.value_of("token").unwrap();

@@ -83,3 +83,15 @@ subcommands:
                 help: exchange name
                 required: true
                 index: 3
+    - weth:
+        about: weth helper
+        version: "1.0"
+        args:
+            - action:
+                help: wrap | unwrap
+                required: true
+                index: 1
+            - amount:
+                help: exchange name
+                required: true
+                index: 2
