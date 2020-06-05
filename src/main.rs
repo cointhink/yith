@@ -458,7 +458,7 @@ fn build_offer(
         };
         offer_quote_adjusted = offer_quote_adjusted * adjustor;
         println!(
-            "offer spread premium {} adjusted {} ({}) to {}",
+            "offer {} spread premium {} adjusted by x{} to {}",
             offer.quote, premium, adjustor, offer_quote_adjusted
         );
     }
@@ -474,23 +474,6 @@ fn build_offer(
 
     if exchange.settings.has_balances {
         match wallet.find_coin_by_source_symbol(&market.source_name, &check_ticker.symbol) {
-            Ok(coin) => {
-                match mode {
-                    Mode::Simulate => (), // not a limitation in simulate
-                    Mode::Real => {
-                        amount_limits.push(coin.base_total());
-                        println!(
-                            "added amount_limit of {} from {} balance",
-                            coin.base_total(),
-                            &market.source_name
-                        )
-                    }
-                }
-            }
-            Err(_e) => {}
-        };
-    } else {
-        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
             Ok(coin) => {
                 match mode {
                     Mode::Simulate => (), // not a limitation in simulate
@@ -526,9 +509,26 @@ fn build_offer(
                             println!(
                                 "added amount_limit of {} from {} balance",
                                 coin.base_total(),
-                                &pub_addr
+                                &market.source_name
                             )
                         }
+                    }
+                }
+            }
+            Err(_e) => {}
+        };
+    } else {
+        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
+            Ok(coin) => {
+                match mode {
+                    Mode::Simulate => (), // not a limitation in simulate
+                    Mode::Real => {
+                        amount_limits.push(coin.base_total());
+                        println!(
+                            "added amount_limit of {} from {} balance",
+                            coin.base_total(),
+                            &pub_addr
+                        )
                     }
                 }
             }
