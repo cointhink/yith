@@ -444,11 +444,6 @@ fn build_offer(
     println!("Building offer {} {}", exchange, offer);
     let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
     let (askbid, market, offer) = unswap(askbid, market, offer);
-    let source_name = if exchange.settings.has_balances {
-        &market.source_name
-    } else {
-        &pub_addr
-    };
     let check_ticker = match askbid {
         types::AskBid::Ask => &market.quote,
         types::AskBid::Bid => &market.base,
@@ -477,60 +472,81 @@ fn build_offer(
     amount_limits.push(offer_cost);
     println!("added amount_limit of {} from offer_cost", offer_cost);
 
-    match wallet.find_coin_by_source_symbol(source_name, &check_ticker.symbol) {
-        Ok(coin) => {
-            match mode {
-                Mode::Simulate => (), // not a limitation in simulate
-                Mode::Real => {
-                    amount_limits.push(coin.base_total());
-                    println!(
-                        "added amount_limit of {} from {} balance",
-                        coin.base_total(),
-                        source_name
-                    )
+    if exchange.settings.has_balances {
+        match wallet.find_coin_by_source_symbol(&market.source_name, &check_ticker.symbol) {
+            Ok(coin) => {
+                match mode {
+                    Mode::Simulate => (), // not a limitation in simulate
+                    Mode::Real => {
+                        amount_limits.push(coin.base_total());
+                        println!(
+                            "added amount_limit of {} from {} balance",
+                            coin.base_total(),
+                            &market.source_name
+                        )
+                    }
                 }
             }
-        }
-        Err(_e) => {
-            if exchange.settings.has_balances {
-                match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
-                    Ok(coin) => {
-                        let least_deposit = eth::minimum(&vec![offer_cost, coin.base_total()]);
-                        println!(
-                                    "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
-                                    least_deposit,
-                                    &check_ticker.symbol,
-                                    source_name,
-                                    offer_cost,
-                                    coin.base_total(),
-                                );
-                        match mode {
-                            Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
-                            Mode::Real => exchange.api.deposit(
-                                &config.wallet_private_key,
-                                &exchange.settings,
-                                least_deposit,
-                                &market.base,
-                            ),
+            Err(_e) => {}
+        };
+    } else {
+        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
+            Ok(coin) => {
+                match mode {
+                    Mode::Simulate => (), // not a limitation in simulate
+                    Mode::Real => {
+                        if coin.base_total() < offer_cost {
+                            match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol)
+                            {
+                                Ok(coin) => {
+                                    let least_deposit =
+                                        eth::minimum(&vec![offer_cost, coin.base_total()]);
+                                    println!(
+                    "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
+                    least_deposit,
+                    &check_ticker.symbol,
+                    &pub_addr,
+                    offer_cost,
+                    coin.base_total(),
+                );
+                                    match mode {
+                                        Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
+                                        Mode::Real => exchange.api.deposit(
+                                            &config.wallet_private_key,
+                                            &exchange.settings,
+                                            least_deposit,
+                                            &market.base,
+                                        ),
+                                    }
+                                }
+                                Err(_e) => {}
+                            }
+                        } else {
+                            amount_limits.push(coin.base_total());
+                            println!(
+                                "added amount_limit of {} from {} balance",
+                                coin.base_total(),
+                                &pub_addr
+                            )
                         }
                     }
-                    Err(_e) => {}
                 }
-            } else {
+            }
+            Err(_e) => {
                 let modeword = match mode {
                     Mode::Simulate => "WARNING",
                     Mode::Real => "ERROR",
                 };
                 let err = exchange::ExchangeError::build_box(format!(
                     "{}: {} balance unknown for {}",
-                    modeword, check_ticker, source_name
+                    modeword, check_ticker, &pub_addr
                 ));
                 match mode {
                     Mode::Simulate => (),
                     Mode::Real => return Err(err), // early return
                 }
             }
-        }
+        };
     };
 
     // limit
@@ -560,8 +576,8 @@ fn build_offer(
     };
     if least_cost < offer_cost {
         exchange::ExchangeError::build_box(format!(
-            "{} {} balance capped at {:0.4}. adj qty {:0.4}",
-            check_ticker, source_name, least_cost, least_qty
+            "{} balance capped at {:0.4}. adj qty {:0.4}",
+            check_ticker, least_cost, least_qty
         ));
     }
 
