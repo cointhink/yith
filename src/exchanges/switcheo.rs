@@ -574,28 +574,32 @@ impl Switcheo {
             timestamp: self.nonce(),
             contract_hash: exchange.contract_address.clone(),
         };
-        println!("{:?}", withdrawl_request);
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
         let signature = eth::ethsign(&sign_json, &secret_key);
         let address = format!("0x{}", eth::privkey_to_addr(privkey));
-        let transfer_request_sign = TransferRequestSigned {
+        let transfer_request_signed = TransferRequestSigned {
             transfer_request: withdrawl_request,
             address: address,
             signature: signature,
         };
+        println!("{:?}", transfer_request_signed);
         let api_word = match direction {
             TransferDirection::Withdrawal => "withdrawals",
             TransferDirection::Deposit => "deposits",
         };
         let url = format!("{}/{}", exchange.api_url.as_str(), api_word);
         let client = reqwest::blocking::Client::new();
+        println!(
+            "{}",
+            serde_json::to_string(&transfer_request_signed).unwrap()
+        );
         let resp = client
             .post(url.as_str())
-            .json(&transfer_request_sign)
+            .json(&transfer_request_signed)
             .send()
             .unwrap();
         let status = resp.status();
-        println!("switcheo {} request {:#?} {}", api_word, status, resp.url());
+        println!("{} {}", resp.url(), status);
         let json = resp.text().unwrap();
         println!("{}", json);
         if status.is_success() {
