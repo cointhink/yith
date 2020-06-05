@@ -592,10 +592,6 @@ impl Switcheo {
         };
         let url = format!("{}/{}", exchange.api_url.as_str(), api_word);
         let client = reqwest::blocking::Client::new();
-        println!(
-            "post body {}",
-            serde_json::to_string(&transfer_request_signed).unwrap()
-        );
         let resp = client
             .post(url.as_str())
             .json(&transfer_request_signed)
@@ -603,8 +599,12 @@ impl Switcheo {
             .unwrap();
         let status = resp.status();
         println!("{} {}", resp.url(), status);
+        println!(
+            "{}",
+            serde_json::to_string(&transfer_request_signed).unwrap()
+        );
         let json = resp.text().unwrap();
-        println!("post response {}", json);
+        println!("{}", json);
         if status.is_success() {
             Ok(json)
         } else {
@@ -883,7 +883,7 @@ impl exchange::Api for Switcheo {
                     .send()
                     .unwrap();
                 let status = resp.status();
-                println!("switcheo withdrawal execute {:#?} {}", status, resp.url());
+                println!("{} {}", resp.url(), status);
                 let json = resp.text().unwrap();
                 println!("{}", json);
                 if status.is_success() {
@@ -924,11 +924,10 @@ impl exchange::Api for Switcheo {
                     }
                     geth::ResultTypes::Result(r) => {
                         let tx = r.result;
-                        println!("GOOD TX {}", tx);
+                        println!("deposit approval {}", tx);
                         let deposit_execute = DepositExecute {
                             transaction_hash: tx.clone(),
                         };
-                        println!("{}", serde_json::to_string(&deposit_execute).unwrap());
                         let url = format!(
                             "{}/deposits/{}/broadcast",
                             exchange.api_url.as_str(),
@@ -940,7 +939,7 @@ impl exchange::Api for Switcheo {
                             .send()
                             .unwrap();
                         let status = resp.status();
-                        println!("switcheo deposit execute {:#?} {}", status, resp.url());
+                        println!("{} {}", resp.url(), status);
                         let json = resp.text().unwrap();
                         println!("{}", json);
                         if status.is_success() {
