@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::exchange::Api;
+use crate::geth;
 use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
@@ -506,6 +507,7 @@ pub struct TimestampResponse {
 }
 
 pub struct Switcheo {
+    geth: geth::Client,
     tokens: TokenList,
     pairs: PairList,
     pub settings: config::ExchangeSettings,
@@ -513,7 +515,7 @@ pub struct Switcheo {
 }
 
 impl Switcheo {
-    pub fn new(settings: config::ExchangeSettings) -> Switcheo {
+    pub fn new(settings: config::ExchangeSettings, geth: geth::Client) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
         println!(
@@ -523,6 +525,7 @@ impl Switcheo {
         );
         let client = reqwest::blocking::Client::new();
         Switcheo {
+            geth: geth,
             tokens: tokens,
             pairs: pairs,
             settings: settings,
@@ -590,7 +593,7 @@ impl Switcheo {
         let url = format!("{}/{}", exchange.api_url.as_str(), api_word);
         let client = reqwest::blocking::Client::new();
         println!(
-            "{}",
+            "post body {}",
             serde_json::to_string(&transfer_request_signed).unwrap()
         );
         let resp = client
@@ -601,7 +604,7 @@ impl Switcheo {
         let status = resp.status();
         println!("{} {}", resp.url(), status);
         let json = resp.text().unwrap();
-        println!("{}", json);
+        println!("post response {}", json);
         if status.is_success() {
             Ok(json)
         } else {
@@ -910,31 +913,48 @@ impl exchange::Api for Switcheo {
                 let tx: ethereum_tx_sign::RawTransaction = response.transaction.into();
                 let private_key = ethereum_types::H256::from_slice(&eth::dehex(privkey));
                 let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
-
-                let deposit_execute = DepositExecute {
-                    transaction_hash: eth::hex(&rlp_bytes),
-                };
-                let url = format!(
-                    "{}/deposits/{}/broadcast",
-                    exchange.api_url.as_str(),
-                    response.id
-                );
-                let resp = client
-                    .post(url.as_str())
-                    .json(&deposit_execute)
-                    .send()
+                let params = (eth::hex(&rlp_bytes),);
+                let result = self
+                    .geth
+                    .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
                     .unwrap();
-                let status = resp.status();
-                println!("switcheo deposit execute {:#?} {}", status, resp.url());
-                let json = resp.text().unwrap();
-                println!("{}", json);
-                if status.is_success() {
-                    let response = serde_json::from_str::<DepositResponseOk>(&json).unwrap();
-                    let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
-                    println!("tx {}", tx);
-                } else {
-                    let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
-                }
+                match result.part {
+                    geth::ResultTypes::Error(e) => {
+                        Err(exchange::ExchangeError::build_box(e.error.message))
+                    }
+                    geth::ResultTypes::Result(r) => {
+                        let tx = r.result;
+                        println!("GOOD TX {}", tx);
+                        let deposit_execute = DepositExecute {
+                            transaction_hash: tx.clone(),
+                        };
+                        println!("{}", serde_json::to_string(&deposit_execute).unwrap());
+                        let url = format!(
+                            "{}/deposits/{}/broadcast",
+                            exchange.api_url.as_str(),
+                            response.id
+                        );
+                        let resp = client
+                            .post(url.as_str())
+                            .json(&deposit_execute)
+                            .send()
+                            .unwrap();
+                        let status = resp.status();
+                        println!("switcheo deposit execute {:#?} {}", status, resp.url());
+                        let json = resp.text().unwrap();
+                        println!("{}", json);
+                        if status.is_success() {
+                            let response =
+                                serde_json::from_str::<DepositResponseOk>(&json).unwrap();
+                            let tx =
+                                eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
+                            println!("tx {}", tx);
+                        } else {
+                            let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
+                        }
+                        Ok(tx)
+                    }
+                };
             }
             Err(_e) => {}
         }

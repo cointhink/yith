@@ -105,9 +105,10 @@ pub fn hydrate_exchanges(
                 ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex {}),
                 ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3::new(settings.clone())),
                 ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
-                ExchangeProtocol::Switcheo => {
-                    Box::new(exchanges::switcheo::Switcheo::new(settings.clone()))
-                }
+                ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new(
+                    settings.clone(),
+                    geth::Client::build_infura(&config.infura_project_id),
+                )),
                 ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
                     settings.clone(),
                     &config.idex_key,
