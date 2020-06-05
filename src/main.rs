@@ -463,7 +463,7 @@ fn build_offer(
         };
         offer_quote_adjusted = offer_quote_adjusted * adjustor;
         println!(
-            "offer quote {} adjusted {} ({}) to {}",
+            "offer spread premium {} adjusted {} ({}) to {}",
             offer.quote, premium, adjustor, offer_quote_adjusted
         );
     }
@@ -532,6 +532,8 @@ fn build_offer(
             }
         }
     };
+
+    // limit
     match wallet.find_coin_by_source_symbol("limit", &check_ticker.symbol) {
         Ok(coin) => {
             let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
@@ -549,6 +551,7 @@ fn build_offer(
         }
     };
 
+    // find minimum
     let least_cost = eth::minimum(&amount_limits);
     println!("least_cost {} = min of {:?}", least_cost, &amount_limits);
     let least_qty = match askbid {
