@@ -685,7 +685,12 @@ fn run_sheet(
         Ok(order_id) => {
             println!("* {} ORDER ID {}", exchange.settings.name, order_id);
             match wait_order(&exchange, &order_id) {
-                exchange::OrderState::Filled => Ok(order_id),
+                exchange::OrderState::Filled => {
+                    if exchange.settings.has_balances {
+                        println!("exchange has balances. withdraw TODO");
+                    }
+                    Ok(order_id)
+                }
                 state => Err(exchange::ExchangeError::build_box(format!(
                     "transaction {:?}",
                     state
