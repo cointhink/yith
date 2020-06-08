@@ -314,24 +314,22 @@ fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
 fn filter_good_sheets(
     sheets: Vec<(
         String,
-        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
+        Vec<Result<(types::Ticker, exchange::OrderSheet), Box<dyn std::error::Error>>>,
     )>,
-) -> Vec<(String, Vec<exchange::OrderSheet>)> {
+) -> Vec<(String, Vec<(types::Ticker, exchange::OrderSheet)>)> {
     sheets
         .into_iter()
         .map(|(exchange_name, t)| {
-            let good_sheets =
-                t.into_iter()
-                    .fold(
-                        Vec::<exchange::OrderSheet>::new(),
-                        |mut memo, result| match result {
-                            Ok(sheet) => {
-                                memo.push(sheet);
-                                memo
-                            }
-                            Err(_e) => memo,
-                        },
-                    );
+            let good_sheets = t.into_iter().fold(
+                Vec::<(types::Ticker, exchange::OrderSheet)>::new(),
+                |mut memo, result| match result {
+                    Ok(sheet) => {
+                        memo.push(sheet);
+                        memo
+                    }
+                    Err(_e) => memo,
+                },
+            );
             (exchange_name, good_sheets)
         })
         .collect()
@@ -348,15 +346,15 @@ enum Mode {
     Real,
 }
 
-fn build_books(
+fn build_books<'a, 'b>(
     config: &config::Config,
     wallet: &wallet::Wallet,
     books: &types::Books,
-    exchanges: &config::ExchangeList,
+    exchanges: &'a config::ExchangeList,
     mode: Mode,
 ) -> Vec<(
     String,
-    Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
+    Vec<Result<(types::Ticker, exchange::OrderSheet), Box<dyn std::error::Error>>>,
 )> {
     books
         .books
@@ -400,7 +398,7 @@ fn build_book(
     book: &types::Book,
     exchange: &config::Exchange,
     mode: Mode,
-) -> Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>> {
+) -> Vec<Result<(types::Ticker, exchange::OrderSheet), Box<dyn std::error::Error>>> {
     book.offers
         .iter()
         .take(1) // first offer
@@ -421,7 +419,21 @@ fn build_book(
                 offer.cost(*askbid),
                 check_ticker
             );
-            build_offer(config, askbid, &exchange, offer, &book.market, wallet, mode)
+            match build_offer(config, askbid, &exchange, offer, &book.market, wallet, mode) {
+                Ok(sheet) => {
+                    let token = match askbid {
+                        types::AskBid::Ask => &book.market.quote,
+                        types::AskBid::Bid => &book.market.base,
+                    };
+                    Ok((
+                        types::Ticker {
+                            symbol: token.symbol.clone(),
+                        },
+                        sheet,
+                    ))
+                }
+                Err(e) => Err(e),
+            }
         })
         .collect()
 }
@@ -653,17 +665,41 @@ fn build_offer(
 
 fn run_sheets(
     config: &config::Config,
-    sheets: Vec<(String, Vec<exchange::OrderSheet>)>,
+    sheets: Vec<(String, Vec<(types::Ticker, exchange::OrderSheet)>)>,
     exchanges: &config::ExchangeList,
 ) {
     sheets.into_iter().for_each(|(exg_name, t)| {
-        t.into_iter().for_each(move |sheet| {
-            let _m = match exchanges.find_by_name(&exg_name) {
-                Some(exchange) => run_sheet(config, sheet, exchange),
-                None => Ok(format!("{} not found", exg_name)),
-            };
-        });
+        match exchanges.find_by_name(&exg_name) {
+            Some(exchange) => {
+                let mut first: Option<types::Ticker> = None;
+                t.into_iter().for_each(|(ticker, sheet)| {
+                    first = Some(ticker);
+                    run_sheet(config, sheet, exchange);
+                });
+                match first {
+                    Some(ticker) => sweep(&config.wallet_private_key, &exchange, &ticker),
+                    None => None,
+                };
+                Ok("good".to_string())
+            }
+            None => Err(format!("{} not found", exg_name)),
+        };
     });
+}
+
+fn sweep(
+    private_key: &str,
+    exchange: &config::Exchange,
+    token: &types::Ticker,
+) -> Option<Box<dyn std::error::Error>> {
+    let amount_str = "0";
+    run_transfer(
+        private_key,
+        exchange::TransferDirection::Withdrawal,
+        exchange,
+        amount_str,
+        token,
+    )
 }
 
 fn run_sheet(
@@ -762,7 +798,7 @@ fn wait_order(exchange: &config::Exchange, order_id: &str) -> exchange::OrderSta
 fn format_runs(
     runs: &Vec<(
         String,
-        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
+        Vec<Result<(types::Ticker, exchange::OrderSheet), Box<dyn std::error::Error>>>,
     )>,
 ) -> String {
     runs.iter()
@@ -770,7 +806,7 @@ fn format_runs(
         .fold(String::new(), |mut m, (idx, (exg_name, t))| {
             let line = t.iter().enumerate().fold(String::new(), |mut m, (idx, r)| {
                 let part = match r {
-                    Ok(sheet) => format!("{:?}", sheet),
+                    Ok((offer, sheet)) => format!("{:?}", sheet),
                     Err(err) => err.to_string(),
                 };
                 let out = format!("offr #{}: {} {}", idx, exg_name, part);
