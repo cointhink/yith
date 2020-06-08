@@ -201,10 +201,6 @@ fn run_transfer(
             );
             None
         }
-        _ => Some(errors::MainError::build_box(format!(
-            "bad direction: {}",
-            direction
-        ))),
     }
 }
 
@@ -376,13 +372,11 @@ fn build_books(
                             build_book(config, wallet, &books.askbid, book, exchange, mode),
                         )
                     } else {
-                        // rust to learn
-                        let borrow_check_omg = exchange_name.clone();
                         (
-                            exchange_name,
+                            exchange_name.clone(),
                             vec![Err(exchange::ExchangeError::build_box(format!(
                                 "exchange {} is disabled!",
-                                borrow_check_omg
+                                exchange_name
                             )))],
                         )
                     }
