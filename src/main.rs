@@ -671,13 +671,16 @@ fn run_sheets(
     sheets.into_iter().for_each(|(exg_name, t)| {
         match exchanges.find_by_name(&exg_name) {
             Some(exchange) => {
-                let mut first: Option<types::Ticker> = None;
+                let mut first: Option<(types::AskBid, types::Ticker)> = None;
                 t.into_iter().for_each(|(askbid, ticker, sheet)| {
-                    first = Some(ticker);
+                    first = Some((askbid, ticker));
                     run_sheet(config, sheet, exchange);
                 });
                 match first {
-                    Some(ticker) => sweep(&config.wallet_private_key, &exchange, &ticker),
+                    Some((askbid, ticker)) => match askbid {
+                        types::AskBid::Ask => None,
+                        types::AskBid::Bid => sweep(&config.wallet_private_key, &exchange, &ticker),
+                    },
                     None => None,
                 };
                 Ok("good".to_string())
@@ -692,9 +695,27 @@ fn sweep(
     exchange: &config::Exchange,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
+    let my_addr = eth::privkey_to_addr(private_key);
+    let balance = exchange_balance(&my_addr, exchange, token);
+
     let amount_str = "0";
     let direction = exchange::TransferDirection::Withdrawal;
     run_transfer(private_key, direction, exchange, amount_str, token)
+}
+
+fn exchange_balance(
+    public_key: &str,
+    exchange: &config::Exchange,
+    token: &types::Ticker,
+) -> Option<f64> {
+    let mut exchange_coins = exchange_coins(&public_key, exchange);
+    let winner = exchange_coins
+        .iter()
+        .find(|c| c.ticker_symbol == token.symbol);
+    match winner {
+        Some(coin) => Some(coin.base_total()),
+        None => None,
+    }
 }
 
 fn run_sheet(
@@ -710,12 +731,7 @@ fn run_sheet(
         Ok(order_id) => {
             println!("* {} ORDER ID {}", exchange.settings.name, order_id);
             match wait_order(&exchange, &order_id) {
-                exchange::OrderState::Filled => {
-                    if exchange.settings.has_balances {
-                        println!("exchange has balances. withdraw TODO");
-                    }
-                    Ok(order_id)
-                }
+                exchange::OrderState::Filled => Ok(order_id),
                 state => Err(exchange::ExchangeError::build_box(format!(
                     "transaction {:?}",
                     state
