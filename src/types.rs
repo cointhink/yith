@@ -123,7 +123,7 @@ pub struct Source {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ticker {
     pub symbol: String,
 }

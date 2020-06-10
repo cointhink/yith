@@ -126,7 +126,7 @@ fn app(
             }
         };
         //let direction = matches.value_of("direction").unwrap().into();
-        let amount_str = matches.value_of("amount").unwrap();
+        let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
         let symbol = matches.value_of("token").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let exchange = exchanges.find_by_name(exchange_name).unwrap();
@@ -135,7 +135,7 @@ fn app(
             &config.wallet_private_key,
             direction,
             &exchange,
-            &amount_str,
+            amount,
             &symbol.into(),
         )
     } else if let Some(matches) = opts.subcommand_matches("trade") {
@@ -179,26 +179,20 @@ fn run_transfer(
     private_key: &str,
     direction: exchange::TransferDirection,
     exchange: &config::Exchange,
-    amount_str: &str,
+    amount: f64,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
     match direction {
         exchange::TransferDirection::Withdrawal => {
-            exchange.api.withdrawl(
-                private_key,
-                &exchange.settings,
-                amount_str.parse::<f64>().unwrap(),
-                token,
-            );
+            exchange
+                .api
+                .withdrawl(private_key, &exchange.settings, amount, token);
             None
         }
         exchange::TransferDirection::Deposit => {
-            exchange.api.deposit(
-                private_key,
-                &exchange.settings,
-                amount_str.parse::<f64>().unwrap(),
-                token,
-            );
+            exchange
+                .api
+                .deposit(private_key, &exchange.settings, amount, token);
             None
         }
     }
@@ -397,7 +391,6 @@ fn build_book(
 ) -> Vec<Result<(types::AskBid, types::Ticker, exchange::OrderSheet), Box<dyn std::error::Error>>> {
     book.offers
         .iter()
-        .take(1) // first offer
         .map(|offer| {
             let check_ticker = match askbid {
                 types::AskBid::Ask => &book.market.quote,
@@ -421,13 +414,7 @@ fn build_book(
                         types::AskBid::Ask => &book.market.quote,
                         types::AskBid::Bid => &book.market.base,
                     };
-                    Ok((
-                        askbid.clone(),
-                        types::Ticker {
-                            symbol: token.symbol.clone(),
-                        },
-                        sheet,
-                    ))
+                    Ok((askbid.clone(), token.clone(), sheet))
                 }
                 Err(e) => Err(e),
             }
@@ -696,11 +683,18 @@ fn sweep(
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
     let my_addr = eth::privkey_to_addr(private_key);
-    let balance = exchange_balance(&my_addr, exchange, token);
-
-    let amount_str = "0";
     let direction = exchange::TransferDirection::Withdrawal;
-    run_transfer(private_key, direction, exchange, amount_str, token)
+    let balance_opt = exchange_balance(&my_addr, exchange, token);
+    match balance_opt {
+        Some(balance) => run_transfer(private_key, direction, exchange, balance, token),
+        None => {
+            println!(
+                "no balance found for {}. skipping withdraw",
+                exchange.settings.name
+            );
+            None
+        }
+    }
 }
 
 fn exchange_balance(
@@ -713,7 +707,11 @@ fn exchange_balance(
         .iter()
         .find(|c| c.ticker_symbol == token.symbol);
     match winner {
-        Some(coin) => Some(coin.base_total()),
+        Some(coin) => {
+            let total = coin.base_total();
+            println!("{} {} {}", exchange.settings.name, token, total);
+            Some(total)
+        }
         None => None,
     }
 }
