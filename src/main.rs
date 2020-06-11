@@ -446,7 +446,8 @@ fn build_book(
         book.offers
             .iter()
             .fold((0.0, Vec::new()), |(mut total, mut sheets), offer| {
-                let check_ticker = match askbid {
+                let (askbid, market, offer) = unswap(askbid, &book.market, offer);
+                let sell_token = match askbid {
                     types::AskBid::Ask => &book.market.quote,
                     types::AskBid::Bid => &book.market.base,
                 };
@@ -460,13 +461,28 @@ fn build_book(
                     exchange.settings.name,
                     &book.market,
                     offer,
-                    offer.cost(*askbid),
-                    check_ticker
+                    offer.cost(askbid),
+                    sell_token
                 );
-                let offer =
-                    build_offer(config, askbid, &exchange, offer, &book.market, wallet, mode);
-                sheets.push(offer);
-                total += 0.0;
+                let sheet =
+                    match build_offer(config, &askbid, &exchange, &offer, &market, wallet, mode) {
+                        Ok(capped_offer) => {
+                            let sheet = match mode {
+                                Mode::Real => exchange.api.build(
+                                    &config.wallet_private_key,
+                                    &askbid,
+                                    &exchange.settings,
+                                    &market,
+                                    &capped_offer,
+                                ),
+                                Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
+                            };
+                            total += capped_offer.cost(askbid);
+                            sheet
+                        }
+                        Err(e) => Err(e),
+                    };
+                sheets.push(sheet);
                 (total, sheets)
             });
     (total, sheets)
@@ -477,13 +493,12 @@ fn build_offer(
     askbid: &types::AskBid,
     exchange: &config::Exchange,
     offer: &types::Offer,
-    market: &types::Market,
+    market: &exchange::Market,
     wallet: &wallet::Wallet,
     mode: Mode,
-) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
+) -> Result<types::Offer, Box<dyn std::error::Error>> {
     println!("Building offer {} {}", exchange, offer);
     let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    let (askbid, market, offer) = unswap(askbid, market, offer);
     let check_ticker = match askbid {
         types::AskBid::Ask => &market.quote,
         types::AskBid::Bid => &market.base,
@@ -508,7 +523,7 @@ fn build_offer(
     };
 
     let mut amount_limits = vec![];
-    let offer_cost = premium_offer.cost(askbid);
+    let offer_cost = premium_offer.cost(*askbid);
     amount_limits.push(offer_cost);
     println!("added amount_limit of {} from offer_cost", offer_cost);
 
@@ -683,17 +698,7 @@ fn build_offer(
         base_qty: least_qty,
         quote: premium_offer.quote,
     };
-
-    match mode {
-        Mode::Real => exchange.api.build(
-            &config.wallet_private_key,
-            &askbid,
-            &exchange.settings,
-            &market,
-            &capped_offer,
-        ),
-        Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
-    }
+    Ok(capped_offer)
 }
 
 fn run_sheets(
