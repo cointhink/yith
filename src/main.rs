@@ -607,7 +607,6 @@ fn build_offer(
         }
     };
 
-    // find minimum
     let least_cost = eth::minimum(&amount_limits);
     println!("least_cost {} = min of {:?}", least_cost, &amount_limits);
     let least_qty = match askbid {
@@ -716,10 +715,9 @@ fn run_sheets(
                     sheets.into_iter().for_each(|sheet| {
                         run_sheet(config, sheet, exchange);
                     });
-                    match askbid {
-                        types::AskBid::Ask => None,
-                        types::AskBid::Bid => sweep(&config.wallet_private_key, &exchange, &token),
-                    };
+                    if exchange.settings.has_balances {
+                        sweep(&config.wallet_private_key, &exchange, &token);
+                    }
                     Ok("good".to_string())
                 }
                 None => Err(format!("{} not found", exg_name)),
