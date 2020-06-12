@@ -518,7 +518,7 @@ fn build_offer(
         if exchange_token_balance < offer_cost {
             let missing = offer_cost - exchange_token_balance;
             if wallet_token_balance > 0.0 {
-                let capped_wallet_balance = eth::minimum(vec![wallet_token_balance, missing]);
+                let capped_wallet_balance = eth::minimum(&vec![wallet_token_balance, missing]);
                 println!(
                     "capped_wallet_balance of {}{} from {} wallet balance or {} missing",
                     capped_wallet_balance, &sell_token.symbol, wallet_token_balance, missing
@@ -527,7 +527,7 @@ fn build_offer(
                 let combined_balance = exchange_token_balance + capped_wallet_balance;
                 amount_limits.push(combined_balance);
                 println!(
-                    "added amount_limit of {}{} from  {}{} balance + {} capped wallet balance",
+                    "added amount_limit of {}{} from {}{} {} balance + {}{} capped wallet balance",
                     combined_balance,
                     &sell_token.symbol,
                     exchange_token_balance,
@@ -644,8 +644,8 @@ fn build_offer(
 
     if let Some(insufficient_balance) = insufficient_balance {
         println!(
-            "Deposit: {:0.4}{} from wallet (offer_cost {:0.4} - exchage balance {:0.4})",
-            insufficient_balance, &sell_token.symbol, offer_cost, exchange_token_balance,
+            "Deposit: {:0.4}{} from wallet (offer_cost {:0.4})",
+            insufficient_balance, &sell_token.symbol, offer_cost
         );
         match mode {
             Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
