@@ -293,13 +293,19 @@ fn run_order(
     ));
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
-    run_out.add(format!("ask builds: \n{}", format_runs(&ask_sheets)));
+    run_out.add(format!(
+        "ask builds summary: \n{}",
+        format_runs(&ask_sheets)
+    ));
     let ask_sheets_badlen = count_bad_sheets(&ask_sheets);
 
     if ask_sheets_badlen == 0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
-        run_out.add(format!("simbid builds: \n{}", format_runs(&sim_bid_sheets)));
+        run_out.add(format!(
+            "simbid builds summary: \n{}",
+            format_runs(&sim_bid_sheets)
+        ));
         let sim_bid_sheets_badlen = count_bad_sheets(&sim_bid_sheets);
 
         if sim_bid_sheets_badlen == 0 {
@@ -398,92 +404,23 @@ fn build_book(
     f64,
     Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
 ) {
-    let (total, sheets) =
-        book.offers
-            .iter()
-            .fold((0.0, Vec::new()), |(mut total, mut sheets), offer| {
-                let (askbid, market, offer) = unswap(askbid, &book.market, offer);
-                let sell_token = match askbid {
-                    types::AskBid::Ask => &book.market.quote,
-                    types::AskBid::Bid => &book.market.base,
-                };
-                println!(
-                    "** {} {} {} {} {} => {}{}",
-                    match mode {
-                        Mode::Real => "BUILD",
-                        Mode::Simulate => "SIMBUILD",
-                    },
-                    askbid,
-                    exchange.settings.name,
-                    &book.market,
-                    offer,
-                    offer.cost(askbid),
-                    sell_token
-                );
-                let sheet =
-                    match build_offer(config, &askbid, &exchange, &offer, &market, wallet, mode) {
-                        Ok(capped_offer) => {
-                            let sheet = match mode {
-                                Mode::Real => exchange.api.build(
-                                    &config.wallet_private_key,
-                                    &askbid,
-                                    &exchange.settings,
-                                    &market,
-                                    &capped_offer,
-                                ),
-                                Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
-                            };
-                            total += capped_offer.cost(askbid);
-                            sheet
-                        }
-                        Err(e) => Err(e),
-                    };
-                sheets.push(sheet);
-                (total, sheets)
-            });
-    (total, sheets)
-}
-
-fn build_offer(
-    config: &config::Config,
-    askbid: &types::AskBid,
-    exchange: &config::Exchange,
-    offer: &types::Offer,
-    market: &exchange::Market,
-    wallet: &wallet::Wallet,
-    mode: Mode,
-) -> Result<types::Offer, Box<dyn std::error::Error>> {
-    println!("Building offer {} {}", exchange, offer);
-    let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
     let sell_token = match askbid {
-        types::AskBid::Ask => &market.quote,
-        types::AskBid::Bid => &market.base,
+        types::AskBid::Ask => &book.market.quote,
+        types::AskBid::Bid => &book.market.base,
     };
-
-    // add premium
-    let mut offer_quote_adjusted = offer.quote;
-    if let Some(premium) = config.spread_premium {
-        let adjustor = match askbid {
-            types::AskBid::Ask => 1.0 + premium,
-            types::AskBid::Bid => 1.0,
-        };
-        offer_quote_adjusted = offer_quote_adjusted * adjustor;
-        println!(
-            "offer {} spread premium {} adjusted by x{} to {}",
-            offer.quote, premium, adjustor, offer_quote_adjusted
-        );
-    }
-    let premium_offer = types::Offer {
-        base_qty: offer.base_qty,
-        quote: offer_quote_adjusted,
-    };
-
-    let mut amount_limits = vec![];
-    let offer_cost = premium_offer.cost(*askbid);
-    amount_limits.push(offer_cost);
-    println!("added amount_limit of {} from offer_cost", offer_cost);
-
-    let wallet_token_balance =
+    println!(
+        "** {} {} {} {} sell_token: {}",
+        match mode {
+            Mode::Real => "BUILD",
+            Mode::Simulate => "SIMBUILD",
+        },
+        askbid,
+        exchange.settings.name,
+        &book.market,
+        sell_token
+    );
+    let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
+    let mut wallet_token_balance =
         match wallet.find_coin_by_source_symbol(&pub_addr, &sell_token.symbol) {
             Ok(coin) => {
                 match mode {
@@ -502,57 +439,152 @@ fn build_offer(
                 ));
                 match mode {
                     Mode::Simulate => (),
-                    Mode::Real => return Err(err), // early return
+                    Mode::Real => panic!(), // early return
                 };
                 0.0
             }
         };
 
-    let mut insufficient_balance = None;
+    let mut exchange_balance = None;
     if exchange.settings.has_balances {
         let exchange_token_balance =
-            match wallet.find_coin_by_source_symbol(&market.source_name, &sell_token.symbol) {
+            match wallet.find_coin_by_source_symbol(&book.market.source.name, &sell_token.symbol) {
                 Ok(coin) => {
                     match mode {
-                        Mode::Simulate => coin.base_total(), // pretend its empty
+                        Mode::Simulate => coin.base_total(), // pretend its full
                         Mode::Real => coin.base_total(),
                     }
                 }
                 Err(_e) => 0.0, // not found means 0.0
             };
-
-        if exchange_token_balance < offer_cost {
-            let missing = offer_cost - exchange_token_balance;
-            if wallet_token_balance > 0.0 {
-                let capped_wallet_balance = eth::minimum(&vec![wallet_token_balance, missing]);
-                insufficient_balance = Some(capped_wallet_balance);
-                let combined_balance = exchange_token_balance + capped_wallet_balance;
-                amount_limits.push(combined_balance);
-                println!(
-                    "added amount_limit of {}{} from {}{} {} balance + {}{} wallet cover balance",
-                    combined_balance,
-                    &sell_token.symbol,
-                    exchange_token_balance,
-                    &sell_token.symbol,
-                    &market.source_name,
-                    wallet_token_balance,
-                    &sell_token.symbol,
-                )
-            }
-        } else {
-            amount_limits.push(exchange_token_balance);
-            println!(
-                "added amount_limit of {}{} from {}  balance",
-                exchange_token_balance, &sell_token.symbol, &market.source_name
-            )
-        }
-    } else {
-        amount_limits.push(wallet_token_balance);
+        exchange_balance = Some(exchange_token_balance);
         println!(
-            "added amount_limit of {} from {} balance",
-            wallet_token_balance, &pub_addr
+            "wallet balance {} {} enhanced by {} balance {} {}",
+            wallet_token_balance,
+            &sell_token.symbol,
+            &book.market.source.name,
+            exchange_token_balance,
+            &sell_token.symbol
         );
+        wallet_token_balance += exchange_token_balance;
+    }
+
+    let (total, sheets) =
+        book.offers
+            .iter()
+            .fold((0.0, Vec::new()), |(mut total, mut sheets), offer| {
+                let (askbid, market, offer) = unswap(askbid, &book.market, offer);
+                println!(
+                    "** {} {} {} {} {} => {}{}",
+                    match mode {
+                        Mode::Real => "BUILD",
+                        Mode::Simulate => "SIMBUILD",
+                    },
+                    askbid,
+                    exchange.settings.name,
+                    &book.market,
+                    offer,
+                    offer.cost(askbid),
+                    sell_token
+                );
+                let sheet = match build_offer(
+                    config,
+                    &askbid,
+                    &exchange,
+                    &offer,
+                    &market,
+                    wallet_token_balance,
+                    wallet,
+                    mode,
+                ) {
+                    Ok(capped_offer) => {
+                        let sheet = match mode {
+                            Mode::Real => exchange.api.build(
+                                &config.wallet_private_key,
+                                &askbid,
+                                &exchange.settings,
+                                &market,
+                                &capped_offer,
+                            ),
+                            Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
+                        };
+                        total += capped_offer.cost(askbid);
+                        sheet
+                    }
+                    Err(e) => Err(e),
+                };
+                sheets.push(sheet);
+                (total, sheets)
+            });
+    if let Some(exchange_token_balance) = exchange_balance {
+        if total > exchange_token_balance {
+            println!(
+                "order total {} exceeds exchange balance {}",
+                total, exchange_token_balance
+            );
+            let missing = total - exchange_token_balance;
+            println!(
+                "Deposit: {:0.4}{} from wallet (offer_cost {:0.4})",
+                missing, &sell_token.symbol, total
+            );
+            match mode {
+                Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
+                Mode::Real => exchange.api.deposit(
+                    &config.wallet_private_key,
+                    &exchange.settings,
+                    missing,
+                    &sell_token,
+                ),
+            }
+        }
+    }
+    (total, sheets)
+}
+
+fn build_offer(
+    config: &config::Config,
+    askbid: &types::AskBid,
+    exchange: &config::Exchange,
+    offer: &types::Offer,
+    market: &exchange::Market,
+    wallet_token_balance: f64,
+    wallet: &wallet::Wallet,
+    mode: Mode,
+) -> Result<types::Offer, Box<dyn std::error::Error>> {
+    println!("Building offer {} {}", exchange, offer);
+    let sell_token = match askbid {
+        types::AskBid::Ask => &market.quote,
+        types::AskBid::Bid => &market.base,
     };
+
+    // add premium
+    let mut offer_quote_adjusted = offer.quote;
+    if let Some(premium) = config.spread_premium {
+        let adjustor = match askbid {
+            types::AskBid::Ask => 1.0 + premium,
+            types::AskBid::Bid => 1.0,
+        };
+        offer_quote_adjusted = offer_quote_adjusted * adjustor;
+        println!(
+            "quote {}{} spread premium {} adjusted by x{} to {}",
+            offer.quote, &market.quote, premium, adjustor, offer_quote_adjusted
+        );
+    }
+    let premium_offer = types::Offer {
+        base_qty: offer.base_qty,
+        quote: offer_quote_adjusted,
+    };
+
+    let mut amount_limits = vec![];
+    let offer_cost = premium_offer.cost(*askbid);
+    amount_limits.push(offer_cost);
+    println!("added amount_limit of {} from offer_cost", offer_cost);
+
+    amount_limits.push(wallet_token_balance);
+    println!(
+        "added amount_limit of {} from wallet balance",
+        wallet_token_balance
+    );
 
     // limit
     match wallet.find_coin_by_source_symbol("limit", &sell_token.symbol) {
@@ -644,21 +676,6 @@ fn build_offer(
         }
     }
 
-    if let Some(insufficient_balance) = insufficient_balance {
-        println!(
-            "Deposit: {:0.4}{} from wallet (offer_cost {:0.4})",
-            insufficient_balance, &sell_token.symbol, offer_cost
-        );
-        match mode {
-            Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
-            Mode::Real => exchange.api.deposit(
-                &config.wallet_private_key,
-                &exchange.settings,
-                insufficient_balance,
-                &sell_token,
-            ),
-        }
-    }
     let capped_offer = types::Offer {
         base_qty: least_qty,
         quote: premium_offer.quote,
@@ -686,7 +703,9 @@ fn run_sheets(
                 Err(e) => (),
             });
             if exchange.settings.has_balances {
-                sweep(&config.wallet_private_key, &exchange, &token);
+                if total > 0.0 {
+                    sweep(&config.wallet_private_key, &exchange, &token);
+                }
             };
         });
 }
@@ -696,6 +715,7 @@ fn sweep(
     exchange: &config::Exchange,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
+    println!("** SWEEP OUT {} {}", exchange.settings.name, token);
     let my_addr = eth::privkey_to_addr(private_key);
     let direction = exchange::TransferDirection::Withdrawal;
     let balance_opt = exchange_balance(&my_addr, exchange, token);
