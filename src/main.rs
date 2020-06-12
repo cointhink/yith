@@ -258,7 +258,7 @@ fn run_order(
         run_out.add(format!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len));
 
         if sim_bid_goods_len == sim_bid_sheets_len {
-            let _ask_runs = run_sheets(config, ask_goods, exchanges);
+            let _ask_runs = run_sheets(config, ask_goods);
             run_out.add(format!("ask runs: (logging not implemented)\n"));
 
             // wallet refresh
@@ -273,7 +273,7 @@ fn run_order(
             run_out.add(format!("b {}/{}", bid_goods_len, bid_sheets_len));
 
             if bid_goods_len == bid_sheets_len {
-                let _bid_runs = run_sheets(config, bid_goods, exchanges);
+                let _bid_runs = run_sheets(config, bid_goods);
                 run_out.add(format!("bid runs: (logging not implemented)\n"));
             } else {
                 run_out.add(format!(
@@ -333,7 +333,7 @@ fn count_sheets<M, N, O, P, T>(sheets: &Vec<(M, N, O, P, Vec<T>)>) -> usize {
 
 fn format_runs(
     runs: &Vec<(
-        String,
+        &config::Exchange,
         types::AskBid,
         types::Ticker,
         f64,
@@ -342,7 +342,7 @@ fn format_runs(
 ) -> String {
     runs.iter().enumerate().fold(
         String::new(),
-        |mut m, (idx, (exg_name, askbid, token, total, sheets))| {
+        |mut m, (idx, (exchange, askbid, token, total, sheets))| {
             let line = sheets
                 .iter()
                 .enumerate()
@@ -351,11 +351,11 @@ fn format_runs(
                         Ok(sheet) => format!("{:?}", sheet),
                         Err(err) => err.to_string(),
                     };
-                    let out = format!("offr #{}: {} {}", idx, exg_name, part);
+                    let out = format!("offr #{}: {} {}", idx, exchange.settings.name, part);
                     m.push_str(&out);
                     m
                 });
-            m.push_str(&format!("{}: {}", exg_name, line));
+            m.push_str(&format!("{}: {}", exchange.settings.name, line));
             m
         },
     )
@@ -368,67 +368,55 @@ enum Mode {
     Real,
 }
 
-fn build_books(
+fn build_books<'a>(
     config: &config::Config,
     wallet: &wallet::Wallet,
     books: &types::Books,
-    exchanges: &config::ExchangeList,
+    exchanges: &'a config::ExchangeList,
     mode: Mode,
 ) -> Vec<(
-    String,
+    &'a config::Exchange,
     types::AskBid,
     types::Ticker,
     f64,
     Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
 )> {
-    books
-        .books
-        .iter()
-        .take(1) // first offer
-        .map(|book| {
-            let exchange_name = book.market.source.name.clone();
-            let buy_token = match books.askbid {
-                types::AskBid::Ask => &book.market.base,
-                types::AskBid::Bid => &book.market.quote,
-            };
-            match exchanges.find_by_name(&exchange_name) {
-                Some(exchange) => {
-                    if exchange.settings.enabled {
-                        let (total, sheets) =
-                            build_book(config, wallet, &books.askbid, book, exchange, mode);
-                        (
-                            exchange_name,
-                            books.askbid.clone(),
-                            buy_token.clone(),
-                            total,
-                            sheets,
-                        )
-                    } else {
-                        (
-                            exchange_name.clone(),
-                            books.askbid.clone(),
-                            buy_token.clone(),
-                            0.0,
-                            (vec![Err(exchange::ExchangeError::build_box(format!(
-                                "exchange {} is disabled!",
-                                exchange_name
-                            )))]),
-                        )
-                    }
-                }
-                None => (
-                    "exchange-missing".to_string(),
-                    books.askbid.clone(),
-                    buy_token.clone(),
-                    0.0,
-                    vec![Err(exchange::ExchangeError::build_box(format!(
-                        "exchange detail not found for: {:#?}",
-                        exchange_name
-                    )))],
-                ),
+    books.books.iter().fold(Vec::new(), |mut memo, book| {
+        let exchange_name = book.market.source.name.clone();
+        let buy_token = match books.askbid {
+            types::AskBid::Ask => &book.market.base,
+            types::AskBid::Bid => &book.market.quote,
+        };
+        match exchanges.find_by_name(&exchange_name) {
+            Some(exchange) => {
+                let full = if exchange.settings.enabled {
+                    let (total, sheets) =
+                        build_book(config, wallet, &books.askbid, book, exchange, mode);
+                    (
+                        exchange,
+                        books.askbid.clone(),
+                        buy_token.clone(),
+                        total,
+                        sheets,
+                    )
+                } else {
+                    (
+                        exchange,
+                        books.askbid.clone(),
+                        buy_token.clone(),
+                        0.0,
+                        (vec![Err(exchange::ExchangeError::build_box(format!(
+                            "exchange {} is disabled!",
+                            exchange_name
+                        )))]),
+                    )
+                };
+                memo.push(full)
             }
-        })
-        .collect()
+            None => println!("exchange detail not found for: {:#?}", exchange_name),
+        }
+        memo
+    })
 }
 
 fn build_book(
@@ -704,28 +692,21 @@ fn build_offer(
 fn run_sheets(
     config: &config::Config,
     sheets: Vec<(
-        String,
+        &config::Exchange,
         types::AskBid,
         types::Ticker,
         f64,
         Vec<exchange::OrderSheet>,
     )>,
-    exchanges: &config::ExchangeList,
 ) {
     sheets
         .into_iter()
-        .for_each(|(exg_name, askbid, token, total, sheets)| {
-            match exchanges.find_by_name(&exg_name) {
-                Some(exchange) => {
-                    sheets.into_iter().for_each(|sheet| {
-                        run_sheet(config, sheet, exchange);
-                    });
-                    if exchange.settings.has_balances {
-                        sweep(&config.wallet_private_key, &exchange, &token);
-                    }
-                    Ok("good".to_string())
-                }
-                None => Err(format!("{} not found", exg_name)),
+        .for_each(|(exchange, askbid, token, total, sheets)| {
+            sheets.into_iter().for_each(|sheet| {
+                run_sheet(config, sheet, exchange);
+            });
+            if exchange.settings.has_balances {
+                sweep(&config.wallet_private_key, &exchange, &token);
             };
         });
 }
