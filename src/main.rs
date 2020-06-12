@@ -235,6 +235,51 @@ fn show_orders(exchanges: &config::ExchangeList, private_key: &str) {
     }
 }
 
+fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
+    let subject = format!("{}", order.pair);
+    let out = format!(
+        "order #{} {} {:0.4} {:0.4}\n{}",
+        order.id, order.pair, order.cost, order.profit, run_log
+    );
+    email::send(email, &subject, &out);
+}
+
+fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>>)>) -> usize {
+    sheets.into_iter().fold(0, |memo, (m, n, o, p, s)| {
+        memo + s.iter().filter(|sh| sh.is_err()).collect::<Vec<_>>().len()
+    })
+}
+
+fn format_runs(
+    runs: &Vec<(
+        &config::Exchange,
+        types::AskBid,
+        types::Ticker,
+        f64,
+        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
+    )>,
+) -> String {
+    runs.iter().enumerate().fold(
+        String::new(),
+        |mut m, (idx, (exchange, askbid, token, total, sheets))| {
+            let line = sheets
+                .iter()
+                .enumerate()
+                .fold(String::new(), |mut m, (idx, r)| {
+                    let part = match r {
+                        Ok(sheet) => format!("{:?}", sheet),
+                        Err(err) => err.to_string(),
+                    };
+                    let out = format!("offr #{}: {} {}", idx, exchange.settings.name, part);
+                    m.push_str(&out);
+                    m
+                });
+            m.push_str(&format!("{}: {}", exchange.settings.name, line));
+            m
+        },
+    )
+}
+
 fn run_order(
     config: &config::Config,
     wallet: &mut wallet::Wallet,
@@ -282,51 +327,6 @@ fn run_order(
         run_out.add(format!("submit aborted! bad asks",));
     }
     run_out
-}
-
-fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
-    let subject = format!("{}", order.pair);
-    let out = format!(
-        "order #{} {} {:0.4} {:0.4}\n{}",
-        order.id, order.pair, order.cost, order.profit, run_log
-    );
-    email::send(email, &subject, &out);
-}
-
-fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>>)>) -> usize {
-    sheets.into_iter().fold(0, |memo, (m, n, o, p, s)| {
-        memo + s.iter().filter(|sh| sh.is_err()).collect::<Vec<_>>().len()
-    })
-}
-
-fn format_runs(
-    runs: &Vec<(
-        &config::Exchange,
-        types::AskBid,
-        types::Ticker,
-        f64,
-        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
-    )>,
-) -> String {
-    runs.iter().enumerate().fold(
-        String::new(),
-        |mut m, (idx, (exchange, askbid, token, total, sheets))| {
-            let line = sheets
-                .iter()
-                .enumerate()
-                .fold(String::new(), |mut m, (idx, r)| {
-                    let part = match r {
-                        Ok(sheet) => format!("{:?}", sheet),
-                        Err(err) => err.to_string(),
-                    };
-                    let out = format!("offr #{}: {} {}", idx, exchange.settings.name, part);
-                    m.push_str(&out);
-                    m
-                });
-            m.push_str(&format!("{}: {}", exchange.settings.name, line));
-            m
-        },
-    )
 }
 
 // rust to learn
@@ -514,7 +514,7 @@ fn build_offer(
             match wallet.find_coin_by_source_symbol(&market.source_name, &sell_token.symbol) {
                 Ok(coin) => {
                     match mode {
-                        Mode::Simulate => 0.0, // pretend its empty
+                        Mode::Simulate => coin.base_total(), // pretend its empty
                         Mode::Real => coin.base_total(),
                     }
                 }
