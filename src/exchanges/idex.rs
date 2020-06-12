@@ -400,13 +400,13 @@ impl exchange::Api for Idex {
             .collect()
     }
 
-    fn withdrawl(
+    fn withdraw(
         &self,
         private_key: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let url = format!("{}/withdraw", exchange.api_url.as_str());
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.nonce(private_key);
@@ -435,6 +435,7 @@ impl exchange::Api for Idex {
         let json = resp.text().unwrap();
         println!("{} {} {:?}", url, status, json);
         //{"error":"Invalid withdrawal signature. Please try again."}
+        Ok(Some("placeholder".to_string()));
     }
 
     fn deposit(
@@ -443,7 +444,7 @@ impl exchange::Api for Idex {
         exchange: &config::ExchangeSettings,
         amount: f64,
         ticker: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         println!("depositing {} amount {}", ticker.symbol, amount);
         let (data, value) = if ticker.symbol == "ETH" {
             let bigint = exchange::quantity_in_base_units(amount, 18, 18);
@@ -489,9 +490,9 @@ impl exchange::Api for Idex {
             geth::ResultTypes::Result(r) => {
                 let tx = r.result;
                 println!("GOOD TX {}", tx);
-                Ok(tx)
+                Ok(Some(tx))
             }
-        };
+        }
     }
 
     fn order_status(

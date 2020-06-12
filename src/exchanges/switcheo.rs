@@ -842,13 +842,13 @@ impl exchange::Api for Switcheo {
             .collect()
     }
 
-    fn withdrawl(
+    fn withdraw(
         &self,
         privkey: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let client = reqwest::blocking::Client::new();
@@ -903,7 +903,7 @@ impl exchange::Api for Switcheo {
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let client = reqwest::blocking::Client::new();
         let response_opt =
             self.transfer(privkey, exchange, amount, token, TransferDirection::Deposit);

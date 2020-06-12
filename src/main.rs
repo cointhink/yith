@@ -192,7 +192,7 @@ fn run_transfer(
         exchange::TransferDirection::Withdrawal => {
             exchange
                 .api
-                .withdrawl(private_key, &exchange.settings, amount, token);
+                .withdraw(private_key, &exchange.settings, amount, token);
             None
         }
         exchange::TransferDirection::Deposit => {
@@ -529,12 +529,14 @@ fn build_book(
             );
             match mode {
                 Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
-                Mode::Real => exchange.api.deposit(
-                    &config.wallet_private_key,
-                    &exchange.settings,
-                    missing,
-                    &sell_token,
-                ),
+                Mode::Real => {
+                    let deposit_id = exchange.api.deposit(
+                        &config.wallet_private_key,
+                        &exchange.settings,
+                        missing,
+                        &sell_token,
+                    );
+                }
             }
         }
     }
@@ -723,7 +725,7 @@ fn sweep(
         Some(balance) => run_transfer(private_key, direction, exchange, balance, token),
         None => {
             println!(
-                "no balance found for {}. skipping withdraw",
+                "no balance found for {}. skipping withdraw/sweep",
                 exchange.settings.name
             );
             None

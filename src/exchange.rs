@@ -213,15 +213,20 @@ pub trait Api {
         OrderState::Open
     }
 
-    fn withdrawl(
+    fn withdraw(
         &self,
         privkey: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn error::Error>> {
         if exchange.has_balances {
-            println!("WARNING: withdrawl not implemented for {}", exchange.name)
+            println!("WARNING: withdraw not implemented for {}", exchange.name);
+            Ok(None)
+        } else {
+            Err(ExchangeError::build_box(
+                "withdraw called on exchange with no balance support".to_string(),
+            ))
         }
     }
 
@@ -231,9 +236,14 @@ pub trait Api {
         exchange: &config::ExchangeSettings,
         amount: f64,
         token: &types::Ticker,
-    ) {
+    ) -> Result<Option<String>, Box<dyn error::Error>> {
         if exchange.has_balances {
-            println!("WARNING: deposit not implemented for {}", exchange.name)
+            println!("WARNING: deposit not implemented for {}", exchange.name);
+            Ok(None)
+        } else {
+            Err(ExchangeError::build_box(
+                "deposit called on exchange with no balance support".to_string(),
+            ))
         }
     }
 }
