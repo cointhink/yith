@@ -449,7 +449,7 @@ fn build_offer(
 ) -> Result<types::Offer, Box<dyn std::error::Error>> {
     println!("Building offer {} {}", exchange, offer);
     let pub_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    let check_ticker = match askbid {
+    let sell_token = match askbid {
         types::AskBid::Ask => &market.quote,
         types::AskBid::Bid => &market.base,
     };
@@ -477,64 +477,12 @@ fn build_offer(
     amount_limits.push(offer_cost);
     println!("added amount_limit of {} from offer_cost", offer_cost);
 
-    if exchange.settings.has_balances {
-        match wallet.find_coin_by_source_symbol(&market.source_name, &check_ticker.symbol) {
+    let wallet_token_balance =
+        match wallet.find_coin_by_source_symbol(&pub_addr, &sell_token.symbol) {
             Ok(coin) => {
                 match mode {
-                    Mode::Simulate => (), // not a limitation in simulate
-                    Mode::Real => {
-                        if coin.base_total() < offer_cost {
-                            match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol)
-                            {
-                                Ok(coin) => {
-                                    let least_deposit =
-                                        eth::minimum(&vec![offer_cost, coin.base_total()]);
-                                    println!(
-                    "Deposit: {:0.4} {} into {} (least of offer_cost {:0.4} and balance {:0.4})",
-                    least_deposit,
-                    &check_ticker.symbol,
-                    &pub_addr,
-                    offer_cost,
-                    coin.base_total(),
-                );
-                                    match mode {
-                                        Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
-                                        Mode::Real => exchange.api.deposit(
-                                            &config.wallet_private_key,
-                                            &exchange.settings,
-                                            least_deposit,
-                                            &market.base,
-                                        ),
-                                    }
-                                }
-                                Err(_e) => {}
-                            }
-                        } else {
-                            amount_limits.push(coin.base_total());
-                            println!(
-                                "added amount_limit of {} from {} balance",
-                                coin.base_total(),
-                                &market.source_name
-                            )
-                        }
-                    }
-                }
-            }
-            Err(_e) => {}
-        };
-    } else {
-        match wallet.find_coin_by_source_symbol(&pub_addr, &check_ticker.symbol) {
-            Ok(coin) => {
-                match mode {
-                    Mode::Simulate => (), // not a limitation in simulate
-                    Mode::Real => {
-                        amount_limits.push(coin.base_total());
-                        println!(
-                            "added amount_limit of {} from {} balance",
-                            coin.base_total(),
-                            &pub_addr
-                        )
-                    }
+                    Mode::Simulate => coin.base_total(), // simulate a full wallet
+                    Mode::Real => coin.base_total(),
                 }
             }
             Err(_e) => {
@@ -544,20 +492,64 @@ fn build_offer(
                 };
                 let err = exchange::ExchangeError::build_box(format!(
                     "{}: {} balance unknown for {}",
-                    modeword, check_ticker, &pub_addr
+                    modeword, sell_token, &pub_addr
                 ));
                 match mode {
                     Mode::Simulate => (),
                     Mode::Real => return Err(err), // early return
-                }
+                };
+                0.0
             }
         };
+
+    if exchange.settings.has_balances {
+        let exchange_token_balance =
+            match wallet.find_coin_by_source_symbol(&market.source_name, &sell_token.symbol) {
+                Ok(coin) => {
+                    match mode {
+                        Mode::Simulate => 0.0, // pretend its empty
+                        Mode::Real => coin.base_total(),
+                    }
+                }
+                Err(_e) => 0.0, // not found means 0.0
+            };
+
+        if exchange_token_balance < offer_cost {
+            let insufficient_balance = offer_cost - exchange_token_balance;
+            if wallet_token_balance > insufficient_balance {
+                println!(
+                    "Deposit: {:0.4} {} from wallet (offer_cost {:0.4} and exchage balance {:0.4})",
+                    insufficient_balance, &sell_token.symbol, offer_cost, exchange_token_balance,
+                );
+                match mode {
+                    Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
+                    Mode::Real => exchange.api.deposit(
+                        &config.wallet_private_key,
+                        &exchange.settings,
+                        insufficient_balance,
+                        &sell_token,
+                    ),
+                }
+            }
+        } else {
+            amount_limits.push(exchange_token_balance);
+            println!(
+                "added amount_limit of {}{} from {}  balance",
+                exchange_token_balance, &sell_token.symbol, &market.source_name
+            )
+        }
     };
 
+    amount_limits.push(wallet_token_balance);
+    println!(
+        "added amount_limit of {} from {} balance",
+        wallet_token_balance, &pub_addr
+    );
+
     // limit
-    match wallet.find_coin_by_source_symbol("limit", &check_ticker.symbol) {
+    match wallet.find_coin_by_source_symbol("limit", &sell_token.symbol) {
         Ok(coin) => {
-            let wallet_coin_limit = wallet.coin_limit(&check_ticker.symbol);
+            let wallet_coin_limit = wallet.coin_limit(&sell_token.symbol);
             amount_limits.push(wallet_coin_limit);
             println!(
                 "added amount_limit of {} from wallet_coin_limit",
@@ -567,7 +559,7 @@ fn build_offer(
         Err(_e) => {
             let _err = exchange::ExchangeError::build_box(format!(
                 "WARNING: {} wallet limit not set",
-                check_ticker
+                sell_token
             ));
         }
     };
@@ -581,7 +573,7 @@ fn build_offer(
     if least_cost < offer_cost {
         exchange::ExchangeError::build_box(format!(
             "{} balance capped at {:0.4}. adj qty {:0.4}",
-            check_ticker, least_cost, least_qty
+            sell_token, least_cost, least_qty
         ));
     }
 
