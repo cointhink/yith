@@ -502,6 +502,7 @@ fn build_offer(
             }
         };
 
+    let mut insufficient_balance = None;
     if exchange.settings.has_balances {
         let exchange_token_balance =
             match wallet.find_coin_by_source_symbol(&market.source_name, &sell_token.symbol) {
@@ -515,21 +516,26 @@ fn build_offer(
             };
 
         if exchange_token_balance < offer_cost {
-            let insufficient_balance = offer_cost - exchange_token_balance;
-            if wallet_token_balance > insufficient_balance {
+            let missing = offer_cost - exchange_token_balance;
+            if wallet_token_balance > 0.0 {
+                let capped_wallet_balance = eth::minimum(vec![wallet_token_balance, missing]);
                 println!(
-                    "Deposit: {:0.4} {} from wallet (offer_cost {:0.4} and exchage balance {:0.4})",
-                    insufficient_balance, &sell_token.symbol, offer_cost, exchange_token_balance,
+                    "capped_wallet_balance of {}{} from {} wallet balance or {} missing",
+                    capped_wallet_balance, &sell_token.symbol, wallet_token_balance, missing
                 );
-                match mode {
-                    Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
-                    Mode::Real => exchange.api.deposit(
-                        &config.wallet_private_key,
-                        &exchange.settings,
-                        insufficient_balance,
-                        &sell_token,
-                    ),
-                }
+                insufficient_balance = Some(capped_wallet_balance);
+                let combined_balance = exchange_token_balance + capped_wallet_balance;
+                amount_limits.push(combined_balance);
+                println!(
+                    "added amount_limit of {}{} from  {}{} balance + {} capped wallet balance",
+                    combined_balance,
+                    &sell_token.symbol,
+                    exchange_token_balance,
+                    &sell_token.symbol,
+                    &market.source_name,
+                    wallet_token_balance,
+                    &sell_token.symbol,
+                )
             }
         } else {
             amount_limits.push(exchange_token_balance);
@@ -636,6 +642,21 @@ fn build_offer(
         }
     }
 
+    if let Some(insufficient_balance) = insufficient_balance {
+        println!(
+            "Deposit: {:0.4}{} from wallet (offer_cost {:0.4} - exchage balance {:0.4})",
+            insufficient_balance, &sell_token.symbol, offer_cost, exchange_token_balance,
+        );
+        match mode {
+            Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
+            Mode::Real => exchange.api.deposit(
+                &config.wallet_private_key,
+                &exchange.settings,
+                insufficient_balance,
+                &sell_token,
+            ),
+        }
+    }
     let capped_offer = types::Offer {
         base_qty: least_qty,
         quote: premium_offer.quote,
