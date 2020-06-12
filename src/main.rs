@@ -245,13 +245,13 @@ fn run_order(
     run_out.add(format!("ask builds: \n{}", format_runs(&ask_sheets)));
     let ask_sheets_badlen = count_bad_sheets(&ask_sheets);
 
-    if ask_sheets_badlen > 0 {
+    if ask_sheets_badlen == 0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
         run_out.add(format!("simbid builds: \n{}", format_runs(&sim_bid_sheets)));
         let sim_bid_sheets_badlen = count_bad_sheets(&sim_bid_sheets);
 
-        if sim_bid_sheets_badlen > 0 {
+        if sim_bid_sheets_badlen == 0 {
             let _ask_runs = run_sheets(config, ask_sheets);
             run_out.add(format!("ask runs: (logging not implemented)\n"));
 
@@ -519,15 +519,11 @@ fn build_offer(
             let missing = offer_cost - exchange_token_balance;
             if wallet_token_balance > 0.0 {
                 let capped_wallet_balance = eth::minimum(&vec![wallet_token_balance, missing]);
-                println!(
-                    "capped_wallet_balance of {}{} from {} wallet balance or {} missing",
-                    capped_wallet_balance, &sell_token.symbol, wallet_token_balance, missing
-                );
                 insufficient_balance = Some(capped_wallet_balance);
                 let combined_balance = exchange_token_balance + capped_wallet_balance;
                 amount_limits.push(combined_balance);
                 println!(
-                    "added amount_limit of {}{} from {}{} {} balance + {}{} capped wallet balance",
+                    "added amount_limit of {}{} from {}{} {} balance + {}{} wallet cover balance",
                     combined_balance,
                     &sell_token.symbol,
                     exchange_token_balance,
@@ -544,13 +540,13 @@ fn build_offer(
                 exchange_token_balance, &sell_token.symbol, &market.source_name
             )
         }
+    } else {
+        amount_limits.push(wallet_token_balance);
+        println!(
+            "added amount_limit of {} from {} balance",
+            wallet_token_balance, &pub_addr
+        );
     };
-
-    amount_limits.push(wallet_token_balance);
-    println!(
-        "added amount_limit of {} from {} balance",
-        wallet_token_balance, &pub_addr
-    );
 
     // limit
     match wallet.find_coin_by_source_symbol("limit", &sell_token.symbol) {
@@ -939,7 +935,7 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
     }
 
     types::Order {
-        id: "manual".to_string(),
+        id: "#manual-id".to_string(),
         date: time::now_string(),
         pair: pair,
         cost: quantity * price,
