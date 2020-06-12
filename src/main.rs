@@ -24,16 +24,22 @@ fn main() {
     let config_filename = options.value_of("config").unwrap_or(config::FILENAME);
     let config: config::Config = config::read_type(config_filename);
 
+    let wallet_filename = "wallet.yaml";
+    let wallet: wallet::Wallet = config::read_type(wallet_filename);
+
+    println!(
+        "Yith {:#?} {} {}",
+        config_filename,
+        time::now_string(),
+        if config.trade_live { "LIVE" } else { "DEMO" }
+    );
+
     let exchanges_filename = "exchanges.yaml";
     let exchanges = config::hydrate_exchanges(exchanges_filename, &config)
         .unwrap_or_else(|c| panic!("{} {}", exchanges_filename, c));
 
-    let wallet_filename = "wallet.yaml";
-    let wallet: wallet::Wallet = config::read_type(wallet_filename);
-
     config::CONFIG.set(config).unwrap(); // set-once global
 
-    println!("Yith {:#?} {}", config_filename, time::now_string());
     match app(wallet, exchanges, options) {
         None => {
             std::process::exit(0);
@@ -730,10 +736,15 @@ fn run_sheet(
     exchange: &config::Exchange,
 ) -> Result<String, Box<dyn std::error::Error>> {
     println!("** RUN sheet {} {:?}", exchange, sheet);
-    match exchange
-        .api
-        .submit(&config.wallet_private_key, &exchange.settings, sheet)
-    {
+    let submit_opt = if config.trade_live {
+        exchange
+            .api
+            .submit(&config.wallet_private_key, &exchange.settings, sheet)
+    } else {
+        println!("=DEMO mode no submit placeholder-order-id");
+        Ok("placeholder-order-id".to_string())
+    };
+    match submit_opt {
         Ok(order_id) => {
             println!("* {} ORDER ID {}", exchange.settings.name, order_id);
             match wait_order(&exchange, &order_id) {

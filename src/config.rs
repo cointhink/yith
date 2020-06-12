@@ -12,6 +12,7 @@ pub static CONFIG: OnceCell<Config> = OnceCell::new();
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
+    pub trade_live: bool,
     pub redis_url: String,
     pub geth_url: String,
     pub wallet_private_key: String,
