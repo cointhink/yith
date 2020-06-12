@@ -243,22 +243,16 @@ fn run_order(
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
     run_out.add(format!("ask builds: \n{}", format_runs(&ask_sheets)));
-    let ask_sheets_len = count_sheets(&ask_sheets);
-    let ask_goods = filter_good_sheets(ask_sheets);
-    let ask_goods_len = count_sheets(&ask_goods);
-    run_out.add(format!("a {}/{}", ask_goods_len, ask_sheets_len));
+    let ask_sheets_badlen = count_bad_sheets(&ask_sheets);
 
-    if ask_goods_len == ask_sheets_len {
+    if ask_sheets_badlen > 0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
         run_out.add(format!("simbid builds: \n{}", format_runs(&sim_bid_sheets)));
-        let sim_bid_sheets_len = count_sheets(&sim_bid_sheets);
-        let sim_bid_goods = filter_good_sheets(sim_bid_sheets);
-        let sim_bid_goods_len = count_sheets(&sim_bid_goods);
-        run_out.add(format!("sb {}/{}", sim_bid_goods_len, sim_bid_sheets_len));
+        let sim_bid_sheets_badlen = count_bad_sheets(&sim_bid_sheets);
 
-        if sim_bid_goods_len == sim_bid_sheets_len {
-            let _ask_runs = run_sheets(config, ask_goods);
+        if sim_bid_sheets_badlen > 0 {
+            let _ask_runs = run_sheets(config, ask_sheets);
             run_out.add(format!("ask runs: (logging not implemented)\n"));
 
             // wallet refresh
@@ -267,31 +261,19 @@ fn run_order(
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
             run_out.add(format!("bid builds: \n{}", format_runs(&bid_sheets)));
-            let bid_sheets_len = count_sheets(&bid_sheets);
-            let bid_goods = filter_good_sheets(bid_sheets);
-            let bid_goods_len = count_sheets(&bid_goods);
-            run_out.add(format!("b {}/{}", bid_goods_len, bid_sheets_len));
+            let bid_sheets_badlen = count_bad_sheets(&bid_sheets);
 
-            if bid_goods_len == bid_sheets_len {
-                let _bid_runs = run_sheets(config, bid_goods);
+            if bid_sheets_badlen > 0 {
+                let _bid_runs = run_sheets(config, bid_sheets);
                 run_out.add(format!("bid runs: (logging not implemented)\n"));
             } else {
-                run_out.add(format!(
-                    "sumbit aborted! bids {} good {} (thats bad)",
-                    bid_sheets_len, bid_goods_len
-                ));
+                run_out.add(format!("sumbit aborted! bad bids",));
             }
         } else {
-            run_out.add(format!(
-                "submit aborted! sim_bid {} good {} (thats bad)",
-                sim_bid_sheets_len, sim_bid_goods_len
-            ));
+            run_out.add(format!("submit aborted! bad sim_bids",));
         }
     } else {
-        run_out.add(format!(
-            "submit aborted! asks {} good {} (thats bad)",
-            ask_sheets_len, ask_goods_len
-        ));
+        run_out.add(format!("submit aborted! bad asks",));
     }
     run_out
 }
@@ -305,30 +287,10 @@ fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
     email::send(email, &subject, &out);
 }
 
-fn filter_good_sheets<M, N, O, P, T>(
-    sheets: Vec<(M, N, O, P, Vec<Result<T, Box<dyn std::error::Error>>>)>,
-) -> Vec<(M, N, O, P, Vec<T>)> {
-    sheets
-        .into_iter()
-        .map(|(m, n, o, p, s)| {
-            let good_sheets =
-                s.into_iter()
-                    .fold(Vec::<T>::new(), |mut memo, result| match result {
-                        Ok(sheet) => {
-                            memo.push(sheet);
-                            memo
-                        }
-                        Err(_e) => memo,
-                    });
-            (m, n, o, p, good_sheets)
-        })
-        .collect()
-}
-
-fn count_sheets<M, N, O, P, T>(sheets: &Vec<(M, N, O, P, Vec<T>)>) -> usize {
-    sheets
-        .into_iter()
-        .fold(0, |memo, (m, n, o, p, s)| memo + s.len())
+fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>>)>) -> usize {
+    sheets.into_iter().fold(0, |memo, (m, n, o, p, s)| {
+        memo + s.iter().filter(|sh| sh.is_err()).collect::<Vec<_>>().len()
+    })
 }
 
 fn format_runs(
@@ -696,14 +658,17 @@ fn run_sheets(
         types::AskBid,
         types::Ticker,
         f64,
-        Vec<exchange::OrderSheet>,
+        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
     )>,
 ) {
     sheets
         .into_iter()
         .for_each(|(exchange, askbid, token, total, sheets)| {
-            sheets.into_iter().for_each(|sheet| {
-                run_sheet(config, sheet, exchange);
+            sheets.into_iter().for_each(|sheet_opt| match sheet_opt {
+                Ok(sheet) => {
+                    run_sheet(config, sheet, exchange);
+                }
+                Err(e) => (),
             });
             if exchange.settings.has_balances {
                 sweep(&config.wallet_private_key, &exchange, &token);
