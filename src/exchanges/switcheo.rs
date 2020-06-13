@@ -600,6 +600,23 @@ impl Switcheo {
         println!("{} {} timestamp: {}", url, status, timestamp);
         timestamp
     }
+
+    pub fn balances(
+        &self,
+        public_addr: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> BalanceResponse {
+        let url = format!(
+            "{}/balances?addresses=0x{}&contract_hashes={}",
+            exchange.api_url.as_str(),
+            public_addr,
+            exchange.contract_address
+        );
+        let client = reqwest::blocking::Client::new();
+        let resp = client.get(url.as_str()).send().unwrap();
+        let json = resp.text().unwrap();
+        serde_json::from_str::<BalanceResponse>(&json).unwrap()
+    }
 }
 
 impl exchange::Api for Switcheo {
@@ -751,16 +768,7 @@ impl exchange::Api for Switcheo {
         public_addr: &str,
         exchange: &config::ExchangeSettings,
     ) -> HashMap<String, f64> {
-        let url = format!(
-            "{}/balances?addresses=0x{}&contract_hashes={}",
-            exchange.api_url.as_str(),
-            public_addr,
-            exchange.contract_address
-        );
-        let client = reqwest::blocking::Client::new();
-        let resp = client.get(url.as_str()).send().unwrap();
-        let json = resp.text().unwrap();
-        let balances = serde_json::from_str::<BalanceResponse>(&json).unwrap();
+        let balances = self.balances(public_addr, exchange);
         if balances.confirming.len() > 0 {
             println!(
                 "WARNING: switcheo confirming balances {:?}",
@@ -782,6 +790,27 @@ impl exchange::Api for Switcheo {
                 }
             })
             .collect()
+    }
+
+    fn balance_status<'a>(
+        &self,
+        transfer_id: &str,
+        public_addr: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::BalanceStatus {
+        let balances = self.balances(public_addr, exchange);
+        let record = balances.confirming.values().fold(None, |memo, ar| {
+            match ar.iter().find(|r| r.id == transfer_id) {
+                Some(item) => Some(item),
+                None => memo,
+            }
+        });
+        let status = match record {
+            Some(_tid) => exchange::BalanceStatus::InProgress,
+            None => exchange::BalanceStatus::Complete,
+        };
+        println!("balance_status {} {:?}", transfer_id, status);
+        status
     }
 
     fn withdraw(
@@ -907,7 +936,7 @@ impl exchange::Api for Switcheo {
     fn order_status(
         &self,
         order_id: &str,
-        exchange: &config::ExchangeSettings,
+        _exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
         let url = format!("{}/orders/{}", self.settings.api_url.as_str(), order_id);
         println!("{}", url);

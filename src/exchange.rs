@@ -216,7 +216,7 @@ pub trait Api {
         exchange: &config::ExchangeSettings,
     ) -> BalanceStatus {
         println!("WARNING: {} has no balance_status call", exchange.name);
-        BalanceStatus::Complete
+        BalanceStatus::InProgress
     }
 
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
