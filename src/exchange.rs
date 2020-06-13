@@ -104,6 +104,7 @@ impl fmt::Display for BuySell {
 pub enum BalanceStatus {
     Complete,
     InProgress,
+    TimedOut,
 }
 
 #[derive(Debug, PartialEq)]

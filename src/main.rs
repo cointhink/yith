@@ -195,7 +195,8 @@ fn run_transfer(
     amount: f64,
     token: &types::Ticker,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-    match direction {
+    let public_addr = eth::privkey_to_addr(private_key);
+    let tid_opt = match direction {
         exchange::TransferDirection::Withdraw => {
             exchange
                 .api
@@ -206,7 +207,46 @@ fn run_transfer(
                 .api
                 .deposit(private_key, &exchange.settings, amount, token)
         }
+    };
+    match tid_opt {
+        Ok(tid) => match tid {
+            Some(tferid) => match wait_transfer(&tferid, &public_addr, exchange) {
+                exchange::BalanceStatus::Complete => Ok(None),
+                exchange::BalanceStatus::InProgress => Err(exchange::ExchangeError::build_box(
+                    "transfer status weird timeout".to_string(),
+                )),
+                exchange::BalanceStatus::TimedOut => Err(exchange::ExchangeError::build_box(
+                    "transfer status timeout".to_string(),
+                )),
+            },
+            None => Ok(Some(
+                "skipped balance wait due to missing transfer id".to_string(),
+            )),
+        },
+        Err(e) => Err(e),
     }
+}
+
+fn wait_transfer(
+    transfer_id: &str,
+    public_addr: &str,
+    exchange: &config::Exchange,
+) -> exchange::BalanceStatus {
+    println!("wait_transfer for {}", transfer_id);
+    let mut status = exchange::BalanceStatus::InProgress;
+    let mut done = false;
+    while !done {
+        status = exchange
+            .api
+            .balance_status(transfer_id, public_addr, &exchange.settings);
+        done = match status {
+            exchange::BalanceStatus::Complete => true,
+            exchange::BalanceStatus::InProgress => false,
+            exchange::BalanceStatus::TimedOut => true,
+        };
+        time::sleep(10000);
+    }
+    status
 }
 
 fn scan_wallet(coins: &mut Vec<wallet::WalletCoin>, exchanges: &config::ExchangeList) {
@@ -534,9 +574,11 @@ fn build_book(
             match mode {
                 Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
                 Mode::Real => {
-                    let deposit_id = exchange.api.deposit(
+                    let direction = exchange::TransferDirection::Deposit;
+                    let deposit_id = run_transfer(
                         &config.wallet_private_key,
-                        &exchange.settings,
+                        direction,
+                        &exchange,
                         missing,
                         &sell_token,
                     );
@@ -732,7 +774,7 @@ fn sweep(
     let balance_opt = exchange_balance(&my_addr, exchange, token);
     match balance_opt {
         Some(balance) => match run_transfer(private_key, direction, exchange, balance, token) {
-            Ok(_tx) => None,
+            Ok(_tid) => None,
             Err(e) => Some(e),
         },
         None => {
