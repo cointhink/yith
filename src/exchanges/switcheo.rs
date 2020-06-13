@@ -766,7 +766,6 @@ impl exchange::Api for Switcheo {
                                 base_qty * price
                             }
                         };
-                        self.withdrawl(privkey, exchange, qty, &token);
                     }
                     exchange::OrderState::Cancelled => {
                         println!("order cancelled!");
@@ -888,12 +887,14 @@ impl exchange::Api for Switcheo {
                 println!("{}", json);
                 if status.is_success() {
                     let response = serde_json::from_str::<WithdrawalResponse>(&json).unwrap();
+                    Ok(Some(response.id))
                 } else {
                     println!("http err");
                     let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
+                    Err(exchange::ExchangeError::build_box(err.error_message))
                 }
             }
-            Err(_e) => (),
+            Err(e) => Err(e),
         }
     }
 
@@ -951,11 +952,11 @@ impl exchange::Api for Switcheo {
                         } else {
                             let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
                         }
-                        Ok(tx)
+                        Ok(Some(tx))
                     }
-                };
+                }
             }
-            Err(_e) => {}
+            Err(e) => Err(e),
         }
     }
 

@@ -189,7 +189,7 @@ fn run_transfer(
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
     match direction {
-        exchange::TransferDirection::Withdrawal => {
+        exchange::TransferDirection::Withdraw => {
             exchange
                 .api
                 .withdraw(private_key, &exchange.settings, amount, token);
@@ -719,7 +719,7 @@ fn sweep(
 ) -> Option<Box<dyn std::error::Error>> {
     println!("** SWEEP OUT {} {}", exchange.settings.name, token);
     let my_addr = eth::privkey_to_addr(private_key);
-    let direction = exchange::TransferDirection::Withdrawal;
+    let direction = exchange::TransferDirection::Withdraw;
     let balance_opt = exchange_balance(&my_addr, exchange, token);
     match balance_opt {
         Some(balance) => run_transfer(private_key, direction, exchange, balance, token),

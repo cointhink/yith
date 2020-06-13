@@ -435,7 +435,7 @@ impl exchange::Api for Idex {
         let json = resp.text().unwrap();
         println!("{} {} {:?}", url, status, json);
         //{"error":"Invalid withdrawal signature. Please try again."}
-        Ok(Some("placeholder".to_string()));
+        Ok(Some("placeholder".to_string()))
     }
 
     fn deposit(

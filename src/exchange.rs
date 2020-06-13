@@ -12,13 +12,13 @@ use std::fmt;
 #[derive(Debug)]
 pub enum TransferDirection {
     Deposit,
-    Withdrawal,
+    Withdraw,
 }
 
 impl TransferDirection {
     pub fn read(direction: &str) -> Option<Self> {
         match direction {
-            "withdrawal" => Some(Self::Withdrawal),
+            "withdraw" => Some(Self::Withdraw),
             "deposit" => Some(Self::Deposit),
             _ => None,
         }
@@ -38,7 +38,7 @@ impl std::fmt::Display for TransferDirection {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let word = match self {
             Self::Deposit => "Deposit",
-            Self::Withdrawal => "Withdrawal",
+            Self::Withdraw => "Withdraw",
         };
         write!(f, "{}", word)
     }
