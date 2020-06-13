@@ -12,11 +12,6 @@ pub struct Wallet {
 }
 
 impl Wallet {
-    pub fn build() -> Wallet {
-        let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
-        Wallet { coins: vec![] }
-    }
-
     pub fn reset(&mut self) {
         self.coins.retain(|c| c.source == "limit");
     }

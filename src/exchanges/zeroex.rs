@@ -293,10 +293,10 @@ pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
     vec![
         ethabi::Token::FixedBytes(eip712_order_schema_hash),
-        ethabi::Token::Address(str_to_H160(&form.maker_address[2..])),
-        ethabi::Token::Address(str_to_H160(&form.taker_address[2..])),
-        ethabi::Token::Address(str_to_H160(&form.fee_recipient_address[2..])),
-        ethabi::Token::Address(str_to_H160(&form.sender_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.fee_recipient_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.sender_address[2..])),
         ethabi::Token::Uint(ethereum_types::U256::from(
             form.maker_asset_amount.parse::<u128>().unwrap(),
         )),
@@ -322,7 +322,7 @@ pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
     ]
 }
 
-pub fn str_to_H160(addr_str: &str) -> ethereum_types::H160 {
+pub fn str_to_h160(addr_str: &str) -> ethereum_types::H160 {
     let mut addr = [0u8; 20];
     addr.copy_from_slice(&hex::decode(addr_str).unwrap());
     ethereum_types::H160::from(addr)
@@ -355,7 +355,7 @@ pub fn eip712_exchange_hash(contract_addr: &str) -> [u8; 32] {
             eth::hash_msg(&eip712_exchange_domain_version.as_bytes().to_vec()).to_vec(),
         ),
         ethabi::Token::Uint(ethereum_types::U256::from(chain_id)),
-        ethabi::Token::Address(str_to_H160(&contract_addr[2..])),
+        ethabi::Token::Address(str_to_h160(&contract_addr[2..])),
     ];
     let token_bytes = ethabi::encode(&tokens);
     eth::hash_msg(&token_bytes)

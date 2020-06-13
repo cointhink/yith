@@ -1,7 +1,6 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
-use crate::exchange::Api;
 use crate::geth;
 use crate::time;
 use crate::types;

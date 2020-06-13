@@ -72,22 +72,26 @@ fn app(
         let amount_str = exchange::quantity_in_base_units(amount, 18, 18).to_string();
         match action {
             "wrap" => {
-                weth::Weth::wrap(
+                match weth::Weth::wrap(
                     geth,
                     &config.wallet_private_key,
                     weth::Direction::Wrap,
                     &amount_str,
-                );
-                None
+                ) {
+                    Ok(_yn) => None,
+                    Err(e) => Some(e),
+                }
             }
             "unwrap" => {
-                weth::Weth::wrap(
+                match weth::Weth::wrap(
                     geth,
                     &config.wallet_private_key,
                     weth::Direction::Unwrap,
                     &amount_str,
-                );
-                None
+                ) {
+                    Ok(_yn) => None,
+                    Err(e) => Some(e),
+                }
             }
             _ => None,
         }
@@ -137,13 +141,16 @@ fn app(
         let exchange_name = matches.value_of("exchange").unwrap();
         let exchange = exchanges.find_by_name(exchange_name).unwrap();
 
-        run_transfer(
+        match run_transfer(
             &config.wallet_private_key,
             direction,
             &exchange,
             amount,
             &symbol.into(),
-        )
+        ) {
+            Ok(_tx) => None,
+            Err(e) => Some(e),
+        }
     } else if let Some(matches) = opts.subcommand_matches("trade") {
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
@@ -187,19 +194,17 @@ fn run_transfer(
     exchange: &config::Exchange,
     amount: f64,
     token: &types::Ticker,
-) -> Option<Box<dyn std::error::Error>> {
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
     match direction {
         exchange::TransferDirection::Withdraw => {
             exchange
                 .api
-                .withdraw(private_key, &exchange.settings, amount, token);
-            None
+                .withdraw(private_key, &exchange.settings, amount, token)
         }
         exchange::TransferDirection::Deposit => {
             exchange
                 .api
-                .deposit(private_key, &exchange.settings, amount, token);
-            None
+                .deposit(private_key, &exchange.settings, amount, token)
         }
     }
 }
@@ -245,7 +250,7 @@ fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
 }
 
 fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>>)>) -> usize {
-    sheets.into_iter().fold(0, |memo, (m, n, o, p, s)| {
+    sheets.into_iter().fold(0, |memo, (_m, _n, _o, _p, s)| {
         memo + s.iter().filter(|sh| sh.is_err()).collect::<Vec<_>>().len()
     })
 }
@@ -259,9 +264,9 @@ fn format_runs(
         Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
     )>,
 ) -> String {
-    runs.iter().enumerate().fold(
+    runs.iter().fold(
         String::new(),
-        |mut m, (idx, (exchange, askbid, token, total, sheets))| {
+        |mut m, (exchange, _askbid, _token, _total, sheets)| {
             let line = sheets
                 .iter()
                 .enumerate()
@@ -698,11 +703,17 @@ fn run_sheets(
     sheets
         .into_iter()
         .for_each(|(exchange, askbid, token, total, sheets)| {
-            sheets.into_iter().for_each(|sheet_opt| match sheet_opt {
-                Ok(sheet) => {
-                    run_sheet(config, sheet, exchange);
-                }
-                Err(e) => (),
+            sheets.into_iter().for_each(|sheet_opt| {
+                let _quiet = match sheet_opt {
+                    Ok(sheet) => run_sheet(config, sheet, exchange),
+                    Err(_e) => {
+                        println!(
+                            "order_sheet skipped {} {} {}",
+                            exchange.settings.name, askbid, token
+                        );
+                        Ok("-skipped-".to_string())
+                    }
+                };
             });
             if exchange.settings.has_balances {
                 if total > 0.0 {
@@ -722,7 +733,10 @@ fn sweep(
     let direction = exchange::TransferDirection::Withdraw;
     let balance_opt = exchange_balance(&my_addr, exchange, token);
     match balance_opt {
-        Some(balance) => run_transfer(private_key, direction, exchange, balance, token),
+        Some(balance) => match run_transfer(private_key, direction, exchange, balance, token) {
+            Ok(tx) => None,
+            Err(e) => Some(e),
+        },
         None => {
             println!(
                 "no balance found for {}. skipping withdraw/sweep",
