@@ -500,7 +500,6 @@ fn build_book(
                     &market,
                     wallet_token_balance,
                     wallet,
-                    mode,
                 ) {
                     Ok(capped_offer) => {
                         let sheet = match mode {
@@ -556,7 +555,6 @@ fn build_offer(
     market: &exchange::Market,
     wallet_token_balance: f64,
     wallet: &wallet::Wallet,
-    mode: Mode,
 ) -> Result<types::Offer, Box<dyn std::error::Error>> {
     println!("Building offer {} {}", exchange, offer);
     let sell_token = match askbid {
@@ -734,7 +732,7 @@ fn sweep(
     let balance_opt = exchange_balance(&my_addr, exchange, token);
     match balance_opt {
         Some(balance) => match run_transfer(private_key, direction, exchange, balance, token) {
-            Ok(tx) => None,
+            Ok(_tx) => None,
             Err(e) => Some(e),
         },
         None => {

@@ -135,17 +135,6 @@ pub fn encode_uint256(numstr: &str) -> Vec<u8> {
     left_pad_zero(number.as_bytes().to_vec(), 64)
 }
 
-pub fn encode_hexstr(hexstr: &str) -> Vec<u8> {
-    let lenstr = format!("{:x}", hexstr.len());
-    let lenparam = left_pad_zero(lenstr.as_bytes().to_vec(), 64);
-
-    let mut full = vec![lenparam, right_pad_zero(hexstr.as_bytes().to_vec(), 64)];
-    full.iter_mut().fold(Vec::<u8>::new(), |mut memo, part| {
-        memo.append(part);
-        memo
-    })
-}
-
 pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
     let padding_char = '0' as u8;
     let mut padded = Vec::<u8>::new();
@@ -154,17 +143,6 @@ pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
         padded.push(padding_char)
     }
     padded.append(&mut bytes.clone());
-    padded
-}
-
-pub fn right_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
-    let padding_char = '0' as u8;
-    let mut padded = Vec::<u8>::new();
-    padded.append(&mut bytes.clone());
-    let left = (width as usize) - bytes.len();
-    for _ in 0..left {
-        padded.push(padding_char)
-    }
     padded
 }
 

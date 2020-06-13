@@ -892,10 +892,11 @@ impl exchange::Api for Switcheo {
                             let tx =
                                 eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
                             println!("tx {}", tx);
+                            Ok(Some(tx))
                         } else {
                             let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
+                            Err(exchange::ExchangeError::build_box(err.error_message))
                         }
-                        Ok(Some(tx))
                     }
                 }
             }

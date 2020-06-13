@@ -22,7 +22,7 @@ impl Weth {
         let (data, value) = match direction {
             Direction::Unwrap => (withdraw_data(amount), ethereum_types::U256::zero()),
             Direction::Wrap => (
-                deposit_data(amount),
+                deposit_data(),
                 ethereum_types::U256::from_dec_str(amount).unwrap(),
             ),
         };
@@ -64,7 +64,7 @@ fn withdraw_data(amount: &str) -> Vec<u8> {
     call
 }
 
-fn deposit_data(amount: &str) -> Vec<u8> {
+fn deposit_data() -> Vec<u8> {
     let mut call = Vec::<u8>::new();
     let mut func = eth::hash_abi_sig("deposit()").to_vec();
     call.append(&mut func);

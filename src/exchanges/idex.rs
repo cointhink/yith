@@ -244,7 +244,6 @@ impl exchange::Api for Idex {
         market: &exchange::Market,
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
-        let pub_addr = eth::privkey_to_addr(privkey);
         let base_token = self.tokens.get(&market.base.symbol);
         let quote_token = self.tokens.get(&market.quote.symbol);
         let nonce = self.nonce(privkey); // call before OrderBook #speed

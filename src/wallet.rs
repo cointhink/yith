@@ -1,4 +1,3 @@
-use crate::exchanges;
 use crate::price;
 use crate::time;
 use crate::types;
@@ -82,7 +81,6 @@ pub struct WalletCoin {
 
 impl WalletCoin {
     pub fn build(ticker: &str, contract: &str, name: &str, balance: f64) -> WalletCoin {
-        let tokens = exchanges::idex::TokenList::read_tokens("notes/oasis-idex-tokens.json");
         WalletCoin {
             ticker_symbol: ticker.to_string(),
             contract: contract.to_string(),
