@@ -533,31 +533,6 @@ impl Switcheo {
         }
     }
 
-    pub fn wait_on_order(
-        &self,
-        order_id: &str,
-        first_status: exchange::OrderState,
-        exchange: &config::ExchangeSettings,
-    ) -> exchange::OrderState {
-        let mut status: exchange::OrderState = first_status;
-        loop {
-            let refresh = match status {
-                exchange::OrderState::Pending | exchange::OrderState::Open => true,
-                _ => false,
-            };
-            if refresh {
-                println!("waiting");
-                time::sleep(1000);
-                println!("checking again {} {:?}", order_id, status);
-                status = self.order_status(order_id, exchange);
-            } else {
-                println!("status good! {} {:?}", order_id, status);
-                break;
-            }
-        }
-        status
-    }
-
     pub fn transfer(
         &self,
         privkey: &str,
@@ -743,37 +718,6 @@ impl exchange::Api for Switcheo {
             let status = resp.status();
             println!("{} {:?}", status, resp.text());
             if status.is_success() {
-                // wait for success
-                //let order_ids = gather_ids(sig_sheet.signatures);
-                let id_status = self.wait_on_order(&order.id, order.order_status.finto(), exchange);
-                match id_status {
-                    exchange::OrderState::Filled => {
-                        println!("order filled!");
-                        let (base_symbol, quote_symbol) = split_market_pair(&order.pair);
-                        let token_symbol = match order.side {
-                            BuySell::Buy => base_symbol,
-                            BuySell::Sell => quote_symbol,
-                        };
-                        let token = types::Ticker {
-                            symbol: token_symbol,
-                        };
-                        let token_detail = self.tokens.get(&token).unwrap();
-                        let base_qty = units_to_amount(&order.quantity, token_detail);
-                        let qty = match order.side {
-                            BuySell::Buy => base_qty,
-                            BuySell::Sell => {
-                                let price = order.price.parse::<f64>().unwrap();
-                                base_qty * price
-                            }
-                        };
-                    }
-                    exchange::OrderState::Cancelled => {
-                        println!("order cancelled!");
-                    }
-                    _ => {
-                        println!("order whatnow!");
-                    }
-                }
                 Ok(order.id.clone())
             } else {
                 Err(exchange::ExchangeError::build_box(format!(
