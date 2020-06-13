@@ -100,6 +100,11 @@ impl fmt::Display for BuySell {
         write!(f, "{}", word)
     }
 }
+#[derive(Debug, PartialEq)]
+pub enum BalanceStatus {
+    Complete,
+    InProgress,
+}
 
 #[derive(Debug, PartialEq)]
 pub enum OrderState {
@@ -200,7 +205,18 @@ pub trait Api {
     }
 
     fn balances<'a>(&self, privkey: &str, exchange: &config::ExchangeSettings) -> BalanceList {
+        println!("WARNING: {} has no balances call", exchange.name);
         collections::HashMap::new()
+    }
+
+    fn balance_status<'a>(
+        &self,
+        transfer_id: &str,
+        privkey: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> BalanceStatus {
+        println!("WARNING: {} has no balance_status call", exchange.name);
+        BalanceStatus::Complete
     }
 
     fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
