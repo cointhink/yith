@@ -653,7 +653,7 @@ impl exchange::Api for Switcheo {
                 base_token_detail.precision,
                 base_token_detail.decimals,
             ),
-            price: amount_to_units(offer.quote, pair.precision, base_token_detail.decimals),
+            price: float_to_string_precision(offer.quote, pair.precision),
             side: askbid.into(),
             timestamp: now_millis,
             use_native_tokens: false,
@@ -1052,6 +1052,19 @@ pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
     unts as f64 / power as f64
 }
 
+pub fn float_to_string_precision(num: f64, precision: i32) -> String {
+    println!("num {} prec {} ", num, precision);
+    let prec = precision as usize;
+    let num_str = num.to_string();
+    let parts: Vec<&str> = num_str.split(".").collect();
+    let int = parts[0].parse::<i32>().unwrap();
+    let mut frac = if parts.len() == 2 { &parts[1] } else { "" }.to_string();
+    frac.truncate(prec);
+    let padding = "0".repeat(prec - frac.len());
+    println!("num_str {} frac {} frac_padded {}", num_str, frac, padding);
+    format!("{}.{}{}", int, frac, padding)
+}
+
 pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {
     let qty = units_to_amount(&fill.fill_amount, base_token);
     let cost = units_to_amount(&fill.want_amount, quote_token);
@@ -1120,6 +1133,20 @@ mod tests {
         let sig_bytes = eth::sign_bytes(&sha_bytes, &secret_key);
         let sigsha = format!("0x{}", hex::encode(sig_bytes.to_vec()));
         assert_eq!(sigsha, "0xee4bcd2862de81ce2a4d2ef8a7739844896c4d3098c9e6dcee0ba36efc62aa5a629e6e5ae004f2acd14e1c9d9f6d25a8b2dbb45311a205669706ad19b97e94e01b");
+    }
+
+    #[test]
+    fn test_float_to_string_precision() {
+        let float_str = float_to_string_precision(1.0, 1);
+        assert_eq!(float_str, "1.0");
+        let float_str = float_to_string_precision(1.0, 2);
+        assert_eq!(float_str, "1.00");
+        let float_str = float_to_string_precision(1.1, 2);
+        assert_eq!(float_str, "1.10");
+        let float_str = float_to_string_precision(1.12, 2);
+        assert_eq!(float_str, "1.12");
+        let float_str = float_to_string_precision(1.1234, 2);
+        assert_eq!(float_str, "1.12");
     }
 }
 

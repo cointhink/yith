@@ -795,7 +795,7 @@ fn run_sheet(
     sheet: exchange::OrderSheet,
     exchange: &config::Exchange,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("** RUN sheet {} {:?}", exchange, sheet);
+    println!("** RUN sheet {}", exchange);
     let submit_opt = if config.trade_live {
         exchange
             .api
