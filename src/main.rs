@@ -303,36 +303,6 @@ fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>
     })
 }
 
-fn format_runs(
-    runs: &Vec<(
-        &config::Exchange,
-        types::AskBid,
-        types::Ticker,
-        f64,
-        Vec<Result<exchange::OrderSheet, Box<dyn std::error::Error>>>,
-    )>,
-) -> String {
-    runs.iter().fold(
-        String::new(),
-        |mut m, (exchange, _askbid, _token, _total, sheets)| {
-            let line = sheets
-                .iter()
-                .enumerate()
-                .fold(String::new(), |mut m, (idx, r)| {
-                    let part = match r {
-                        Ok(sheet) => format!("{:?}", sheet),
-                        Err(err) => err.to_string(),
-                    };
-                    let out = format!("offr #{}: {} {}", idx, exchange.settings.name, part);
-                    m.push_str(&out);
-                    m
-                });
-            m.push_str(&format!("{}: {}", exchange.settings.name, line));
-            m
-        },
-    )
-}
-
 fn run_order(
     config: &config::Config,
     wallet: &mut wallet::Wallet,
@@ -346,44 +316,36 @@ fn run_order(
     ));
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
-    run_out.add(format!(
-        "ask builds summary: \n{}",
-        format_runs(&ask_sheets)
-    ));
     let ask_sheets_badlen = count_bad_sheets(&ask_sheets);
 
     if ask_sheets_badlen == 0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
-        run_out.add(format!(
-            "simbid builds summary: \n{}",
-            format_runs(&sim_bid_sheets)
-        ));
         let sim_bid_sheets_badlen = count_bad_sheets(&sim_bid_sheets);
 
         if sim_bid_sheets_badlen == 0 {
             let _ask_runs = run_sheets(config, ask_sheets);
-            run_out.add(format!("ask runs: (logging not implemented)\n"));
 
             // wallet refresh
             wallet.reset();
             scan_wallet(&mut wallet.coins, &exchanges);
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
-            run_out.add(format!("bid builds: \n{}", format_runs(&bid_sheets)));
             let bid_sheets_badlen = count_bad_sheets(&bid_sheets);
 
-            if bid_sheets_badlen > 0 {
+            if bid_sheets_badlen == 0 {
                 let _bid_runs = run_sheets(config, bid_sheets);
-                run_out.add(format!("bid runs: (logging not implemented)\n"));
             } else {
-                run_out.add(format!("sumbit aborted! bad bids",));
+                run_out.add(format!("sumbit aborted! {} bad bids", bid_sheets_badlen));
             }
         } else {
-            run_out.add(format!("submit aborted! bad sim_bids",));
+            run_out.add(format!(
+                "submit aborted! {} bad sim_bids",
+                sim_bid_sheets_badlen
+            ));
         }
     } else {
-        run_out.add(format!("submit aborted! bad asks",));
+        run_out.add(format!("submit aborted! {} bad asks", ask_sheets_badlen));
     }
     run_out
 }
@@ -438,6 +400,7 @@ fn build_books<'a>(
                         )))]),
                     )
                 };
+                println!("->{} sheets {:?}", exchange_name, full.4);
                 memo.push(full)
             }
             None => println!("exchange detail not found for: {:#?}", exchange_name),

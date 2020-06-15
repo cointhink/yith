@@ -679,12 +679,14 @@ impl exchange::Api for Switcheo {
             let json = resp.text().unwrap();
             //println!("{}", json);
             let order = serde_json::from_str::<Order>(&json).unwrap();
+            println!("{} fills", &order.fills.len());
             for fill in &order.fills {
                 println!(
                     "{}",
                     fill_display(fill, base_token_detail, quote_token_detail)
                 );
             }
+            println!("{} makegroups", &order.makes.len());
             for make in &order.makes {
                 println!(
                     "{}",
