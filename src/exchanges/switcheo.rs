@@ -805,12 +805,10 @@ impl exchange::Api for Switcheo {
                 None => memo,
             }
         });
-        let status = match record {
+        match record {
             Some(_tid) => exchange::BalanceStatus::InProgress,
             None => exchange::BalanceStatus::Complete,
-        };
-        println!("balance_status {} {:?}", transfer_id, status);
-        status
+        }
     }
 
     fn withdraw(

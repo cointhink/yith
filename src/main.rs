@@ -522,10 +522,10 @@ fn build_book(
         wallet_token_balance += exchange_token_balance;
     }
 
-    let (total, sheets) =
+    let (total, processed_offers) =
         book.offers
             .iter()
-            .fold((0.0, Vec::new()), |(mut total, mut sheets), offer| {
+            .fold((0.0, Vec::new()), |(mut total, mut offers), offer| {
                 let (askbid, market, offer) = unswap(askbid, &book.market, offer);
                 println!(
                     "** {} {} {} {} {} => {}{}",
@@ -540,7 +540,7 @@ fn build_book(
                     offer.cost(askbid),
                     sell_token
                 );
-                let sheet = match build_offer(
+                let capped_offer_opt = match build_offer(
                     config,
                     &askbid,
                     &exchange,
@@ -550,24 +550,15 @@ fn build_book(
                     wallet,
                 ) {
                     Ok(capped_offer) => {
-                        let sheet = match mode {
-                            Mode::Real => exchange.api.build(
-                                &config.wallet_private_key,
-                                &askbid,
-                                &exchange.settings,
-                                &market,
-                                &capped_offer,
-                            ),
-                            Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
-                        };
                         total += capped_offer.cost(askbid);
-                        sheet
+                        Ok((capped_offer, market))
                     }
                     Err(e) => Err(e),
                 };
-                sheets.push(sheet);
-                (total, sheets)
+                offers.push(capped_offer_opt);
+                (total, offers)
             });
+    println!("{} processed_offers done", processed_offers.len());
     if let Some(exchange_token_balance) = exchange_balance {
         if total > exchange_token_balance {
             println!(
@@ -592,8 +583,30 @@ fn build_book(
                     );
                 }
             }
+        } else {
+            println!(
+                "order total {} is met by exchange balance {}. no despoit necessary.",
+                total, exchange_token_balance
+            );
         }
     }
+    println!("submitting {} processed_offers", processed_offers.len());
+    let sheets = processed_offers
+        .into_iter()
+        .map(|offer_opt| match offer_opt {
+            Ok((capped_offer, market)) => match mode {
+                Mode::Real => exchange.api.build(
+                    &config.wallet_private_key,
+                    &askbid,
+                    &exchange.settings,
+                    &market,
+                    &capped_offer,
+                ),
+                Mode::Simulate => Ok(exchange::OrderSheet::Placebo),
+            },
+            Err(e) => Err(e),
+        })
+        .collect();
     (total, sheets)
 }
 
