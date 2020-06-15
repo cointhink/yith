@@ -794,7 +794,7 @@ impl exchange::Api for Switcheo {
             .collect()
     }
 
-    fn balance_status<'a>(
+    fn transfer_status<'a>(
         &self,
         transfer_id: &str,
         public_addr: &str,

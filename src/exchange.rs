@@ -210,13 +210,13 @@ pub trait Api {
         collections::HashMap::new()
     }
 
-    fn balance_status<'a>(
+    fn transfer_status<'a>(
         &self,
         transfer_id: &str,
         privkey: &str,
         exchange: &config::ExchangeSettings,
     ) -> BalanceStatus {
-        println!("WARNING: {} has no balance_status call", exchange.name);
+        println!("WARNING: {} has no transfer_status call", exchange.name);
         BalanceStatus::InProgress
     }
 

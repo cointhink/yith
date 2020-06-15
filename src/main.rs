@@ -240,7 +240,7 @@ fn wait_transfer(
         let waited = start.elapsed();
         status = exchange
             .api
-            .balance_status(transfer_id, public_addr, &exchange.settings);
+            .transfer_status(transfer_id, public_addr, &exchange.settings);
         println!(
             "wait_transfer {} {:?} {}",
             transfer_id,
