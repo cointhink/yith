@@ -233,12 +233,20 @@ fn wait_transfer(
     exchange: &config::Exchange,
 ) -> exchange::BalanceStatus {
     println!("wait_transfer for {}", transfer_id);
+    let start = time::now();
     let mut status = exchange::BalanceStatus::InProgress;
     let mut done = false;
     while !done {
+        let waited = start.elapsed();
         status = exchange
             .api
             .balance_status(transfer_id, public_addr, &exchange.settings);
+        println!(
+            "wait_transfer {} {:?} {}",
+            transfer_id,
+            status,
+            time::duration_words(waited)
+        );
         done = match status {
             exchange::BalanceStatus::Complete => true,
             exchange::BalanceStatus::InProgress => false,

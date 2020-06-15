@@ -169,7 +169,7 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        let expire_time = (time::now() + std::time::Duration::new(120 + 5, 0)).as_secs(); // 2min minimum + transittime
+        let expire_time = (time::since_epoch() + std::time::Duration::new(120 + 5, 0)).as_secs(); // 2min minimum + transittime
 
         let sheet = OrderSheet {
             r#type: side,
