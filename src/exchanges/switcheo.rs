@@ -1005,20 +1005,6 @@ pub fn gather_ids(sigsheet: SignatureSheet) -> Vec<String> {
     ids
 }
 
-pub fn float_precision_string(num: f64, precision: i32) -> String {
-    // if its dumb and it works it aint dumb
-    match precision {
-        2 => format!("{:0.2}", num),
-        3 => format!("{:0.3}", num),
-        4 => format!("{:0.4}", num),
-        5 => format!("{:0.5}", num),
-        6 => format!("{:0.6}", num),
-        7 => format!("{:0.7}", num),
-        8 => format!("{:0.8}", num),
-        _ => "float_precison_string err".to_string(),
-    }
-}
-
 // todo: use Itable trait and dyn box sized voodoo
 pub fn fillgroup_sigs(fgs: &Vec<FillGroup>, key: &SecretKey) -> HashMap<String, String> {
     fgs.iter().fold(HashMap::new(), |mut memo, fillg| {

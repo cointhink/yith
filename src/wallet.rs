@@ -67,7 +67,7 @@ impl Wallet {
             println!("{} = {:0.5}{}", source, subtotal, quote_symbol);
             total = total + subtotal;
         }
-        println!("total = {:0.5}{}", total, quote_symbol);
+        println!("Total = {:0.5}{}", total, quote_symbol);
     }
 }
 

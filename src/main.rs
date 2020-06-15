@@ -574,7 +574,7 @@ fn build_book(
                 Mode::Simulate => println!("Simulate deposit skipped"), // not a limitation in simulate
                 Mode::Real => {
                     let direction = exchange::TransferDirection::Deposit;
-                    let deposit_id = run_transfer(
+                    let _deposit_id = run_transfer(
                         &config.wallet_private_key,
                         direction,
                         &exchange,
