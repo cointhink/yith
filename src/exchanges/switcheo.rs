@@ -882,8 +882,8 @@ impl exchange::Api for Switcheo {
             self.transfer(privkey, exchange, amount, token, TransferDirection::Deposit);
         match response_opt {
             Ok(json) => {
-                let response = serde_json::from_str::<DepositBuildResponse>(&json).unwrap();
-                let tx: ethereum_tx_sign::RawTransaction = response.transaction.into();
+                let build_response = serde_json::from_str::<DepositBuildResponse>(&json).unwrap();
+                let tx: ethereum_tx_sign::RawTransaction = build_response.transaction.into();
                 let private_key = ethereum_types::H256::from_slice(&eth::dehex(privkey));
                 let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
                 let params = (eth::hex(&rlp_bytes),);
@@ -904,7 +904,7 @@ impl exchange::Api for Switcheo {
                         let url = format!(
                             "{}/deposits/{}/broadcast",
                             exchange.api_url.as_str(),
-                            response.id
+                            build_response.id
                         );
                         let resp = client
                             .post(url.as_str())
@@ -921,7 +921,7 @@ impl exchange::Api for Switcheo {
                             let tx =
                                 eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
                             println!("tx {}", tx);
-                            Ok(Some(tx))
+                            Ok(Some(build_response.id))
                         } else {
                             let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
                             Err(exchange::ExchangeError::build_box(err.error_message))
