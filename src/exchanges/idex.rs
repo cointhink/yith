@@ -543,7 +543,7 @@ impl exchange::Api for Idex {
                     println!("tx receipt result {:?}", r.result);
                     match r.result {
                         geth::ResultTypes::TransactionReceipt(tr) => {
-                            match u32::from_str_radix(&tr.status, 16).unwrap() {
+                            match u32::from_str_radix(&tr.status[2..], 16).unwrap() {
                                 1 => exchange::BalanceStatus::Complete,
                                 _ => exchange::BalanceStatus::InProgress,
                             }
