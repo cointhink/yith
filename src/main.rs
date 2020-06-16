@@ -249,10 +249,12 @@ fn wait_transfer(
         );
         done = match status {
             exchange::BalanceStatus::Complete => true,
-            exchange::BalanceStatus::InProgress => false,
+            exchange::BalanceStatus::InProgress => {
+                time::sleep(10000);
+                false
+            }
             exchange::BalanceStatus::TimedOut => true,
         };
-        time::sleep(10000);
     }
     status
 }

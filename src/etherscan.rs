@@ -115,7 +115,11 @@ pub fn last_internal_transaction(
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
-    println!("{} {}", url, resp.status());
+    println!(
+        "{} action=txlistinternal {}",
+        ETHERSCAN_API_URL,
+        resp.status()
+    );
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
         if response.result.len() > 0 {

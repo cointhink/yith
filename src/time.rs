@@ -28,7 +28,7 @@ pub fn duration_words(duration: Duration) -> String {
     let mut parts: Vec<&str> = vec![];
     let min_str: String;
     if total_secs > 60 {
-        let mins = total_secs % (60 * 60);
+        let mins = total_secs / 60 % 60;
         min_str = mins.to_string();
         parts.push(&min_str);
         parts.push("mins");

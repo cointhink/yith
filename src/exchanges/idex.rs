@@ -364,6 +364,7 @@ impl exchange::Api for Idex {
             println!("{} {}", url, resp.status());
             if resp.status().is_success() {
                 let json = resp.text().unwrap();
+                println!("{}", json);
                 let response = serde_json::from_str::<OrderResponse>(&json).unwrap();
                 Ok(response.order_hash)
             } else {
