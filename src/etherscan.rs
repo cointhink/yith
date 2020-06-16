@@ -44,7 +44,7 @@ pub struct ApiResponse<T> {
     result: Vec<T>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InternalTransaction {
     pub block_number: String,
@@ -118,7 +118,11 @@ pub fn last_internal_transaction(
     println!("{} {}", url, resp.status());
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
-        Ok(response.result)
+        if response.result.len() > 0 {
+            Ok(response.result[0].clone())
+        } else {
+            Err("no internal transactions".to_string())
+        }
     } else {
         Err("etherscan bad".to_string())
     }
