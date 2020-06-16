@@ -40,7 +40,8 @@ impl<'a> fmt::Display for Balances<'a> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiResponse<T> {
-    result: T,
+    status: String,
+    result: Vec<T>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
