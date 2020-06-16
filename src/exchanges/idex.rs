@@ -547,12 +547,17 @@ impl exchange::Api for Idex {
                     exchange::BalanceStatus::Complete
                 }
                 geth::ResultTypes::Result(r) => {
-                    let json = r.result.unwrap();
-                    println!("tx receipt result {}", json);
-                    let response = serde_json::from_str::<geth::TransactionReceipt>(&json).unwrap();
-                    match u32::from_str_radix(&response.status, 16).unwrap() {
-                        1 => exchange::BalanceStatus::Complete,
-                        _ => exchange::BalanceStatus::InProgress,
+                    println!("tx receipt result {:?}", r.result);
+                    match r.result {
+                        Some(json) => {
+                            let response =
+                                serde_json::from_str::<geth::TransactionReceipt>(&json).unwrap();
+                            match u32::from_str_radix(&response.status, 16).unwrap() {
+                                1 => exchange::BalanceStatus::Complete,
+                                _ => exchange::BalanceStatus::InProgress,
+                            }
+                        }
+                        None => exchange::BalanceStatus::InProgress,
                     }
                 }
             }
