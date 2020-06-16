@@ -47,7 +47,7 @@ impl Weth {
         match result.part {
             geth::ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
             geth::ResultTypes::Result(r) => {
-                let tx = r.result;
+                let tx = r.result.unwrap();
                 println!("GOOD TX {}", tx);
                 Ok(true)
             }

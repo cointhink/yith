@@ -896,7 +896,7 @@ impl exchange::Api for Switcheo {
                         Err(exchange::ExchangeError::build_box(e.error.message))
                     }
                     geth::ResultTypes::Result(r) => {
-                        let tx = r.result;
+                        let tx = r.result.unwrap();
                         println!("deposit approval {}", tx);
                         let deposit_execute = DepositExecute {
                             transaction_hash: tx.clone(),

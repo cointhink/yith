@@ -38,7 +38,7 @@ impl Client {
             .rpc("eth_blockNumber", ParamTypes::Single(("".to_string(),)))
             .unwrap();
         match result.part {
-            ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
+            ResultTypes::Result(r) => u32::from_str_radix(&r.result.unwrap()[2..], 16).unwrap(),
             ResultTypes::Error(e) => {
                 println!("{}", e.error.message);
                 u32::MAX
@@ -52,7 +52,7 @@ impl Client {
             .rpc("eth_getTransactionCount", ParamTypes::InfuraSingle(params))
             .unwrap();
         match result.part {
-            ResultTypes::Result(r) => Ok(u32::from_str_radix(&r.result[2..], 16)?),
+            ResultTypes::Result(r) => Ok(u32::from_str_radix(&r.result.unwrap()[2..], 16)?),
             ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
         }
     }
@@ -97,7 +97,7 @@ pub enum ResultTypes {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ResultRpc {
-    pub result: String,
+    pub result: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

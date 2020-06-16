@@ -496,7 +496,7 @@ impl exchange::Api for Idex {
         match result.part {
             geth::ResultTypes::Error(e) => Err(exchange::ExchangeError::build_box(e.error.message)),
             geth::ResultTypes::Result(r) => {
-                let tx = r.result;
+                let tx = r.result.unwrap();
                 println!("GOOD TX {}", tx);
                 Ok(Some(tx))
             }
@@ -547,7 +547,7 @@ impl exchange::Api for Idex {
                     exchange::BalanceStatus::Complete
                 }
                 geth::ResultTypes::Result(r) => {
-                    let json = r.result;
+                    let json = r.result.unwrap();
                     println!("tx receipt result {}", json);
                     let response = serde_json::from_str::<geth::TransactionReceipt>(&json).unwrap();
                     match u32::from_str_radix(&response.status, 16).unwrap() {

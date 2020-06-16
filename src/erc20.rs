@@ -20,8 +20,9 @@ impl Erc20 {
         match client.rpc("eth_call", geth::ParamTypes::Infura(params)) {
             Ok(result) => match result.part {
                 geth::ResultTypes::Result(part) => {
-                    println!("{:?}", part.result);
-                    Ok(u128::from_str_radix(&part.result[2..], 16).unwrap())
+                    let tx = part.result.unwrap();
+                    println!("{:?}", tx);
+                    Ok(u128::from_str_radix(&tx[2..], 16).unwrap())
                 }
                 geth::ResultTypes::Error(err) => {
                     println!("{:?}", err);
@@ -61,7 +62,7 @@ impl Erc20 {
         match result.part {
             geth::ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
             geth::ResultTypes::Result(r) => {
-                let tx = r.result;
+                let tx = r.result.unwrap();
                 println!("GOOD TX {}", tx);
                 Ok(true)
             }

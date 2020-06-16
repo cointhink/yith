@@ -121,7 +121,7 @@ impl Oasis {
             .rpc("eth_call", geth::ParamTypes::Infura(params))
             .unwrap();
         if let geth::ResultTypes::Result(part) = r.part {
-            let units = u128::from_str_radix(&part.result[2..], 16).unwrap();
+            let units = u128::from_str_radix(&part.result.unwrap()[2..], 16).unwrap();
             let qty = exchange::units_to_quantity(units as u64, token.decimals);
             println!("{} oasis balance {}{}", time::now_string(), qty, token.name,);
             Some(qty)
@@ -223,7 +223,7 @@ impl exchange::Api for Oasis {
         };
         let min_sell = match self.min_sell(&sell_token.address, exchange).unwrap() {
             geth::ResultTypes::Result(r) => {
-                let units = u64::from_str_radix(&r.result[2..], 16).unwrap();
+                let units = u64::from_str_radix(&r.result.unwrap()[2..], 16).unwrap();
                 let qty = exchange::units_to_quantity(units, pair.quote_precision);
                 println!(
                     "Min-Sell {} ^{} {} = {}",
@@ -314,7 +314,7 @@ impl exchange::Api for Oasis {
                     Err(exchange::ExchangeError::build_box(e.error.message))
                 }
                 geth::ResultTypes::Result(r) => {
-                    let tx = r.result;
+                    let tx = r.result.unwrap();
                     println!("GOOD TX {}", tx);
                     self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
                     Ok(tx)
