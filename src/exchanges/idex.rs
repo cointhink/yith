@@ -489,18 +489,11 @@ impl exchange::Api for Idex {
         let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
         let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
         let params = (eth::hex(&rlp_bytes),);
-        let result = self
+        let tx = self
             .geth
-            .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
-            .unwrap();
-        match result.part {
-            geth::ResultTypes::Error(e) => Err(exchange::ExchangeError::build_box(e.error.message)),
-            geth::ResultTypes::Result(r) => {
-                let tx = r.result.unwrap();
-                println!("GOOD TX {}", tx);
-                Ok(Some(tx))
-            }
-        }
+            .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
+        println!("GOOD TX {}", tx);
+        Ok(Some(tx))
     }
 
     fn order_status(
@@ -542,22 +535,20 @@ impl exchange::Api for Idex {
                 )
                 .unwrap();
             match result.part {
-                geth::ResultTypes::Error(e) => {
+                geth::RpcResultTypes::Error(e) => {
                     println!("{}", e.error.message);
                     exchange::BalanceStatus::Complete
                 }
-                geth::ResultTypes::Result(r) => {
+                geth::RpcResultTypes::Result(r) => {
                     println!("tx receipt result {:?}", r.result);
                     match r.result {
-                        Some(json) => {
-                            let response =
-                                serde_json::from_str::<geth::TransactionReceipt>(&json).unwrap();
-                            match u32::from_str_radix(&response.status, 16).unwrap() {
+                        geth::ResultTypes::TransactionReceipt(tr) => {
+                            match u32::from_str_radix(&tr.status, 16).unwrap() {
                                 1 => exchange::BalanceStatus::Complete,
                                 _ => exchange::BalanceStatus::InProgress,
                             }
                         }
-                        None => exchange::BalanceStatus::InProgress,
+                        _ => exchange::BalanceStatus::InProgress,
                     }
                 }
             }

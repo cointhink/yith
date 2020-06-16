@@ -887,46 +887,35 @@ impl exchange::Api for Switcheo {
                 let private_key = ethereum_types::H256::from_slice(&eth::dehex(privkey));
                 let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
                 let params = (eth::hex(&rlp_bytes),);
-                let result = self
+                let tx = self
                     .geth
-                    .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
+                    .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
+                println!("deposit approval {}", tx);
+                let deposit_execute = DepositExecute {
+                    transaction_hash: tx.clone(),
+                };
+                let url = format!(
+                    "{}/deposits/{}/broadcast",
+                    exchange.api_url.as_str(),
+                    build_response.id
+                );
+                let resp = client
+                    .post(url.as_str())
+                    .json(&deposit_execute)
+                    .send()
                     .unwrap();
-                match result.part {
-                    geth::ResultTypes::Error(e) => {
-                        Err(exchange::ExchangeError::build_box(e.error.message))
-                    }
-                    geth::ResultTypes::Result(r) => {
-                        let tx = r.result.unwrap();
-                        println!("deposit approval {}", tx);
-                        let deposit_execute = DepositExecute {
-                            transaction_hash: tx.clone(),
-                        };
-                        let url = format!(
-                            "{}/deposits/{}/broadcast",
-                            exchange.api_url.as_str(),
-                            build_response.id
-                        );
-                        let resp = client
-                            .post(url.as_str())
-                            .json(&deposit_execute)
-                            .send()
-                            .unwrap();
-                        let status = resp.status();
-                        println!("{} {}", resp.url(), status);
-                        let json = resp.text().unwrap();
-                        println!("{}", json);
-                        if status.is_success() {
-                            let response =
-                                serde_json::from_str::<DepositResponseOk>(&json).unwrap();
-                            let tx =
-                                eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
-                            println!("tx {}", tx);
-                            Ok(Some(build_response.id))
-                        } else {
-                            let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
-                            Err(exchange::ExchangeError::build_box(err.error_message))
-                        }
-                    }
+                let status = resp.status();
+                println!("{} {}", resp.url(), status);
+                let json = resp.text().unwrap();
+                println!("{}", json);
+                if status.is_success() {
+                    let response = serde_json::from_str::<DepositResponseOk>(&json).unwrap();
+                    let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));
+                    println!("tx {}", tx);
+                    Ok(Some(build_response.id))
+                } else {
+                    let err = serde_json::from_str::<TransferResponseErr>(&json).unwrap();
+                    Err(exchange::ExchangeError::build_box(err.error_message))
                 }
             }
             Err(e) => Err(e),

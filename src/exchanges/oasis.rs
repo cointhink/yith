@@ -1,4 +1,5 @@
 use crate::config;
+use crate::errors;
 use crate::eth;
 use crate::exchange;
 use crate::exchanges;
@@ -68,13 +69,21 @@ impl Oasis {
         &self,
         token: &str,
         exchange: &config::ExchangeSettings,
-    ) -> Result<geth::ResultTypes, Box<dyn std::error::Error>> {
+    ) -> Result<u64, Box<dyn std::error::Error>> {
         let mut tx = geth::JsonRpcParam::new();
         tx.insert("to".to_string(), exchange.contract_address.clone());
         tx.insert("data".to_string(), get_min_sell_data(token));
         let params = (tx.clone(), Some("latest".to_string()));
         match self.geth.rpc("eth_call", geth::ParamTypes::Infura(params)) {
-            Ok(result) => Ok(result.part),
+            Ok(result) => match result.part {
+                geth::RpcResultTypes::Result(r) => match r.result {
+                    geth::ResultTypes::String(s) => Ok(u64::from_str_radix(&s[2..], 16).unwrap()),
+                    _ => Err(errors::MainError::build_box("wrong geth type".to_string())),
+                },
+                geth::RpcResultTypes::Error(e) => {
+                    Err(exchange::ExchangeError::build_box(e.error.message))
+                }
+            },
             Err(e) => Err(e),
         }
     }
@@ -116,17 +125,20 @@ impl Oasis {
         tx.insert("to".to_string(), token_addr.to_string());
         tx.insert("data".to_string(), get_balance_data(addr));
         let params = (tx.clone(), Some("latest".to_string()));
-        let r = self
+        let result = self
             .geth
-            .rpc("eth_call", geth::ParamTypes::Infura(params))
-            .unwrap();
-        if let geth::ResultTypes::Result(part) = r.part {
-            let units = u128::from_str_radix(&part.result.unwrap()[2..], 16).unwrap();
-            let qty = exchange::units_to_quantity(units as u64, token.decimals);
-            println!("{} oasis balance {}{}", time::now_string(), qty, token.name,);
-            Some(qty)
-        } else {
-            None
+            .rpc_str("eth_call", geth::ParamTypes::Infura(params));
+        match result {
+            Ok(units_str) => {
+                let units = u128::from_str_radix(&units_str[2..], 16).unwrap();
+                let qty = exchange::units_to_quantity(units as u64, token.decimals);
+                println!("{} oasis balance {}{}", time::now_string(), qty, token.name,);
+                Some(qty)
+            }
+            Err(e) => {
+                println!("{}", e);
+                None
+            }
         }
     }
 }
@@ -221,9 +233,8 @@ impl exchange::Api for Oasis {
             types::AskBid::Ask => quote_token,
             types::AskBid::Bid => base_token,
         };
-        let min_sell = match self.min_sell(&sell_token.address, exchange).unwrap() {
-            geth::ResultTypes::Result(r) => {
-                let units = u64::from_str_radix(&r.result.unwrap()[2..], 16).unwrap();
+        let min_sell = match self.min_sell(&sell_token.address, exchange) {
+            Ok(units) => {
                 let qty = exchange::units_to_quantity(units, pair.quote_precision);
                 println!(
                     "Min-Sell {} ^{} {} = {}",
@@ -231,8 +242,8 @@ impl exchange::Api for Oasis {
                 );
                 qty
             }
-            geth::ResultTypes::Error(e) => {
-                println!("Err {:?}", e.error.message);
+            Err(e) => {
+                println!("Err {:?}", e);
                 0.0
             }
         };
@@ -305,21 +316,12 @@ impl exchange::Api for Oasis {
             let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
             let params = (eth::hex(&rlp_bytes),);
 
-            let result = self
+            let tx = self
                 .geth
-                .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
-                .unwrap();
-            match result.part {
-                geth::ResultTypes::Error(e) => {
-                    Err(exchange::ExchangeError::build_box(e.error.message))
-                }
-                geth::ResultTypes::Result(r) => {
-                    let tx = r.result.unwrap();
-                    println!("GOOD TX {}", tx);
-                    self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
-                    Ok(tx)
-                }
-            }
+                .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
+            println!("GOOD TX {}", tx);
+            self.wait_for_balance_change(&sheet.token_buy, &pub_addr, exchange);
+            Ok(tx)
         } else {
             Err(exchange::ExchangeError::build_box(format!(
                 "wrong ordersheet type!"

@@ -25,6 +25,27 @@ impl Client {
         }
     }
 
+    pub fn rpc_str(
+        &self,
+        method: &str,
+        params: ParamTypes,
+    ) -> Result<String, Box<dyn std::error::Error>> {
+        let result = rpc(&self.url, method, params);
+        match result {
+            Ok(rpc_result) => match rpc_result.part {
+                RpcResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
+                RpcResultTypes::Result(r) => {
+                    let str_ret = match r.result {
+                        ResultTypes::String(s) => s,
+                        _ => "-bad response".to_string(),
+                    };
+                    Ok(str_ret)
+                }
+            },
+            Err(e) => Err(e),
+        }
+    }
+
     pub fn rpc(
         &self,
         method: &str,
@@ -34,27 +55,17 @@ impl Client {
     }
 
     pub fn last_block(&self) -> u32 {
-        let result = self
-            .rpc("eth_blockNumber", ParamTypes::Single(("".to_string(),)))
+        let blk_num_str = self
+            .rpc_str("eth_blockNumber", ParamTypes::Single(("".to_string(),)))
             .unwrap();
-        match result.part {
-            ResultTypes::Result(r) => u32::from_str_radix(&r.result.unwrap()[2..], 16).unwrap(),
-            ResultTypes::Error(e) => {
-                println!("{}", e.error.message);
-                u32::MAX
-            }
-        }
+        u32::from_str_radix(&blk_num_str[2..], 16).unwrap()
     }
 
     pub fn nonce(&self, addr: &str) -> Result<u32, Box<dyn error::Error>> {
         let params = (addr.to_string(), "latest".to_string());
-        let result = self
-            .rpc("eth_getTransactionCount", ParamTypes::InfuraSingle(params))
-            .unwrap();
-        match result.part {
-            ResultTypes::Result(r) => Ok(u32::from_str_radix(&r.result.unwrap()[2..], 16)?),
-            ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
-        }
+        let tx_count_str =
+            self.rpc_str("eth_getTransactionCount", ParamTypes::InfuraSingle(params))?;
+        Ok(u32::from_str_radix(&tx_count_str[2..], 16).unwrap())
     }
 }
 
@@ -85,19 +96,27 @@ pub struct JsonRpcResult {
     pub jsonrpc: String,
     pub id: String,
     #[serde(flatten)]
-    pub part: ResultTypes,
+    pub part: RpcResultTypes,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
-pub enum ResultTypes {
+pub enum RpcResultTypes {
     Error(ErrorRpc),
     Result(ResultRpc),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ResultTypes {
+    String(String),
+    TransactionReceipt(TransactionReceipt),
+    Null,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ResultRpc {
-    pub result: Option<String>,
+    pub result: ResultTypes,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

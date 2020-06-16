@@ -17,18 +17,11 @@ impl Erc20 {
         tx.insert("to".to_string(), token_addr.to_string());
         tx.insert("data".to_string(), eth::hex(&data));
         let params = (tx.clone(), Some("latest".to_string()));
-        match client.rpc("eth_call", geth::ParamTypes::Infura(params)) {
-            Ok(result) => match result.part {
-                geth::ResultTypes::Result(part) => {
-                    let tx = part.result.unwrap();
-                    println!("{:?}", tx);
-                    Ok(u128::from_str_radix(&tx[2..], 16).unwrap())
-                }
-                geth::ResultTypes::Error(err) => {
-                    println!("{:?}", err);
-                    Err(errors::MainError::build_box(err.error.message))
-                }
-            },
+        match client.rpc_str("eth_call", geth::ParamTypes::Infura(params)) {
+            Ok(tx) => {
+                println!("{:?}", tx);
+                Ok(u128::from_str_radix(&tx[2..], 16).unwrap())
+            }
             Err(e) => Err(errors::MainError::build_box(e.to_string())),
         }
     }
@@ -56,13 +49,10 @@ impl Erc20 {
         let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
         let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
         let params = (eth::hex(&rlp_bytes),);
-        let result = client
-            .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
-            .unwrap();
-        match result.part {
-            geth::ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
-            geth::ResultTypes::Result(r) => {
-                let tx = r.result.unwrap();
+        let result = client.rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params));
+        match result {
+            Err(e) => Err(e),
+            Ok(tx) => {
                 println!("GOOD TX {}", tx);
                 Ok(true)
             }

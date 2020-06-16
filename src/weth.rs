@@ -1,4 +1,3 @@
-use crate::errors;
 use crate::eth;
 use crate::geth;
 
@@ -41,17 +40,9 @@ impl Weth {
         let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
         let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
         let params = (eth::hex(&rlp_bytes),);
-        let result = client
-            .rpc("eth_sendRawTransaction", geth::ParamTypes::Single(params))
-            .unwrap();
-        match result.part {
-            geth::ResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
-            geth::ResultTypes::Result(r) => {
-                let tx = r.result.unwrap();
-                println!("GOOD TX {}", tx);
-                Ok(true)
-            }
-        }
+        let tx = client.rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
+        println!("GOOD TX {}", tx);
+        Ok(true)
     }
 }
 
