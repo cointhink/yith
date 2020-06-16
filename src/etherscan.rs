@@ -110,10 +110,11 @@ pub fn last_internal_transaction(
 ) -> Result<InternalTransaction, String> {
     let client = build_client(api_key).unwrap();
     let url = format!(
-        "{}?module=account&action=txlistinternal&address={}&startblock={}&sort=desc&&apikey={}",
+        "{}?module=account&action=txlistinternal&address=0x{}&startblock={}&sort=desc&&apikey={}",
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
+    println!("{} {}", url, resp.status());
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
         Ok(response.result)
