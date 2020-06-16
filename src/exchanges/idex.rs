@@ -531,7 +531,7 @@ impl exchange::Api for Idex {
         public_addr: &str,
         exchange: &config::ExchangeSettings,
     ) -> exchange::BalanceStatus {
-        if transfer_id.len() == 20 {
+        if transfer_id.len() == 66 {
             // deposit tx
             let params = (transfer_id.to_string(),);
             let result = self

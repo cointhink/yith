@@ -6,9 +6,10 @@ use std::collections::HashMap;
 use std::error;
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TransactionReceipt {
     pub status: String,
-    pub cumulativeGasUsed: String,
+    pub cumulative_gas_used: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

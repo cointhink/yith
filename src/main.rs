@@ -439,10 +439,16 @@ fn build_book(
     let mut wallet_token_balance =
         match wallet.find_coin_by_source_symbol(&pub_addr, &sell_token.symbol) {
             Ok(coin) => {
-                match mode {
-                    Mode::Simulate => coin.base_total(), // simulate a full wallet
+                let wallet_pre_dust = match mode {
+                    Mode::Simulate => book.cost_total(askbid.clone()), // simulate a full wallet
                     Mode::Real => coin.base_total(),
-                }
+                };
+                let wallet_post_dust = wallet_pre_dust - config.dust_remain;
+                println!(
+                    "wallet {} - {} dust min = {}",
+                    wallet_pre_dust, config.dust_remain, wallet_post_dust
+                );
+                wallet_post_dust
             }
             Err(_e) => {
                 let modeword = match mode {
@@ -467,7 +473,7 @@ fn build_book(
             match wallet.find_coin_by_source_symbol(&book.market.source.name, &sell_token.symbol) {
                 Ok(coin) => {
                     match mode {
-                        Mode::Simulate => coin.base_total(), // pretend its full
+                        Mode::Simulate => book.cost_total(askbid.clone()), // pretend its full
                         Mode::Real => coin.base_total(),
                     }
                 }
