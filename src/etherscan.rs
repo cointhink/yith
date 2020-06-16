@@ -37,6 +37,23 @@ impl<'a> fmt::Display for Balances<'a> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiResponse<T> {
+    result: T,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InternalTransaction {
+    pub block_number: String,
+    pub from: String,
+    pub value: String,
+    pub gas_used: String,
+    pub is_error: String,
+    pub err_code: String,
+}
+
 pub struct Balance<'a> {
     symbol: &'a str,
     amount: f64,
@@ -83,6 +100,25 @@ pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
         }
     } else {
         0.0 // err handling
+    }
+}
+
+pub fn last_internal_transaction(
+    public_addr: &str,
+    start_block: u64,
+    api_key: &str,
+) -> Result<InternalTransaction, String> {
+    let client = build_client(api_key).unwrap();
+    let url = format!(
+        "{}?module=account&action=txlistinternal&address={}&startblock={}&sort=desc&&apikey={}",
+        ETHERSCAN_API_URL, public_addr, start_block, api_key
+    );
+    let resp = client.get(&url).send().unwrap();
+    if resp.status().is_success() {
+        let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
+        Ok(response.result)
+    } else {
+        Err("etherscan bad".to_string())
     }
 }
 

@@ -6,6 +6,12 @@ use std::collections::HashMap;
 use std::error;
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct TransactionReceipt {
+    pub status: String,
+    pub cumulativeGasUsed: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Client {
     url: String,
 }
@@ -24,6 +30,19 @@ impl Client {
         params: ParamTypes,
     ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
         rpc(&self.url, method, params)
+    }
+
+    pub fn last_block(&self) -> u32 {
+        let result = self
+            .rpc("eth_blockNumber", ParamTypes::Single(("".to_string(),)))
+            .unwrap();
+        match result.part {
+            ResultTypes::Result(r) => u32::from_str_radix(&r.result[2..], 16).unwrap(),
+            ResultTypes::Error(e) => {
+                println!("{}", e.error.message);
+                u32::MAX
+            }
+        }
     }
 
     pub fn nonce(&self, addr: &str) -> Result<u32, Box<dyn error::Error>> {

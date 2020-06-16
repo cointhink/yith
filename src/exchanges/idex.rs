@@ -1,5 +1,6 @@
 use crate::config;
 use crate::eth;
+use crate::etherscan;
 use crate::exchange;
 use crate::geth;
 use crate::types;
@@ -429,12 +430,20 @@ impl exchange::Api for Idex {
             r: eth::hex(&r),
             s: eth::hex(&s),
         };
+        let last_blk = self.geth.last_block().to_string(); // save for later
         let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
         let status = resp.status();
-        let json = resp.text().unwrap();
-        println!("{} {} {:?}", url, status, json);
-        //{"error":"Invalid withdrawal signature. Please try again."}
-        Ok(Some("placeholder".to_string()))
+        if status.is_success() {
+            let json = resp.text().unwrap();
+            println!("{} {} {:?}", url, status, json);
+            //{"amount":"0","timestamp":null} no useful info
+            Ok(Some(last_blk))
+        } else {
+            let json = resp.text().unwrap();
+            println!("{} {} {:?}", url, status, json);
+            let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
+            Err(exchange::ExchangeError::build_box(response.error))
+        }
     }
 
     fn deposit(
@@ -514,6 +523,70 @@ impl exchange::Api for Idex {
         println!("{} {} {:?}", url, status, json);
         let response = serde_json::from_str::<OrderStatusResponse>(&json).unwrap();
         response.into()
+    }
+
+    fn transfer_status<'a>(
+        &self,
+        transfer_id: &str,
+        public_addr: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> exchange::BalanceStatus {
+        if transfer_id.len() == 20 {
+            // deposit tx
+            let params = (transfer_id.to_string(),);
+            let result = self
+                .geth
+                .rpc(
+                    "eth_getTransactionReceipt",
+                    geth::ParamTypes::Single(params),
+                )
+                .unwrap();
+            match result.part {
+                geth::ResultTypes::Error(e) => {
+                    println!("{}", e.error.message);
+                    exchange::BalanceStatus::Complete
+                }
+                geth::ResultTypes::Result(r) => {
+                    let json = r.result;
+                    println!("tx receipt result {}", json);
+                    let response = serde_json::from_str::<geth::TransactionReceipt>(&json).unwrap();
+                    match u32::from_str_radix(&response.status, 16).unwrap() {
+                        1 => exchange::BalanceStatus::Complete,
+                        _ => exchange::BalanceStatus::InProgress,
+                    }
+                }
+            }
+        } else {
+            // transfer_id is last blocknumber
+            let config = config::CONFIG.get().unwrap();
+            let transfer_blk = transfer_id.parse::<u64>().unwrap();
+            const TRANSFER_CONTRACT: &'static str = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
+            let last_it_opt = etherscan::last_internal_transaction(
+                public_addr,
+                transfer_blk,
+                &config.etherscan_key,
+            );
+            match last_it_opt {
+                Ok(lastit) => {
+                    let last_blk = lastit.block_number.parse::<u64>().unwrap();
+                    let blk_err = lastit.is_error != "0";
+                    if blk_err {
+                        println!(
+                            "Warning: last internat transaction block is in error! {}",
+                            lastit.err_code
+                        );
+                        exchange::BalanceStatus::InProgress
+                    } else {
+                        if lastit.from == TRANSFER_CONTRACT && last_blk > transfer_blk {
+                            exchange::BalanceStatus::Complete
+                        } else {
+                            exchange::BalanceStatus::InProgress
+                        }
+                    }
+                }
+                Err(_e) => exchange::BalanceStatus::InProgress,
+            }
+        }
     }
 }
 
