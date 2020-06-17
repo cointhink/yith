@@ -3,6 +3,7 @@ use crate::eth;
 use crate::etherscan;
 use crate::exchange;
 use crate::geth;
+use crate::time;
 use crate::types;
 use reqwest::header;
 use secp256k1::SecretKey;
@@ -579,7 +580,28 @@ impl exchange::Api for Idex {
                         token,
                         &config.etherscan_key,
                     ) {
-                        Ok(_erctx) => exchange::BalanceStatus::Complete,
+                        Ok(_erctx) => {
+                            println!("idex transfer stage 2");
+                            let old_balance =
+                                *self.balances(public_addr, exchange).get(token).unwrap();
+                            let mut same = true;
+                            while same {
+                                let balances = self.balances(public_addr, exchange);
+                                same = match balances.get(token) {
+                                    Some(balance) => {
+                                        if *balance == old_balance {
+                                            println!("idex balance {} == {}", balance, old_balance);
+                                            time::sleep(10000);
+                                            true
+                                        } else {
+                                            false // not the same
+                                        }
+                                    }
+                                    None => true,
+                                };
+                            }
+                            exchange::BalanceStatus::Complete
+                        }
                         Err(_e) => exchange::BalanceStatus::InProgress,
                     }
                 }
