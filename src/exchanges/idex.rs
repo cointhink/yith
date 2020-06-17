@@ -438,7 +438,7 @@ impl exchange::Api for Idex {
             let json = resp.text().unwrap();
             println!("{} {} {:?}", url, status, json);
             //{"amount":"0","timestamp":null} no useful info
-            Ok(Some(last_blk))
+            Ok(Some(format!("{}.{}", token.symbol, last_blk)))
         } else {
             let json = resp.text().unwrap();
             println!("{} {} {:?}", url, status, json);
@@ -554,34 +554,35 @@ impl exchange::Api for Idex {
                 }
             }
         } else {
-            // transfer_id is last blocknumber
+            // transfer_id is token.last_blocknumber
+            let parts: Vec<&str> = transfer_id.split(".").collect();
+            let token = parts[0];
             let config = config::CONFIG.get().unwrap();
-            let transfer_blk = transfer_id.parse::<u64>().unwrap();
+            let transfer_block_num = parts[1].parse::<u64>().unwrap();
             const TRANSFER_CONTRACT: &'static str = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
-            let last_it_opt = etherscan::last_internal_transaction(
-                public_addr,
-                transfer_blk,
-                &config.etherscan_key,
-            );
-            match last_it_opt {
-                Ok(lastit) => {
-                    let last_blk = lastit.block_number.parse::<u64>().unwrap();
-                    let blk_err = lastit.is_error != "0";
-                    if blk_err {
-                        println!(
-                            "Warning: last internat transaction block is in error! {}",
-                            lastit.err_code
-                        );
-                        exchange::BalanceStatus::InProgress
-                    } else {
-                        if lastit.from == TRANSFER_CONTRACT && last_blk > transfer_blk {
-                            exchange::BalanceStatus::Complete
-                        } else {
-                            exchange::BalanceStatus::InProgress
-                        }
+            match token {
+                "ETH" => {
+                    match etherscan::last_internal_transaction_from(
+                        public_addr,
+                        transfer_block_num,
+                        TRANSFER_CONTRACT,
+                        &config.etherscan_key,
+                    ) {
+                        Ok(_intx) => exchange::BalanceStatus::Complete,
+                        Err(_e) => exchange::BalanceStatus::InProgress,
                     }
                 }
-                Err(_e) => exchange::BalanceStatus::InProgress,
+                _ => {
+                    match etherscan::last_token_transaction(
+                        public_addr,
+                        transfer_block_num,
+                        token,
+                        &config.etherscan_key,
+                    ) {
+                        Ok(_erctx) => exchange::BalanceStatus::Complete,
+                        Err(_e) => exchange::BalanceStatus::InProgress,
+                    }
+                }
             }
         }
     }

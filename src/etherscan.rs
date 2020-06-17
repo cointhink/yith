@@ -5,6 +5,29 @@ use std::fmt;
 use std::fs;
 use std::time::Duration;
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct InternalTransaction {
+    pub block_number: String,
+    pub from: String,
+    pub value: String,
+    pub gas_used: String,
+    pub is_error: String,
+    pub err_code: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Erc20Transaction {
+    pub block_number: String,
+    pub from: String,
+    pub to: String,
+    pub value: String,
+    pub gas_used: String,
+    pub token_name: String,
+    pub token_symbol: String,
+}
+
 pub struct Etherscan {
     pub tokens: TokenList,
 }
@@ -42,17 +65,6 @@ impl<'a> fmt::Display for Balances<'a> {
 pub struct ApiResponse<T> {
     status: String,
     result: Vec<T>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct InternalTransaction {
-    pub block_number: String,
-    pub from: String,
-    pub value: String,
-    pub gas_used: String,
-    pub is_error: String,
-    pub err_code: String,
 }
 
 pub struct Balance<'a> {
@@ -104,14 +116,49 @@ pub fn balance<'a>(public_addr: &str, contract: &str, api_key: &'a str) -> f64 {
     }
 }
 
-pub fn last_internal_transaction(
+pub fn last_token_transaction(
     public_addr: &str,
     start_block: u64,
+    token: &str,
+    api_key: &str,
+) -> Result<Erc20Transaction, String> {
+    let client = build_client(api_key).unwrap();
+    let url = format!(
+        "{}?module=account&action=tokentx&address=0x{}&startblock={}&sort=desc&apikey={}",
+        ETHERSCAN_API_URL, public_addr, start_block, api_key
+    );
+    let resp = client.get(&url).send().unwrap();
+    println!(
+        "{} action=txlistinternal {}",
+        ETHERSCAN_API_URL,
+        resp.status()
+    );
+    if resp.status().is_success() {
+        let response = resp.json::<ApiResponse<Erc20Transaction>>().unwrap();
+        let good: Vec<&Erc20Transaction> = response
+            .result
+            .iter()
+            .filter(|t| t.token_symbol == token)
+            .collect();
+        if good.len() > 0 {
+            Ok(good[0].clone())
+        } else {
+            Err("no internal transactions".to_string())
+        }
+    } else {
+        Err("etherscan bad".to_string())
+    }
+}
+
+pub fn last_internal_transaction_from(
+    public_addr: &str,
+    start_block: u64,
+    from_addr: &str,
     api_key: &str,
 ) -> Result<InternalTransaction, String> {
     let client = build_client(api_key).unwrap();
     let url = format!(
-        "{}?module=account&action=txlistinternal&address=0x{}&startblock={}&sort=desc&&apikey={}",
+        "{}?module=account&action=txlistinternal&address=0x{}&startblock={}&sort=desc&apikey={}",
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
@@ -122,10 +169,15 @@ pub fn last_internal_transaction(
     );
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
-        if response.result.len() > 0 {
-            Ok(response.result[0].clone())
+        let good: Vec<&InternalTransaction> = response
+            .result
+            .iter()
+            .filter(|t| t.from == from_addr && t.is_error == "0")
+            .collect();
+        if good.len() > 0 {
+            Ok(good[0].clone())
         } else {
-            Err("no internal transactions".to_string())
+            Err(format!("no internal transactions from {}", from_addr))
         }
     } else {
         Err("etherscan bad".to_string())
