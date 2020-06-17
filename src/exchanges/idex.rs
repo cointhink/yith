@@ -244,13 +244,21 @@ impl Idex {
     ) {
         println!("idex transfer stage 2");
         let old_balance = *self.balances(public_addr, exchange).get(token).unwrap();
+        let start = time::now();
         let mut same = true;
         while same {
             let balances = self.balances(public_addr, exchange);
             same = match balances.get(token) {
                 Some(balance) => {
+                    let waited = start.elapsed();
+                    println!(
+                        "idex balance {} == {} {} {}",
+                        balance,
+                        old_balance,
+                        token,
+                        time::duration_words(waited)
+                    );
                     if *balance == old_balance {
-                        println!("idex balance {} == {}", balance, old_balance);
                         time::sleep(10000);
                         true
                     } else {
