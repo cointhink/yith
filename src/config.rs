@@ -22,7 +22,7 @@ pub struct Config {
     pub infura_project_id: String,
     pub email: Option<String>,
     pub spread_premium: Option<f64>,
-    pub dust_remain: f64,
+    pub eth_dust: f64,
 }
 
 pub fn read_type<T>(filename: &str) -> T
