@@ -447,8 +447,8 @@ fn build_book(
                 };
                 let wallet_post_dust = wallet_pre_dust - config.dust_remain;
                 println!(
-                    "wallet {} - {} dust min = {}",
-                    wallet_pre_dust, config.dust_remain, wallet_post_dust
+                    "wallet balance {} {} - {} dust min = {}",
+                    wallet_pre_dust, sell_token.symbol, config.dust_remain, wallet_post_dust
                 );
                 wallet_post_dust
             }

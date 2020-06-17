@@ -80,7 +80,6 @@ pub struct OrderResponse {
     date: String,
     market: String,
     r#type: String,
-    status: String,
     price: String,
     amount: String,
     total: String,
@@ -365,8 +364,9 @@ impl exchange::Api for Idex {
             if resp.status().is_success() {
                 let json = resp.text().unwrap();
                 println!("{}", json);
-                let response = serde_json::from_str::<OrderResponse>(&json).unwrap();
-                Ok(response.order_hash)
+                let orders = serde_json::from_str::<Vec<OrderResponse>>(&json).unwrap();
+                // TODO handle multiple orders
+                Ok(orders[0].order_hash.clone())
             } else {
                 let json = resp.text().unwrap();
                 let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
