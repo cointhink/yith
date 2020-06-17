@@ -488,7 +488,7 @@ fn build_book(
             match wallet.find_coin_by_source_symbol(&book.market.source.name, &sell_token.symbol) {
                 Ok(coin) => {
                     match mode {
-                        Mode::Simulate => book.cost_total(askbid.clone()), // pretend its full
+                        Mode::Simulate => 0, // empty in simulation
                         Mode::Real => coin.base_total(),
                     }
                 }
