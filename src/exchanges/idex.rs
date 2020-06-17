@@ -522,7 +522,7 @@ impl exchange::Api for Idex {
             .geth
             .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
         println!("GOOD TX {}", tx);
-        Ok(Some(tx))
+        Ok(Some(format!("{}.{}", token.symbol, tx)))
     }
 
     fn order_status(
