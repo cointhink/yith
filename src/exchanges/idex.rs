@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::etherscan;
 use crate::exchange;
+use crate::exchange::Api;
 use crate::geth;
 use crate::time;
 use crate::types;
@@ -233,6 +234,32 @@ impl Idex {
         println!("{} {}", url, status);
         let nonce = resp.json::<NonceResponse>().unwrap().nonce;
         nonce as usize
+    }
+
+    pub fn balance_wait(
+        &self,
+        public_addr: &str,
+        exchange: &config::ExchangeSettings,
+        token: &str,
+    ) {
+        println!("idex transfer stage 2");
+        let old_balance = *self.balances(public_addr, exchange).get(token).unwrap();
+        let mut same = true;
+        while same {
+            let balances = self.balances(public_addr, exchange);
+            same = match balances.get(token) {
+                Some(balance) => {
+                    if *balance == old_balance {
+                        println!("idex balance {} == {}", balance, old_balance);
+                        time::sleep(10000);
+                        true
+                    } else {
+                        false // not the same
+                    }
+                }
+                None => true,
+            };
+        }
     }
 }
 
@@ -526,9 +553,12 @@ impl exchange::Api for Idex {
         public_addr: &str,
         exchange: &config::ExchangeSettings,
     ) -> exchange::BalanceStatus {
-        if transfer_id.len() == 66 {
+        let parts: Vec<&str> = transfer_id.split(".").collect();
+        let token = parts[0];
+        let transfer_tx = parts[1];
+        if transfer_tx.len() == 66 {
             // deposit tx
-            let params = (transfer_id.to_string(),);
+            let params = (transfer_tx.to_string(),);
             let result = self
                 .geth
                 .rpc(
@@ -546,7 +576,10 @@ impl exchange::Api for Idex {
                     match r.result {
                         geth::ResultTypes::TransactionReceipt(tr) => {
                             match u32::from_str_radix(&tr.status[2..], 16).unwrap() {
-                                1 => exchange::BalanceStatus::Complete,
+                                1 => {
+                                    self.balance_wait(public_addr, exchange, token);
+                                    exchange::BalanceStatus::Complete
+                                }
                                 _ => exchange::BalanceStatus::InProgress,
                             }
                         }
@@ -555,11 +588,9 @@ impl exchange::Api for Idex {
                 }
             }
         } else {
-            // transfer_id is token.last_blocknumber
-            let parts: Vec<&str> = transfer_id.split(".").collect();
-            let token = parts[0];
-            let config = config::CONFIG.get().unwrap();
+            // withdrawal transfer_id is last_blocknumber
             let transfer_block_num = parts[1].parse::<u64>().unwrap();
+            let config = config::CONFIG.get().unwrap();
             const TRANSFER_CONTRACT: &'static str = "0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208";
             match token {
                 "ETH" => {
@@ -580,28 +611,7 @@ impl exchange::Api for Idex {
                         token,
                         &config.etherscan_key,
                     ) {
-                        Ok(_erctx) => {
-                            println!("idex transfer stage 2");
-                            let old_balance =
-                                *self.balances(public_addr, exchange).get(token).unwrap();
-                            let mut same = true;
-                            while same {
-                                let balances = self.balances(public_addr, exchange);
-                                same = match balances.get(token) {
-                                    Some(balance) => {
-                                        if *balance == old_balance {
-                                            println!("idex balance {} == {}", balance, old_balance);
-                                            time::sleep(10000);
-                                            true
-                                        } else {
-                                            false // not the same
-                                        }
-                                    }
-                                    None => true,
-                                };
-                            }
-                            exchange::BalanceStatus::Complete
-                        }
+                        Ok(_erctx) => exchange::BalanceStatus::Complete,
                         Err(_e) => exchange::BalanceStatus::InProgress,
                     }
                 }
