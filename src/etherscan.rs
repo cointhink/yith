@@ -128,11 +128,7 @@ pub fn last_token_transaction(
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
-    println!(
-        "{} action=txlistinternal {}",
-        ETHERSCAN_API_URL,
-        resp.status()
-    );
+    println!("{} {} (looking for {})", url, resp.status(), token);
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<Erc20Transaction>>().unwrap();
         let good: Vec<&Erc20Transaction> = response
@@ -162,11 +158,7 @@ pub fn last_internal_transaction_from(
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
-    println!(
-        "{} action=txlistinternal {}",
-        ETHERSCAN_API_URL,
-        resp.status()
-    );
+    println!("{} {}", url, resp.status());
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<InternalTransaction>>().unwrap();
         let good: Vec<&InternalTransaction> = response
