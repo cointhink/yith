@@ -445,11 +445,20 @@ fn build_book(
                     Mode::Simulate => book.cost_total(askbid.clone()), // simulate a full wallet
                     Mode::Real => coin.base_total(),
                 };
-                let wallet_post_dust = wallet_pre_dust - config.dust_remain;
-                println!(
-                    "wallet balance {} {} - {} dust min = {}",
-                    wallet_pre_dust, sell_token.symbol, config.dust_remain, wallet_post_dust
-                );
+                let wallet_post_dust = if wallet_pre_dust > config.dust_remain {
+                    let subtotal = wallet_pre_dust - config.dust_remain;
+                    println!(
+                        "wallet balance {} {} - {} dust min = {}",
+                        wallet_pre_dust, sell_token.symbol, config.dust_remain, subtotal
+                    );
+                    subtotal
+                } else {
+                    println!(
+                        "wallet balance {} {} below {} dust min. skip.",
+                        wallet_pre_dust, sell_token.symbol, config.dust_remain
+                    );
+                    wallet_pre_dust
+                };
                 wallet_post_dust
             }
             Err(_e) => {
