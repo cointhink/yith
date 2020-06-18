@@ -522,7 +522,7 @@ fn build_book(
                     &book.market,
                     offer,
                     offer.cost(askbid),
-                    sell_token
+                    sell_token,
                 );
                 let capped_offer_opt = match build_offer(
                     config,

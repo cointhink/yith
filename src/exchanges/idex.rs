@@ -72,6 +72,60 @@ pub struct BalanceResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct TradeHistoryRequest {
+    address: String,
+    start: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TradeHistoryResponse {
+    trades: HashMap<String, Vec<TradeHistory>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TradeHistory {
+    r#type: String,
+    date: String,
+    amount: String,
+    total: String,
+    uuid: String,
+    tid: u32,
+    timestamp: u32,
+    price: String,
+    taker: String,
+    maker: String,
+    order_hash: String,
+    transaction_hash: String,
+    token_buy: String,
+    buyer_fee: String,
+    gas_fee: String,
+    seller_fee: String,
+    token_sell: String,
+    usd_value: String,
+}
+
+impl TradeHistory {
+    fn into_exg(self, buy: &str, sell: &str) -> exchange::Order {
+        exchange::Order {
+            id: self.tid.to_string(), //self.uuid,
+            side: match self.r#type.as_str() {
+                "buy" => exchange::BuySell::Buy,
+                "sell" => exchange::BuySell::Sell,
+                _ => panic!(),
+            },
+            state: exchange::OrderState::Filled,
+            market: format!("{}/{}", buy, sell),
+            base_qty: self.amount.parse::<f64>().unwrap(),
+            quote: self.price.parse::<f64>().unwrap(),
+            create_date: self.date,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OrderStatusRequest {
     order_hash: String,
 }
@@ -531,6 +585,35 @@ impl exchange::Api for Idex {
             .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
         println!("GOOD TX {}", tx);
         Ok(Some(format!("{}.{}", ticker.symbol, tx)))
+    }
+
+    fn open_orders(
+        &self,
+        private_key: &str,
+        exchange: &config::ExchangeSettings,
+    ) -> Vec<exchange::Order> {
+        let public_addr = eth::privkey_to_addr(private_key);
+        let url = format!("{}/returnTradeHistoryMeta", exchange.api_url.as_str());
+        let order_status = TradeHistoryRequest {
+            address: public_addr,
+            start: 1000,
+        };
+        let resp = self
+            .client
+            .post(url.as_str())
+            .json(&order_status)
+            .send()
+            .unwrap();
+        let status = resp.status();
+        let json = resp.text().unwrap();
+        let response = serde_json::from_str::<TradeHistoryResponse>(&json).unwrap();
+        let mut orders = vec![];
+        response.trades.into_iter().for_each(|(mkt, ths)| {
+            let parts: Vec<&str> = mkt.split("_").collect();
+            ths.into_iter()
+                .for_each(|th| orders.push(th.into_exg(parts[0], parts[1])))
+        });
+        orders
     }
 
     fn order_status(

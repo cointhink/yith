@@ -220,7 +220,7 @@ pub trait Api {
         BalanceStatus::InProgress
     }
 
-    fn open_orders(&self, account: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
+    fn open_orders(&self, private_key: &str, exchange: &config::ExchangeSettings) -> Vec<Order> {
         println!("WARNING: {} has no open_orders call", exchange.name);
         vec![]
     }
