@@ -506,42 +506,43 @@ fn build_book(
         wallet_token_balance += exchange_token_balance;
     }
 
-    let (total, processed_offers) =
-        book.offers
-            .iter()
-            .fold((0.0, Vec::new()), |(mut total, mut offers), offer| {
-                let (askbid, market, offer) = unswap(askbid, &book.market, offer);
-                println!(
-                    "** {} {} {} {} {} => {}{}",
-                    match mode {
-                        Mode::Real => "BUILD",
-                        Mode::Simulate => "SIMBUILD",
-                    },
-                    askbid,
-                    exchange.settings.name,
-                    &book.market,
-                    offer,
-                    offer.cost(askbid),
-                    sell_token,
-                );
-                let capped_offer_opt = match build_offer(
-                    config,
-                    &askbid,
-                    &exchange,
-                    &offer,
-                    &market,
-                    wallet_token_balance,
-                    wallet,
-                ) {
-                    Ok(capped_offer) => {
-                        total += capped_offer.cost(askbid);
-                        Ok((capped_offer, market))
-                    }
-                    Err(e) => Err(e),
-                };
-                offers.push(capped_offer_opt);
-                (total, offers)
-            });
+    let (total, processed_offers) = book
+        .offers
+        .iter()
+        .take(1) // first offer limit
+        .fold((0.0, Vec::new()), |(mut total, mut offers), offer| {
+            let (askbid, market, offer) = unswap(askbid, &book.market, offer);
+            println!(
+                "** {} {} {} {} {} => {}{}",
+                match mode {
+                    Mode::Real => "BUILD",
+                    Mode::Simulate => "SIMBUILD",
+                },
+                askbid,
+                exchange.settings.name,
+                &book.market,
+                offer,
+                offer.cost(askbid),
+                sell_token,
+            );
+            let capped_offer_opt = match build_offer(
+                config,
+                &askbid,
+                &exchange,
+                &offer,
+                &market,
+                wallet_token_balance,
+                wallet,
+            ) {
+                Ok(capped_offer) => {
+                    total += capped_offer.cost(askbid);
+                    Ok((capped_offer, market))
+                }
+                Err(e) => Err(e),
+            };
+            offers.push(capped_offer_opt);
+            (total, offers)
+        });
     println!("{} processed_offers done", processed_offers.len());
     if let Some(exchange_token_balance) = exchange_balance {
         if total > exchange_token_balance {
