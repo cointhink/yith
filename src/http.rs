@@ -1,3 +1,4 @@
+use crate::geth;
 use crate::{http_error, http_info};
 use reqwest::blocking::RequestBuilder;
 use reqwest::StatusCode;
@@ -15,18 +16,26 @@ impl LoggingClient {
     }
 
     pub fn get(&self, url: &str) -> LoggingBuilder {
-        http_error!("{}", url);
+        let id = geth::gen_id();
+        let verb = "GET";
+        http_error!("[{}] {} {}", id, verb, url);
         let builder = self.client.get(url);
         LoggingBuilder {
+            id: id,
+            verb: verb.to_string(),
             url: url.to_string(),
             builder: builder,
         }
     }
 
     pub fn post(&self, url: &str) -> LoggingBuilder {
-        http_info!("{}", url);
+        let id = geth::gen_id();
+        let verb = "POST";
+        http_error!("[{}] {} {}", id, verb, url);
         let builder = self.client.post(url);
         LoggingBuilder {
+            id: id,
+            verb: verb.to_string(),
             url: url.to_string(),
             builder: builder,
         }
@@ -34,6 +43,8 @@ impl LoggingClient {
 }
 
 pub struct LoggingBuilder {
+    id: String,
+    verb: String,
     url: String,
     builder: RequestBuilder,
 }
@@ -42,6 +53,8 @@ impl LoggingBuilder {
     pub fn headers(self, headers: reqwest::header::HeaderMap) -> LoggingBuilder {
         let builder = self.builder.headers(headers);
         LoggingBuilder {
+            id: self.id,
+            verb: self.verb,
             url: self.url,
             builder: builder,
         }
@@ -50,6 +63,8 @@ impl LoggingBuilder {
         http_info!("{}", serde_json::to_string(json).unwrap());
         let builder = self.builder.json(json);
         LoggingBuilder {
+            id: self.id,
+            verb: self.verb,
             url: self.url,
             builder: builder,
         }
@@ -60,14 +75,17 @@ impl LoggingBuilder {
             Ok(r) => {
                 let status = r.status();
                 let text = r.text().unwrap();
-                http_info!("{}", text);
+                http_info!("[{}] {} {}", self.id, status, text);
                 Ok(LoggingResponse {
                     url: self.url,
-                    text: text.to_string(),
                     status: status,
+                    text: text.to_string(),
                 })
             }
-            Err(e) => Err(e),
+            Err(e) => {
+                http_error!("[{}] {:?}", self.id, e);
+                Err(e)
+            }
         }
     }
 }
