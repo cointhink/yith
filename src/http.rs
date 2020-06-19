@@ -17,29 +17,42 @@ impl LoggingClient {
     pub fn get(&self, url: &str) -> LoggingBuilder {
         http_error!("{}", url);
         let builder = self.client.get(url);
-        LoggingBuilder { builder: builder }
+        LoggingBuilder {
+            url: url.to_string(),
+            builder: builder,
+        }
     }
 
     pub fn post(&self, url: &str) -> LoggingBuilder {
         http_info!("{}", url);
         let builder = self.client.post(url);
-        LoggingBuilder { builder: builder }
+        LoggingBuilder {
+            url: url.to_string(),
+            builder: builder,
+        }
     }
 }
 
 pub struct LoggingBuilder {
+    url: String,
     builder: RequestBuilder,
 }
 
 impl LoggingBuilder {
     pub fn headers(self, headers: reqwest::header::HeaderMap) -> LoggingBuilder {
         let builder = self.builder.headers(headers);
-        LoggingBuilder { builder: builder }
+        LoggingBuilder {
+            url: self.url,
+            builder: builder,
+        }
     }
     pub fn json<T: Serialize + ?Sized>(self, json: &T) -> LoggingBuilder {
         http_info!("{}", serde_json::to_string(json).unwrap());
         let builder = self.builder.json(json);
-        LoggingBuilder { builder: builder }
+        LoggingBuilder {
+            url: self.url,
+            builder: builder,
+        }
     }
     pub fn send(self) -> reqwest::Result<LoggingResponse> {
         let resp = self.builder.send();
@@ -49,6 +62,7 @@ impl LoggingBuilder {
                 let text = r.text().unwrap();
                 http_info!("{}", text);
                 Ok(LoggingResponse {
+                    url: self.url,
                     text: text.to_string(),
                     status: status,
                 })
@@ -59,6 +73,7 @@ impl LoggingBuilder {
 }
 
 pub struct LoggingResponse {
+    url: String,
     text: String,
     status: StatusCode,
 }
@@ -75,5 +90,8 @@ impl LoggingResponse {
     }
     pub fn text(&self) -> reqwest::Result<&str> {
         Ok(&self.text)
+    }
+    pub fn url(&self) -> &str {
+        &self.url
     }
 }

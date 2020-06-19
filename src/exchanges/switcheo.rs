@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::geth;
+use crate::http;
 use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
@@ -510,7 +511,7 @@ pub struct Switcheo {
     tokens: TokenList,
     pairs: PairList,
     pub settings: config::ExchangeSettings,
-    client: reqwest::blocking::Client,
+    client: http::LoggingClient,
 }
 
 impl Switcheo {
@@ -523,12 +524,13 @@ impl Switcheo {
             pairs.len()
         );
         let client = reqwest::blocking::Client::new();
+        let logging_client = http::LoggingClient::new(client);
         Switcheo {
             geth: geth,
             tokens: tokens,
             pairs: pairs,
             settings: settings,
-            client: client,
+            client: logging_client,
         }
     }
 
@@ -565,8 +567,8 @@ impl Switcheo {
             TransferDirection::Deposit => "deposits",
         };
         let url = format!("{}/{}", exchange.api_url.as_str(), api_word);
-        let client = reqwest::blocking::Client::new();
-        let resp = client
+        let resp = self
+            .client
             .post(url.as_str())
             .json(&transfer_request_signed)
             .send()
@@ -580,7 +582,7 @@ impl Switcheo {
         let json = resp.text().unwrap();
         println!("{}", json);
         if status.is_success() {
-            Ok(json)
+            Ok(json.to_string())
         } else {
             let resp_err = serde_json::from_str::<ResponseError>(&json).unwrap();
             let order_error = exchange::OrderError {
@@ -612,8 +614,7 @@ impl Switcheo {
             public_addr,
             exchange.contract_address
         );
-        let client = reqwest::blocking::Client::new();
-        let resp = client.get(url.as_str()).send().unwrap();
+        let resp = self.client.get(url.as_str()).send().unwrap();
         let json = resp.text().unwrap();
         serde_json::from_str::<BalanceResponse>(&json).unwrap()
     }
@@ -671,8 +672,12 @@ impl exchange::Api for Switcheo {
         let url = format!("{}/orders", exchange.api_url.as_str());
         println!("switcheo build {}", url);
         println!("{}", serde_json::to_string(&sheet_sign.sheet).unwrap());
-        let client = reqwest::blocking::Client::new();
-        let resp = client.post(url.as_str()).json(&sheet_sign).send().unwrap();
+        let resp = self
+            .client
+            .post(url.as_str())
+            .json(&sheet_sign)
+            .send()
+            .unwrap();
         let status = resp.status();
         println!("switcheo build result {:#?} {}", status, resp.url());
         if status.is_success() {
@@ -729,10 +734,14 @@ impl exchange::Api for Switcheo {
                     fills: HashMap::new(),
                 },
             };
-            let client = reqwest::blocking::Client::new();
             let json = serde_json::to_string(&sig_sheet).unwrap();
             println!("switcheo submit {}", json);
-            let resp = client.post(url.as_str()).json(&sig_sheet).send().unwrap();
+            let resp = self
+                .client
+                .post(url.as_str())
+                .json(&sig_sheet)
+                .send()
+                .unwrap();
             let status = resp.status();
             println!("{} {:?}", status, resp.text());
             if status.is_success() {
@@ -822,7 +831,6 @@ impl exchange::Api for Switcheo {
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
-        let client = reqwest::blocking::Client::new();
         let response = self.transfer(
             privkey,
             exchange,
@@ -848,7 +856,8 @@ impl exchange::Api for Switcheo {
                     exchange.api_url.as_str(),
                     withdrawal_execute_signed.withdrawal_execute.id
                 );
-                let resp = client
+                let resp = self
+                    .client
                     .post(url.as_str())
                     .json(&withdrawal_execute_signed)
                     .send()
@@ -877,7 +886,6 @@ impl exchange::Api for Switcheo {
         amount: f64,
         token: &types::Ticker,
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-        let client = reqwest::blocking::Client::new();
         let response_opt =
             self.transfer(privkey, exchange, amount, token, TransferDirection::Deposit);
         match response_opt {
@@ -899,7 +907,8 @@ impl exchange::Api for Switcheo {
                     exchange.api_url.as_str(),
                     build_response.id
                 );
-                let resp = client
+                let resp = self
+                    .client
                     .post(url.as_str())
                     .json(&deposit_execute)
                     .send()
@@ -929,8 +938,7 @@ impl exchange::Api for Switcheo {
     ) -> exchange::OrderState {
         let url = format!("{}/orders/{}", self.settings.api_url.as_str(), order_id);
         println!("{}", url);
-        let client = reqwest::blocking::Client::new();
-        let resp = client.get(url.as_str()).send().unwrap();
+        let resp = self.client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         if status.is_success() {
             let order = resp.json::<Order>().unwrap();
@@ -953,8 +961,7 @@ impl exchange::Api for Switcheo {
             exchange.contract_address
         );
         println!("{}", url);
-        let client = reqwest::blocking::Client::new();
-        let resp = client.get(url.as_str()).send().unwrap();
+        let resp = self.client.get(url.as_str()).send().unwrap();
         let status = resp.status();
         if status.is_success() {
             let orders = resp.json::<Vec<Order>>().unwrap();
