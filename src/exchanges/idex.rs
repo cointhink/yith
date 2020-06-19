@@ -4,6 +4,7 @@ use crate::etherscan;
 use crate::exchange;
 use crate::exchange::Api;
 use crate::geth;
+use crate::http;
 use crate::time;
 use crate::types;
 use reqwest::header;
@@ -247,19 +248,20 @@ impl TokenList {
 pub struct Idex {
     geth: geth::Client,
     settings: config::ExchangeSettings,
-    client: reqwest::blocking::Client,
+    client: http::LoggingClient,
     tokens: TokenList,
 }
 
 impl Idex {
     pub fn new(settings: config::ExchangeSettings, api_key: &str, geth: geth::Client) -> Idex {
         let client = Idex::build_http_client(api_key).unwrap();
+        let logging_client = http::LoggingClient::new(client);
         let tokens = TokenList::read_tokens("notes/idex-tokens.json");
         println!("idex loaded {} tokens", tokens.tokens.len());
         Idex {
             geth: geth,
             settings: settings,
-            client: client,
+            client: logging_client,
             tokens: tokens,
         }
     }

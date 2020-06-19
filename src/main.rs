@@ -9,6 +9,7 @@ mod etherscan;
 mod exchange;
 mod exchanges;
 mod geth;
+mod http;
 mod log;
 mod price;
 mod redis;
