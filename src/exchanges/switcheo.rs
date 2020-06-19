@@ -863,9 +863,7 @@ impl exchange::Api for Switcheo {
                     .send()
                     .unwrap();
                 let status = resp.status();
-                println!("{} {}", resp.url(), status);
                 let json = resp.text().unwrap();
-                println!("{}", json);
                 if status.is_success() {
                     let response = serde_json::from_str::<WithdrawalResponse>(&json).unwrap();
                     Ok(Some(response.id))
@@ -914,9 +912,7 @@ impl exchange::Api for Switcheo {
                     .send()
                     .unwrap();
                 let status = resp.status();
-                println!("{} {}", resp.url(), status);
                 let json = resp.text().unwrap();
-                println!("{}", json);
                 if status.is_success() {
                     let response = serde_json::from_str::<DepositResponseOk>(&json).unwrap();
                     let tx = eth::hex(&eth::hash_msg(&eth::dehex(&response.transaction_hash)));

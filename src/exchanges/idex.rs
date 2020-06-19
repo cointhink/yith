@@ -528,12 +528,10 @@ impl exchange::Api for Idex {
         let status = resp.status();
         if status.is_success() {
             let json = resp.text().unwrap();
-            println!("{} {} {:?}", url, status, json);
             //{"amount":"0","timestamp":null} no useful info
             Ok(Some(format!("{}.{}", token.symbol, last_blk)))
         } else {
             let json = resp.text().unwrap();
-            println!("{} {} {:?}", url, status, json);
             let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
             Err(exchange::ExchangeError::build_box(response.error))
         }
