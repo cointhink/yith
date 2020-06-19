@@ -257,7 +257,7 @@ impl Idex {
         let client = Idex::build_http_client(api_key).unwrap();
         let logging_client = http::LoggingClient::new(client);
         let tokens = TokenList::read_tokens("notes/idex-tokens.json");
-        println!("idex loaded {} tokens", tokens.tokens.len());
+        log::debug!("idex loaded {} tokens", tokens.tokens.len());
         Idex {
             geth: geth,
             settings: settings,

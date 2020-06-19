@@ -2,6 +2,7 @@ use crate::config;
 use crate::eth;
 use crate::exchange;
 use crate::exchanges::ddex::Ddex;
+use crate::log;
 use crate::types;
 use reqwest::header;
 use secp256k1::{PublicKey, Secp256k1, SecretKey};
@@ -214,7 +215,7 @@ pub struct Ddex3 {
 impl Ddex3 {
     pub fn new(settings: config::ExchangeSettings) -> Ddex3 {
         let pairs = PairList::from_file("notes/ddex3-pairs.json");
-        println!("ddex3 loaded {} pairs", pairs.pairs.len());
+        log::debug!("ddex3 loaded {} pairs", pairs.pairs.len());
         Ddex3 {
             pairs: pairs,
             settings: settings,

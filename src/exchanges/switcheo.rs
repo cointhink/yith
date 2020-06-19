@@ -3,6 +3,7 @@ use crate::eth;
 use crate::exchange;
 use crate::geth;
 use crate::http;
+use crate::log;
 use crate::time;
 use crate::types;
 use secp256k1::SecretKey;
@@ -518,7 +519,7 @@ impl Switcheo {
     pub fn new(settings: config::ExchangeSettings, geth: geth::Client) -> Switcheo {
         let tokens = read_tokens("notes/switcheo-tokens.json");
         let pairs = read_pairs("notes/switcheo-pairs.json");
-        println!(
+        log::debug!(
             "switcheo loaded {} tokens and {} pairs",
             tokens.len(),
             pairs.len()
