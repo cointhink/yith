@@ -1,0 +1,26 @@
+appenders:
+  stdout:
+    kind: console
+    encoder:
+      pattern: "{m}{n}"
+  stdlog:
+    kind: file
+    path: logs/run.log
+  httpout:
+    kind: file
+    path: logs/http.log
+    encoder:
+      pattern: "{d} {m}{n}"
+
+root:
+  level: info
+  appenders:
+    - stdout
+    - stdlog
+
+loggers:
+  http:
+    level: info
+    appenders:
+      - httpout
+    additive: false
