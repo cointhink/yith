@@ -20,6 +20,7 @@ mod weth;
 fn main() {
     let options_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
     let options = clap::App::from_yaml(options_yaml).get_matches();
+    log::init();
 
     let config_filename = options.value_of("config").unwrap_or(config::FILENAME);
     let config: config::Config = config::read_type(config_filename);
@@ -27,7 +28,7 @@ fn main() {
     let wallet_filename = "wallet.yaml";
     let wallet: wallet::Wallet = config::read_type(wallet_filename);
 
-    println!(
+    log::info!(
         "Yith {:#?} {} {}",
         config_filename,
         time::now_string(),
