@@ -431,8 +431,8 @@ fn build_book(
     println!(
         "** {} {} {} {} sell_token: {}",
         match mode {
-            Mode::Real => "BUILD",
-            Mode::Simulate => "SIMBUILD",
+            Mode::Real => "BOOK",
+            Mode::Simulate => "SIMBOOK",
         },
         askbid,
         exchange.settings.name,
