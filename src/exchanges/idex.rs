@@ -299,8 +299,11 @@ impl Idex {
         exchange: &config::ExchangeSettings,
         token: &str,
     ) {
-        println!("idex transfer stage 2");
-        let old_balance = *self.balances(public_addr, exchange).get(token).unwrap();
+        println!("idex transfer stage 2 balance watch {}", token);
+        let old_balance: f64 = *self
+            .balances(public_addr, exchange)
+            .get(token)
+            .unwrap_or(&0.0);
         let start = time::now();
         let mut same = true;
         while same {
