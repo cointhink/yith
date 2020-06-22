@@ -217,8 +217,8 @@ fn run_transfer(
                 exchange::BalanceStatus::InProgress => Err(exchange::ExchangeError::build_box(
                     "transfer status weird timeout".to_string(),
                 )),
-                exchange::BalanceStatus::TimedOut => Err(exchange::ExchangeError::build_box(
-                    "transfer status timeout".to_string(),
+                exchange::BalanceStatus::Error => Err(exchange::ExchangeError::build_box(
+                    "transfer status is error!".to_string(),
                 )),
             },
             None => Ok(Some(
@@ -255,7 +255,7 @@ fn wait_transfer(
                 time::sleep(10000);
                 false
             }
-            exchange::BalanceStatus::TimedOut => true,
+            exchange::BalanceStatus::Error => true,
         };
     }
     status
