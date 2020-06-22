@@ -963,9 +963,16 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
     let bid_quote = types::Ticker {
         symbol: quote_symbol.to_uppercase(),
     };
+    let swapped = matches.is_present("swapped");
     println!(
-        "build {} {} {}{}@{}{}",
-        exchange, side, quantity, base_symbol, price, quote_symbol
+        "** MANUAL {} {} {}{}@{}{}{}",
+        exchange,
+        side,
+        quantity,
+        base_symbol,
+        price,
+        quote_symbol,
+        if swapped { " SWAPPED" } else { "" }
     );
 
     let pair = types::Pair {
@@ -991,7 +998,7 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         min_order_size: "0".to_string(),
         price_decimals: 0.0,
         quantity_decimals: 0.0,
-        swapped: false,
+        swapped: swapped,
     };
     let bid_market = types::Market {
         source: bid_source,
@@ -1002,7 +1009,7 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         min_order_size: "0".to_string(),
         price_decimals: 0.0,
         quantity_decimals: 0.0,
-        swapped: false,
+        swapped: swapped,
     };
     let ask_book = types::Book {
         market: ask_market,

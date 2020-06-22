@@ -67,6 +67,9 @@ subcommands:
                 help: quote_token
                 required: true
                 index: 6
+            - swapped:
+                help: swap market token ordering
+                long: swapped
     - erc20:
         about: erc20 helper
         version: "1.0"
