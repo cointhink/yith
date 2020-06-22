@@ -1,3 +1,4 @@
+use crate::{http_error, http_info};
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -62,7 +63,7 @@ impl CoinGecko {
                 .collect::<Vec<&str>>()
                 .join(",")
         );
-        println!("{}", url);
+        http_info!("{}", url);
         let resp = self.client.get(&url).send().unwrap();
         let price_data = resp.json::<PriceResponse>().unwrap();
         let mut prices: HashMap<String, f64> = HashMap::new();
