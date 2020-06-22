@@ -925,6 +925,7 @@ fn etherscan_coins(
     wallet_coins: &Vec<wallet::WalletCoin>,
     api_key: &str,
 ) -> Vec<wallet::WalletCoin> {
+    let my_0xaddr = format!("0x{}", my_addr);
     let escan = etherscan::Etherscan::new();
     let mut coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet_coins {
@@ -938,7 +939,7 @@ fn etherscan_coins(
         };
         balance = eth::wei_to_eth(balance, decimals);
         let eth_coin =
-            wallet::WalletCoin::build(&coin.ticker_symbol, &coin.contract, &my_addr, balance);
+            wallet::WalletCoin::build(&coin.ticker_symbol, &coin.contract, &my_0xaddr, balance);
         coins.push(eth_coin);
     }
     coins
