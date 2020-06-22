@@ -429,13 +429,12 @@ fn build_book(
         types::AskBid::Bid => &book.market.base,
     };
     println!(
-        "** {} {} {} {} sell_token: {}",
+        "** {} {} {} sell_token: {}",
         match mode {
             Mode::Real => "BOOK",
             Mode::Simulate => "SIMBOOK",
         },
         askbid,
-        exchange.settings.name,
         &book.market,
         sell_token
     );
@@ -514,13 +513,12 @@ fn build_book(
             .fold((0.0, Vec::new()), |(mut total, mut offers), offer| {
                 let (askbid, market, offer) = unswap(askbid, &book.market, offer);
                 println!(
-                    "** {} {} {} {} {} => {}{}",
+                    "** {} {} {} {} => {}{}",
                     match mode {
                         Mode::Real => "BUILD",
                         Mode::Simulate => "SIMBUILD",
                     },
                     askbid,
-                    exchange.settings.name,
                     &book.market,
                     offer,
                     offer.cost(askbid),
