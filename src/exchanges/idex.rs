@@ -177,6 +177,7 @@ pub struct ErrorResponse {
 #[serde(rename_all = "camelCase")]
 pub struct OrderBookRequest {
     market: String,
+    count: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -343,7 +344,8 @@ impl exchange::Api for Idex {
         let url = format!("{}/returnOrderBook", exchange.api_url.as_str(),);
         let market_name = format!("{}_{}", &market.quote.symbol, &market.base.symbol);
         let order_book_request = OrderBookRequest {
-            market: market_name,
+            market: market_name.clone(),
+            count: 2,
         };
         let resp = self
             .client
@@ -357,7 +359,7 @@ impl exchange::Api for Idex {
             types::AskBid::Ask => book.asks,
             types::AskBid::Bid => book.bids,
         };
-        println!("{:?} {:?}", askbid, side);
+        println!("{} {:?} orderbook snapshot {:?}", market_name, askbid, side);
 
         let buy_token = match askbid {
             types::AskBid::Ask => quote_token,
@@ -458,7 +460,7 @@ impl exchange::Api for Idex {
                 println!("{}", json);
                 let orders = serde_json::from_str::<Vec<OrderResponse>>(&json).unwrap();
                 // TODO handle multiple orders
-                Ok(orders[0].order_hash.clone())
+                Ok(orders[0].uuid.clone())
             } else {
                 let json = resp.text().unwrap();
                 let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
@@ -621,21 +623,28 @@ impl exchange::Api for Idex {
         order_id: &str,
         exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
-        let url = format!("{}/returnOrderStatus", exchange.api_url.as_str());
-        let order_status = OrderStatusRequest {
-            order_hash: order_id.to_string(),
-        };
-        let resp = self
-            .client
-            .post(url.as_str())
-            .json(&order_status)
-            .send()
-            .unwrap();
-        let status = resp.status();
-        let json = resp.text().unwrap();
-        println!("{} {} {:?}", url, status, json);
-        let response = serde_json::from_str::<OrderStatusResponse>(&json).unwrap();
-        response.into()
+        if order_id.len() == 36 {
+            // uuid from TradeHistory
+            println!("uuid order status assumed filled!");
+            exchange::OrderState::Filled
+        } else {
+            // order hash, len 67
+            let url = format!("{}/returnOrderStatus", exchange.api_url.as_str());
+            let order_status = OrderStatusRequest {
+                order_hash: order_id.to_string(),
+            };
+            let resp = self
+                .client
+                .post(url.as_str())
+                .json(&order_status)
+                .send()
+                .unwrap();
+            let status = resp.status();
+            let json = resp.text().unwrap();
+            println!("{} {} {:?}", url, status, json);
+            let response = serde_json::from_str::<OrderStatusResponse>(&json).unwrap();
+            response.into()
+        }
     }
 
     fn transfer_status<'a>(
