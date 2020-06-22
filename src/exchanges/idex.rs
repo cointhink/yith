@@ -683,7 +683,10 @@ impl exchange::Api for Idex {
                                     self.balance_wait(public_addr, exchange, token);
                                     exchange::BalanceStatus::Complete
                                 }
-                                _ => exchange::BalanceStatus::Error,
+                                _ => {
+                                    println!("deposit tx failed. erc20 allowance problem?");
+                                    exchange::BalanceStatus::Error
+                                }
                             }
                         }
                         _ => exchange::BalanceStatus::InProgress,
