@@ -1,4 +1,6 @@
 use crate::errors;
+use crate::http;
+use crate::log;
 use bs58;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -12,16 +14,19 @@ pub struct TransactionReceipt {
     pub cumulative_gas_used: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
 pub struct Client {
     url: String,
+    http: http::LoggingClient,
 }
 
 impl Client {
     pub fn build_infura(project_id: &str) -> Client {
         let infura_api = "https://mainnet.infura.io/v3";
+        let client = reqwest::blocking::Client::new();
+        let logging_client = http::LoggingClient::new(client);
         Client {
             url: format!("{}/{}", infura_api, project_id),
+            http: logging_client,
         }
     }
 
@@ -30,7 +35,7 @@ impl Client {
         method: &str,
         params: ParamTypes,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        let result = rpc(&self.url, method, params);
+        let result = self.call(method, params);
         match result {
             Ok(rpc_result) => match rpc_result.part {
                 RpcResultTypes::Error(e) => Err(errors::MainError::build_box(e.error.message)),
@@ -51,7 +56,7 @@ impl Client {
         method: &str,
         params: ParamTypes,
     ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
-        rpc(&self.url, method, params)
+        self.call(method, params)
     }
 
     pub fn last_block(&self) -> u32 {
@@ -66,6 +71,30 @@ impl Client {
         let tx_count_str =
             self.rpc_str("eth_getTransactionCount", ParamTypes::InfuraSingle(params))?;
         Ok(u32::from_str_radix(&tx_count_str[2..], 16).unwrap())
+    }
+
+    pub fn call(
+        &self,
+        method: &str,
+        params: ParamTypes,
+    ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
+        let jrpc = JsonRpc {
+            jsonrpc: "2.0".to_string(),
+            id: gen_id(),
+            method: method.to_string(),
+            params: params,
+        };
+        println!("geth: {}", serde_json::to_string(&jrpc).unwrap());
+        let result = self.http.post(&self.url).json(&jrpc).send();
+        match result {
+            Ok(res) => {
+                let json = res.text().unwrap();
+                println!("geth: {}", json);
+                let rpc_result = serde_json::from_str::<JsonRpcResult>(&json).unwrap();
+                Ok(rpc_result)
+            }
+            Err(e) => Err(Box::new(e)),
+        }
     }
 }
 
@@ -128,30 +157,6 @@ pub struct ErrorRpc {
 pub struct ErrorDetailRpc {
     pub code: i32,
     pub message: String,
-}
-
-pub fn rpc(
-    url: &str,
-    method: &str,
-    params: ParamTypes,
-) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
-    let jrpc = JsonRpc {
-        jsonrpc: "2.0".to_string(),
-        id: gen_id(),
-        method: method.to_string(),
-        params: params,
-    };
-    let client = reqwest::blocking::Client::new();
-    let result = client.post(url).json(&jrpc).send();
-    match result {
-        Ok(res) => {
-            let json = res.text().unwrap();
-            println!("geth: {}", json);
-            let rpc_result = serde_json::from_str::<JsonRpcResult>(&json).unwrap();
-            Ok(rpc_result)
-        }
-        Err(e) => Err(Box::new(e)),
-    }
 }
 
 pub fn gen_id() -> String {
