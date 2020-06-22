@@ -459,7 +459,7 @@ fn build_book(
                             "wallet balance {} {} below {} dust min. skip.",
                             wallet_pre_dust, sell_token.symbol, config.eth_dust
                         );
-                        wallet_pre_dust
+                        0.0
                     };
                     wallet_post_dust
                 } else {
