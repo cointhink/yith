@@ -18,12 +18,12 @@ impl LoggingClient {
     pub fn get(&self, url: &str) -> LoggingBuilder {
         let id = geth::gen_id();
         let verb = "GET";
-        http_error!("[{}] {} {}", id, verb, url);
         let builder = self.client.get(url);
         LoggingBuilder {
             id: id,
             verb: verb.to_string(),
             url: url.to_string(),
+            json: None,
             builder: builder,
         }
     }
@@ -31,12 +31,12 @@ impl LoggingClient {
     pub fn post(&self, url: &str) -> LoggingBuilder {
         let id = geth::gen_id();
         let verb = "POST";
-        http_error!("[{}] {} {}", id, verb, url);
         let builder = self.client.post(url);
         LoggingBuilder {
             id: id,
             verb: verb.to_string(),
             url: url.to_string(),
+            json: None,
             builder: builder,
         }
     }
@@ -46,6 +46,7 @@ pub struct LoggingBuilder {
     id: String,
     verb: String,
     url: String,
+    json: Option<String>,
     builder: RequestBuilder,
 }
 
@@ -56,20 +57,26 @@ impl LoggingBuilder {
             id: self.id,
             verb: self.verb,
             url: self.url,
+            json: self.json,
             builder: builder,
         }
     }
-    pub fn json<T: Serialize + ?Sized>(self, json: &T) -> LoggingBuilder {
-        http_info!("{}", serde_json::to_string(json).unwrap());
-        let builder = self.builder.json(json);
+    pub fn json<T: Serialize + ?Sized>(self, object: &T) -> LoggingBuilder {
+        let json = serde_json::to_string(object).unwrap();
+        let builder = self.builder.json(object);
         LoggingBuilder {
             id: self.id,
             verb: self.verb,
             url: self.url,
+            json: Some(json),
             builder: builder,
         }
     }
     pub fn send(self) -> reqwest::Result<LoggingResponse> {
+        http_info!("[{}] {} {}", self.id, self.verb, self.url);
+        if self.json.is_some() {
+            http_info!("[{}] {} ", self.id, self.json.unwrap());
+        }
         let resp = self.builder.send();
         match resp {
             Ok(r) => {
