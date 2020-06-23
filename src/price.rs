@@ -1,4 +1,4 @@
-use crate::{http_error, http_info};
+use crate::http_info;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -1,6 +1,5 @@
 use crate::errors;
 use crate::http;
-use crate::log;
 use bs58;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -56,6 +55,7 @@ impl Client {
         method: &str,
         params: ParamTypes,
     ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
+        println!("geth {}", method);
         self.call(method, params)
     }
 

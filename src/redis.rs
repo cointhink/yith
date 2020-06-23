@@ -1,3 +1,4 @@
+use crate::time;
 use crate::types;
 pub use redis::Commands; // re-export
 
@@ -24,7 +25,7 @@ impl Redis<'_> {
                 self.rd_inplay().unwrap()
             }
             false => {
-                println!("no active order. waiting for order.");
+                println!("no active order. waiting for order. {}", time::now_string());
                 self.rd_next_order().unwrap()
             }
         };
