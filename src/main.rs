@@ -264,8 +264,9 @@ fn wait_transfer(
 fn scan_wallet(coins: &mut Vec<wallet::WalletCoin>, exchanges: &config::ExchangeList) {
     let config = config::CONFIG.get().unwrap();
     let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
-    println!("etherscan BALANCES for 0x{}", my_addr);
+    print!("etherscan BALANCES for ");
     let mut eth_coins = etherscan_coins(&my_addr, coins, &config.etherscan_key);
+    println!();
     coins.append(&mut eth_coins);
     for exchange in exchanges.enabled() {
         let mut exchange_coins = exchange_coins(&my_addr, exchange);
@@ -927,6 +928,7 @@ fn etherscan_coins(
     let mut coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet_coins {
         let mut balance = etherscan::balance(my_addr, &coin.contract, api_key);
+        print!("{} ", coin.ticker_symbol);
         let token = types::Ticker {
             symbol: coin.ticker_symbol.clone(),
         };

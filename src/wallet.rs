@@ -64,10 +64,10 @@ impl Wallet {
         }
         let mut total = 0.0;
         for (source, subtotal) in subtotals {
-            println!("{:8.8} = {:0.5}{}", source, subtotal, quote_symbol);
+            println!("{:8.8} = {:9.5}{}", source, subtotal, quote_symbol);
             total = total + subtotal;
         }
-        println!("*Total   = {:0.5}{}", total, quote_symbol);
+        println!("*Total   = {:9.5}{}", total, quote_symbol);
     }
 }
 
