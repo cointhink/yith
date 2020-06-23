@@ -59,7 +59,7 @@ impl Wallet {
                     subtotals.insert(source, 0.0);
                 }
                 subtotals.insert(source, subtotals.get(source).unwrap() + quote_total);
-                println!("{} {:5.2}{}", coin, quote_total, quote_symbol);
+                println!("{} {:8.5}{}", coin, quote_total, quote_symbol);
             }
         }
         let mut total = 0.0;
