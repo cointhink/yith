@@ -562,7 +562,6 @@ impl Switcheo {
             address: address,
             signature: signature,
         };
-        println!("{:?}", transfer_request_signed);
         let api_word = match direction {
             TransferDirection::Withdrawal => "withdrawals",
             TransferDirection::Deposit => "deposits",
@@ -576,12 +575,7 @@ impl Switcheo {
             .unwrap();
         let status = resp.status();
         println!("{} {}", resp.url(), status);
-        println!(
-            "{}",
-            serde_json::to_string(&transfer_request_signed).unwrap()
-        );
         let json = resp.text().unwrap();
-        println!("{}", json);
         if status.is_success() {
             Ok(json.to_string())
         } else {
@@ -1033,7 +1027,6 @@ pub fn split_market_pair(pair: &str) -> (String, String) {
 pub fn amount_to_units(amount: f64, precision: i32, decimals: i32) -> String {
     let qty_int = exchange::quantity_in_base_units(amount, precision, decimals);
     let qty_str = qty_int.to_str_radix(10);
-    println!("{}#{}^{} => \"{}\"", amount, precision, decimals, qty_str);
     qty_str
 }
 
@@ -1045,7 +1038,6 @@ pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
 }
 
 pub fn float_to_string_precision(num: f64, precision: i32) -> String {
-    println!("num {} prec {} ", num, precision);
     let prec = precision as usize;
     let num_str = num.to_string();
     let parts: Vec<&str> = num_str.split(".").collect();
@@ -1053,7 +1045,6 @@ pub fn float_to_string_precision(num: f64, precision: i32) -> String {
     let mut frac = if parts.len() == 2 { &parts[1] } else { "" }.to_string();
     frac.truncate(prec);
     let padding = "0".repeat(prec - frac.len());
-    println!("num_str {} frac {} frac_padded {}", num_str, frac, padding);
     format!("{}.{}{}", int, frac, padding)
 }
 

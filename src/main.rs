@@ -547,7 +547,7 @@ fn build_book(
     if let Some(exchange_token_balance) = exchange_balance {
         if total > exchange_token_balance {
             println!(
-                "order total {} exceeds exchange balance {}",
+                "order total {:0.5} exceeds exchange balance {:0.5}",
                 total, exchange_token_balance
             );
             let missing = total - exchange_token_balance;
@@ -570,7 +570,7 @@ fn build_book(
             }
         } else {
             println!(
-                "order total {} is met by exchange balance {}. no despoit necessary.",
+                "order total {:0.5} is met by exchange balance {:0.5}. no despoit necessary.",
                 total, exchange_token_balance
             );
         }
@@ -631,11 +631,11 @@ fn build_offer(
     let mut amount_limits = vec![];
     let offer_cost = premium_offer.cost(*askbid);
     amount_limits.push(offer_cost);
-    println!("added amount_limit of {} from offer_cost", offer_cost);
+    println!("added amount_limit of {:0.5} from offer_cost", offer_cost);
 
     amount_limits.push(wallet_token_balance);
     println!(
-        "added amount_limit of {} from wallet balance",
+        "added amount_limit of {:0.5} from wallet balance",
         wallet_token_balance
     );
 
@@ -645,7 +645,7 @@ fn build_offer(
             let wallet_coin_limit = wallet.coin_limit(&sell_token.symbol);
             amount_limits.push(wallet_coin_limit);
             println!(
-                "added amount_limit of {} from wallet_coin_limit",
+                "added amount_limit of {:0.5} from wallet_coin_limit",
                 wallet_coin_limit
             );
         }
@@ -658,16 +658,19 @@ fn build_offer(
     };
 
     let least_cost = eth::minimum(&amount_limits);
-    println!("least_cost {} = min of {:?}", least_cost, &amount_limits);
+    println!(
+        "least_cost {:0.5} = min of {:?}",
+        least_cost, &amount_limits
+    );
     let least_qty = match askbid {
         types::AskBid::Ask => least_cost / premium_offer.quote,
         types::AskBid::Bid => least_cost,
     };
     if least_cost < offer_cost {
-        exchange::ExchangeError::build_box(format!(
-            "{} balance capped at {:0.4}. adj qty {:0.4}",
+        println!(
+            "{} balance capped at {:0.5}. adj qty {:0.5}",
             sell_token, least_cost, least_qty
-        ));
+        );
     }
 
     let least_quote = match askbid {
@@ -774,7 +777,7 @@ fn sweep(
     exchange: &config::Exchange,
     token: &types::Ticker,
 ) -> Option<Box<dyn std::error::Error>> {
-    println!("** SWEEP OUT {} {}", exchange.settings.name, token);
+    println!("** Sweep {} {}", exchange.settings.name, token);
     let my_addr = eth::privkey_to_addr(private_key);
     let direction = exchange::TransferDirection::Withdraw;
     let balance_opt = exchange_balance(&my_addr, exchange, token);
@@ -805,7 +808,7 @@ fn exchange_balance(
     match winner {
         Some(coin) => {
             let total = coin.base_total();
-            println!("{} {} {}", exchange.settings.name, token, total);
+            println!("{} balance {} {:0.5}", exchange.settings.name, token, total);
             Some(total)
         }
         None => None,

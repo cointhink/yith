@@ -312,9 +312,9 @@ impl Idex {
                 Some(balance) => {
                     let waited = start.elapsed();
                     println!(
-                        "idex balance {} == {} {} {}",
-                        balance,
+                        "idex balance {} => {} {} {}",
                         old_balance,
+                        balance,
                         token,
                         time::duration_words(waited)
                     );
