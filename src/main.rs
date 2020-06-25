@@ -197,7 +197,20 @@ fn run_transfer(
     amount: f64,
     token: &types::Ticker,
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
+    let config = config::CONFIG.get().unwrap();
+    println!(
+        "run_transfer {:?} {} {:0.5} {}",
+        direction, exchange.settings.name, amount, token
+    );
     let public_addr = eth::privkey_to_addr(private_key);
+    let start_balance = match exchange_balance(&public_addr, exchange, token) {
+        Some(balance) => balance,
+        None => 0.0,
+    };
+    println!(
+        "run_transfer {} start balance {:0.5} {}",
+        exchange.settings.name, start_balance, token
+    );
     let tid_opt = match direction {
         exchange::TransferDirection::Withdraw => {
             exchange
@@ -213,7 +226,22 @@ fn run_transfer(
     match tid_opt {
         Ok(tid) => match tid {
             Some(tferid) => match wait_transfer(&tferid, &public_addr, exchange) {
-                exchange::BalanceStatus::Complete => Ok(None),
+                exchange::BalanceStatus::Complete => {
+                    let stop_balance = match exchange_balance(&public_addr, exchange, token) {
+                        Some(balance) => balance,
+                        None => 0.0,
+                    };
+                    let deposit = match direction {
+                        exchange::TransferDirection::Withdraw => start_balance - stop_balance,
+                        exchange::TransferDirection::Deposit => stop_balance - start_balance,
+                    };
+                    let fee = amount - deposit;
+                    println!(
+                        "run_transfer {} stop balance {:0.5} {} = deposit {:0.5} missing/fee {:0.5}",
+                        exchange.settings.name, stop_balance, token, deposit, fee
+                    );
+                    Ok(None)
+                }
                 exchange::BalanceStatus::InProgress => Err(exchange::ExchangeError::build_box(
                     "transfer status weird timeout".to_string(),
                 )),

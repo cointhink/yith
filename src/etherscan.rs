@@ -1,3 +1,4 @@
+use crate::eth;
 use crate::exchanges;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
