@@ -537,13 +537,15 @@ fn build_book(
                     Mode::Simulate => "WARNING",
                     Mode::Real => "ERROR",
                 };
-                let err = exchange::ExchangeError::build_box(format!(
-                    "{}: {} balance unknown for {}",
-                    modeword, sell_token, &pub_addr
-                ));
                 match mode {
                     Mode::Simulate => (),
-                    Mode::Real => panic!(), // early return
+                    Mode::Real => {
+                        println!(
+                            "{}: {} balance unknown for {}",
+                            modeword, sell_token, &pub_addr
+                        );
+                        panic!()
+                    }
                 };
                 0.0
             }

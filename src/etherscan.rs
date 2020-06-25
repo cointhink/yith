@@ -133,7 +133,12 @@ pub fn last_token_transaction(
         ETHERSCAN_API_URL, public_addr, start_block, api_key
     );
     let resp = client.get(&url).send().unwrap();
-    println!("{} {} (looking for {})", url, resp.status(), token);
+    println!(
+        "etherscan tokentx looking for {} since block {} => {}",
+        token,
+        start_block,
+        resp.status(),
+    );
     if resp.status().is_success() {
         let response = resp.json::<ApiResponse<Erc20Transaction>>().unwrap();
         let good: Vec<&Erc20Transaction> = response

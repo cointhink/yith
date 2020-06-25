@@ -516,7 +516,6 @@ impl exchange::Api for Idex {
             token: base_token.address.clone(),
             nonce: nonce.to_string(),
         };
-        println!("{:?}", withdraw);
         let params_hash_bytes = withdraw_params_hash(&withdraw, &exchange.contract_address);
         let params_hash = eth::ethsign_hash_msg(&params_hash_bytes[..].to_vec());
         let private_key_bytes = &hex::decode(private_key).unwrap();
