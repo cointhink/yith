@@ -1,3 +1,4 @@
+use crate::etherscan;
 use crate::exchange;
 use crate::exchanges;
 use crate::geth;
@@ -9,6 +10,7 @@ use std::fs;
 
 pub static FILENAME: &'static str = "config.yaml";
 pub static CONFIG: OnceCell<Config> = OnceCell::new();
+pub static ETHERSCAN: OnceCell<etherscan::Etherscan> = OnceCell::new();
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {

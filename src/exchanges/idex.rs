@@ -569,7 +569,7 @@ impl exchange::Api for Idex {
         let nonce = self.geth.nonce(&pub_addr).unwrap();
         let gas_price_fast = geth::ethgasstation_fast();
         let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
-        println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
+        println!("deposit tx gas {}gwei (ethgasstation_fast)", gas_price_gwei);
 
         let mut contract_addra = [0u8; 20];
         let contract_addr = exchange.contract_address.clone();
@@ -674,24 +674,21 @@ impl exchange::Api for Idex {
                     println!("{}", e.error.message);
                     exchange::BalanceStatus::Complete
                 }
-                geth::RpcResultTypes::Result(r) => {
-                    println!("tx receipt result {:?}", r.result);
-                    match r.result {
-                        geth::ResultTypes::TransactionReceipt(tr) => {
-                            match u32::from_str_radix(&tr.status[2..], 16).unwrap() {
-                                1 => {
-                                    self.balance_wait(public_addr, exchange, token);
-                                    exchange::BalanceStatus::Complete
-                                }
-                                _ => {
-                                    println!("deposit tx failed. erc20 allowance problem?");
-                                    exchange::BalanceStatus::Error
-                                }
+                geth::RpcResultTypes::Result(r) => match r.result {
+                    geth::ResultTypes::TransactionReceipt(tr) => {
+                        match u32::from_str_radix(&tr.status[2..], 16).unwrap() {
+                            1 => {
+                                self.balance_wait(public_addr, exchange, token);
+                                exchange::BalanceStatus::Complete
+                            }
+                            _ => {
+                                println!("deposit tx failed. erc20 allowance problem?");
+                                exchange::BalanceStatus::Error
                             }
                         }
-                        _ => exchange::BalanceStatus::InProgress,
                     }
-                }
+                    _ => exchange::BalanceStatus::InProgress,
+                },
             }
         } else {
             // withdrawal transfer_id is last_blocknumber

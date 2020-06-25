@@ -51,7 +51,7 @@ pub struct TokenDetail {
     pub symbol: String,
     name: String,
     r#type: String,
-    hash: String,
+    pub hash: String,
     pub decimals: i32,
     transfer_decimals: i32,
     precision: i32,
@@ -61,6 +61,7 @@ pub struct TokenDetail {
     stablecoin_type: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct TokenList {
     pub tokens: HashMap<String, TokenDetail>,
 }

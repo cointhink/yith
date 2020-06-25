@@ -40,6 +40,8 @@ fn main() {
     let exchanges = config::hydrate_exchanges(exchanges_filename, &config)
         .unwrap_or_else(|c| panic!("{} {}", exchanges_filename, c));
 
+    let etherscan = etherscan::Etherscan::new(&config.etherscan_key);
+    config::ETHERSCAN.set(etherscan).unwrap(); // set-once global
     config::CONFIG.set(config).unwrap(); // set-once global
 
     match app(wallet, exchanges, options) {
@@ -199,17 +201,29 @@ fn run_transfer(
 ) -> Result<Option<String>, Box<dyn std::error::Error>> {
     let config = config::CONFIG.get().unwrap();
     println!(
-        "run_transfer {:?} {} {:0.5} {}",
+        "{:?} into {} {:0.5} {}",
         direction, exchange.settings.name, amount, token
     );
     let public_addr = eth::privkey_to_addr(private_key);
-    let start_balance = match exchange_balance(&public_addr, exchange, token) {
+    let escan = config::ETHERSCAN.get().unwrap();
+    let etoken = escan.tokens.get(token).unwrap();
+    let start_wallet = etherscan_coin(
+        &public_addr,
+        &etoken.symbol,
+        &etoken.hash,
+        &config.etherscan_key,
+    );
+    println!(
+        "run_transfer starting wallet balance {:0.5} {}",
+        start_wallet, token
+    );
+    let start_exchange = match exchange_balance(&public_addr, exchange, token) {
         Some(balance) => balance,
         None => 0.0,
     };
     println!(
-        "run_transfer {} start balance {:0.5} {}",
-        exchange.settings.name, start_balance, token
+        "run_transfer {} starting exchange balance {:0.5} {}",
+        exchange.settings.name, start_exchange, token
     );
     let tid_opt = match direction {
         exchange::TransferDirection::Withdraw => {
@@ -227,18 +241,41 @@ fn run_transfer(
         Ok(tid) => match tid {
             Some(tferid) => match wait_transfer(&tferid, &public_addr, exchange) {
                 exchange::BalanceStatus::Complete => {
-                    let stop_balance = match exchange_balance(&public_addr, exchange, token) {
+                    let stop_exchange = match exchange_balance(&public_addr, exchange, token) {
                         Some(balance) => balance,
                         None => 0.0,
                     };
-                    let deposit = match direction {
-                        exchange::TransferDirection::Withdraw => start_balance - stop_balance,
-                        exchange::TransferDirection::Deposit => stop_balance - start_balance,
-                    };
-                    let fee = amount - deposit;
                     println!(
-                        "run_transfer {} stop balance {:0.5} {} = deposit {:0.5} missing/fee {:0.5}",
-                        exchange.settings.name, stop_balance, token, deposit, fee
+                        "run_transfer {} stop exchange balance {:0.5} {}",
+                        exchange.settings.name, stop_exchange, token
+                    );
+                    let stop_wallet = etherscan_coin(
+                        &public_addr,
+                        &etoken.symbol,
+                        &etoken.hash,
+                        &config.etherscan_key,
+                    );
+                    println!(
+                        "run_transfer stop wallet balance {:0.5} {}",
+                        stop_wallet, token
+                    );
+                    let exchange_change = match direction {
+                        exchange::TransferDirection::Withdraw => start_exchange - stop_exchange,
+                        exchange::TransferDirection::Deposit => stop_exchange - start_exchange,
+                    };
+                    let wallet_change = match direction {
+                        exchange::TransferDirection::Withdraw => stop_wallet - start_wallet,
+                        exchange::TransferDirection::Deposit => start_wallet - stop_wallet,
+                    };
+                    let exchange_diff = amount - exchange_change;
+                    let wallet_diff = amount - wallet_change;
+                    println!(
+                        "run_transfer {} actual exchange change {:0.5} fee {:0.5} (missing from amount {})",
+                        token, exchange_change, exchange_diff, amount
+                    );
+                    println!(
+                        "run_transfer {} actual wallet change {:0.5} fee {:0.5} (missing from amount {})",
+                        token, wallet_change, wallet_diff, amount
                     );
                     Ok(None)
                 }
@@ -955,24 +992,28 @@ fn etherscan_coins(
     wallet_coins: &Vec<wallet::WalletCoin>,
     api_key: &str,
 ) -> Vec<wallet::WalletCoin> {
-    let escan = etherscan::Etherscan::new();
     let mut coins = Vec::<wallet::WalletCoin>::new();
     for coin in wallet_coins {
-        let mut balance = etherscan::balance(my_addr, &coin.contract, api_key);
         print!("{} ", coin.ticker_symbol);
-        let token = types::Ticker {
-            symbol: coin.ticker_symbol.clone(),
-        };
-        let decimals = match escan.tokens.get(&token) {
-            Some(token_detail) => token_detail.decimals,
-            None => 0,
-        };
-        balance = eth::wei_to_eth(balance, decimals);
+        let balance = etherscan_coin(my_addr, &coin.ticker_symbol, &coin.contract, api_key);
         let eth_coin =
             wallet::WalletCoin::build(&coin.ticker_symbol, &coin.contract, &my_addr, balance);
         coins.push(eth_coin);
     }
     coins
+}
+
+fn etherscan_coin(my_addr: &str, symbol: &str, contract_addr: &str, api_key: &str) -> f64 {
+    let balance = etherscan::balance(my_addr, contract_addr, api_key);
+    let token = types::Ticker {
+        symbol: symbol.to_string(),
+    };
+    let escan = config::ETHERSCAN.get().unwrap();
+    let decimals = match escan.tokens.get(&token) {
+        Some(token_detail) => token_detail.decimals,
+        None => 0,
+    };
+    eth::wei_to_eth(balance, decimals)
 }
 
 fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {

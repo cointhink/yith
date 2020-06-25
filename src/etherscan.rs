@@ -1,4 +1,3 @@
-use crate::eth;
 use crate::exchanges;
 use reqwest::header;
 use serde::{Deserialize, Serialize};
@@ -29,14 +28,19 @@ pub struct Erc20Transaction {
     pub token_symbol: String,
 }
 
+#[derive(Debug)]
 pub struct Etherscan {
     pub tokens: TokenList,
+    pub api_key: String,
 }
 
 impl Etherscan {
-    pub fn new() -> Etherscan {
+    pub fn new(api_key: &str) -> Etherscan {
         let tokens = read_tokens("./notes/etherscan-tokens.json");
-        Etherscan { tokens: tokens }
+        Etherscan {
+            tokens: tokens,
+            api_key: api_key.to_string(),
+        }
     }
 }
 
