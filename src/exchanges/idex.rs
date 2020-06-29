@@ -505,7 +505,7 @@ impl exchange::Api for Idex {
             .balances
             .iter()
             .map(|(symbol, strval)| {
-                let f64 = strval.parse::<f64>().unwrap();
+                let f64 = exchange::str_to_chopped_f64(strval);
                 (symbol.clone(), f64)
             })
             .collect()

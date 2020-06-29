@@ -279,6 +279,13 @@ pub fn units_to_quantity(units: u64, scale: i32) -> f64 {
     units as f64 / power as f64
 }
 
+pub fn str_to_chopped_f64(number: &str) -> f64 {
+    // f64 = 53bits significand or 16 significant digits base10
+    // drop the last decimal to effect a truncate
+    let f64 = number.parse::<f64>().unwrap();
+    (f64 * 1e15).floor() / 1e15
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -293,5 +300,15 @@ mod tests {
         assert_eq!(unit_q, 23400000.into());
         let unit_q = quantity_in_base_units(2.3, 1, 2);
         assert_eq!(unit_q, 230.into());
+        let unit_q = quantity_in_base_units(2.3, 1, 2);
+        assert_eq!(unit_q, 230.into());
+    }
+
+    #[test]
+    fn test_str_to_chopped_f64() {
+        let unrepresentable = "0.221637009876543199";
+        let nearest_float_chopped = 0.221637009876543_f64;
+        let unit_q = str_to_chopped_f64(unrepresentable);
+        assert_eq!(unit_q, nearest_float_chopped);
     }
 }
