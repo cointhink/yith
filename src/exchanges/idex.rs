@@ -393,7 +393,9 @@ impl exchange::Api for Idex {
                     order_hash: o.order_hash.clone(),
                     amount: amount.to_str_radix(10),
                 };
-                orders.push(order);
+                if min_buy > 0.0 {
+                    orders.push(order);
+                }
                 remaining_buy -= min_buy;
                 println!(
                     "+ {:0.5}@{:0.5}={:0.5} {:0.5}@{:0.5}={:0.5} spending {:0.5}{} remaining {:0.5}",
