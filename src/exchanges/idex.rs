@@ -396,7 +396,7 @@ impl exchange::Api for Idex {
                 orders.push(order);
                 remaining_buy -= min_buy;
                 println!(
-                    "+ {}@{}={} {}@{}={} spending {}{} remaining {}",
+                    "+ {:0.5}@{:0.5}={:0.5} {:0.5}@{:0.5}={:0.5} spending {:0.5}{} remaining {:0.5}",
                     offer.base_qty,
                     offer.quote,
                     buy_qty,
