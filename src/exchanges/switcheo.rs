@@ -451,7 +451,7 @@ impl Into<ethereum_tx_sign::RawTransaction> for DepositTransaction {
         ethereum_tx_sign::RawTransaction {
             nonce: u64::from_str_radix(&self.nonce[2..], 16).unwrap().into(),
             to: Some(sized_to.into()),
-            value: 0.into(),
+            value: u64::from_str_radix(&self.value[2..], 16).unwrap().into(),
             gas_price: u64::from_str_radix(&self.gas_price[2..], 16)
                 .unwrap()
                 .into(),
