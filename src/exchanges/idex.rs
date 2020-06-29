@@ -465,6 +465,17 @@ impl exchange::Api for Idex {
                 println!("{}", json);
                 let orders = serde_json::from_str::<Vec<OrderResponse>>(&json).unwrap();
                 // TODO handle multiple orders
+                if orders.len() > 1 {
+                    println!(
+                        "warning: {} orders in play {}",
+                        orders.len(),
+                        orders
+                            .iter()
+                            .map(|o| o.uuid.as_str())
+                            .collect::<Vec<&str>>()
+                            .join(", ")
+                    )
+                }
                 Ok(orders[0].uuid.clone())
             } else {
                 let json = resp.text().unwrap();
