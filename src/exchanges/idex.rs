@@ -489,7 +489,7 @@ impl exchange::Api for Idex {
         }
     }
 
-    fn balances<'a>(
+    fn balances(
         &self,
         public_addr: &str,
         exchange: &config::ExchangeSettings,
@@ -561,7 +561,7 @@ impl exchange::Api for Idex {
         amount: f64,
         ticker: &types::Ticker,
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
-        println!("depositing {} amount {}", ticker.symbol, amount);
+        println!("idex deposit {} {}", amount, ticker.symbol);
         let (data, value) = if ticker.symbol == "ETH" {
             let bigint = exchange::quantity_in_base_units(amount, 18, 18);
             (
@@ -579,9 +579,13 @@ impl exchange::Api for Idex {
 
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.geth.nonce(&pub_addr).unwrap();
+        let gas_tx = 50000;
         let gas_price_fast = geth::ethgasstation_fast();
         let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
-        println!("deposit tx gas {}gwei (ethgasstation_fast)", gas_price_gwei);
+        println!(
+            "deposit tx {} gas @{}gwei (ethgasstation_fast)",
+            gas_tx, gas_price_gwei
+        );
 
         let mut contract_addra = [0u8; 20];
         let contract_addr = exchange.contract_address.clone();
