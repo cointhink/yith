@@ -280,10 +280,10 @@ pub fn units_to_quantity(units: u64, scale: i32) -> f64 {
 }
 
 pub fn str_to_chopped_f64(number: &str) -> f64 {
-    // f64 = 53bits significand or 16 significant digits base10
-    // drop the last decimal to effect a truncate
-    let f64 = number.parse::<f64>().unwrap();
-    (f64 * 1e15).floor() / 1e15
+    // parse the string, last digit is rounded
+    let parsed = number.parse::<f64>().unwrap().to_string();
+    // drop the last digit to always be lower
+    parsed[..parsed.len() - 1].parse::<f64>().unwrap()
 }
 
 #[cfg(test)]
@@ -310,5 +310,10 @@ mod tests {
         let nearest_float_chopped = 0.221637009876543_f64;
         let unit_q = str_to_chopped_f64(unrepresentable);
         assert_eq!(unit_q, nearest_float_chopped);
+
+        let u2 = "4.721027191907876302";
+        let n2 = 4.72102719190787;
+        let q2 = str_to_chopped_f64(u2);
+        assert_eq!(q2, n2);
     }
 }
