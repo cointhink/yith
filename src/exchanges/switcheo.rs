@@ -645,7 +645,7 @@ impl exchange::Api for Switcheo {
             order_type: "limit".to_string(),
             pair: market_pair,
             quantity: amount_to_units(
-                offer.base_qty,
+                offer.base_qty * 0.99999, // f64 hack
                 base_token_detail.precision,
                 base_token_detail.decimals,
             ),

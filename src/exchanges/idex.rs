@@ -374,7 +374,7 @@ impl exchange::Api for Idex {
             types::AskBid::Ask => offer.cost(types::AskBid::Ask),
             types::AskBid::Bid => offer.base_qty,
         };
-        let mut remaining_buy = buy_qty;
+        let mut remaining_buy = buy_qty * 0.9999; // f64 hack
         side.iter().for_each(|o| {
             let price = o.price.parse::<f64>().unwrap();
             let qty = o.amount.parse::<f64>().unwrap();

@@ -280,8 +280,13 @@ pub fn units_to_quantity(units: u64, scale: i32) -> f64 {
 }
 
 pub fn str_to_chopped_f64(number: &str) -> f64 {
-    // parse the string, last digit is rounded
-    let parsed = number.parse::<f64>().unwrap().to_string();
+    // parse the string, last digit is rounded (thats bad)
+    let f64 = number.parse::<f64>().unwrap();
+    chopped_f64(f64)
+}
+
+pub fn chopped_f64(number: f64) -> f64 {
+    let parsed = number.to_string();
     // drop the last digit to always be lower
     parsed[..parsed.len() - 1].parse::<f64>().unwrap()
 }
