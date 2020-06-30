@@ -614,7 +614,7 @@ fn build_book(
     if let Some(exchange_token_balance) = exchange_balance {
         if total > exchange_token_balance {
             println!(
-                "order total {:0.5} exceeds exchange balance {:0.5}",
+                "order total {} exceeds exchange balance {}",
                 total, exchange_token_balance
             );
             let missing = total - exchange_token_balance;

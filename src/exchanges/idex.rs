@@ -382,7 +382,11 @@ impl exchange::Api for Idex {
                 types::AskBid::Ask => price * qty,
                 types::AskBid::Bid => qty,
             };
-            if price <= offer.quote {
+            let better = match askbid {
+                types::AskBid::Ask => price <= offer.quote,
+                types::AskBid::Bid => price >= offer.quote,
+            };
+            if better {
                 let min_buy = eth::minimum(&vec![remaining_buy, cost]);
                 let amount = exchange::quantity_in_base_units(
                     remaining_buy,
