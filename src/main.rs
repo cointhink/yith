@@ -299,7 +299,7 @@ fn wait_transfer(
     public_addr: &str,
     exchange: &config::Exchange,
 ) -> exchange::BalanceStatus {
-    println!("wait_transfer for {}", transfer_id);
+    println!("wait_transfer watching {}", transfer_id);
     let start = time::now();
     let mut status = exchange::BalanceStatus::InProgress;
     let mut done = false;
@@ -875,7 +875,7 @@ fn exchange_balance(
     match winner {
         Some(coin) => {
             let total = coin.base_total();
-            println!("{} balance {} {:0.5}", exchange.settings.name, token, total);
+            println!("{} balance {} {}", exchange.settings.name, token, total);
             Some(total)
         }
         None => None,
@@ -978,7 +978,7 @@ fn wait_order(exchange: &config::Exchange, order_id: &str) -> exchange::OrderSta
 fn exchange_coins(my_addr: &str, exchange: &config::Exchange) -> Vec<wallet::WalletCoin> {
     let mut exchange_coins = Vec::<wallet::WalletCoin>::new();
     if exchange.settings.has_balances {
-        println!("{} BALANCES for 0x{}", exchange.settings.name, my_addr);
+        println!("{} balance check for 0x{}", exchange.settings.name, my_addr);
         let balances = exchange.api.balances(&my_addr, &exchange.settings);
         for (symbol, balance) in balances {
             let exchange_coin =

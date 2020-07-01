@@ -547,7 +547,11 @@ impl Switcheo {
         let privbytes = &hex::decode(privkey).unwrap();
         let secret_key = SecretKey::from_slice(privbytes).unwrap();
         let token_detail = self.tokens.get(&token).unwrap();
-        let units = amount_to_units(amount, token_detail.precision, token_detail.decimals);
+        let units = amount_to_units(
+            amount,
+            token_detail.transfer_decimals,
+            token_detail.decimals,
+        );
         let withdrawl_request = TransferRequest {
             blockchain: "eth".to_string(),
             asset_id: token_detail.hash.clone(),
@@ -769,7 +773,7 @@ impl exchange::Api for Switcheo {
         }
     }
 
-    fn balances<'a>(
+    fn balances(
         &self,
         public_addr: &str,
         exchange: &config::ExchangeSettings,

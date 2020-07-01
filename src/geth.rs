@@ -55,7 +55,6 @@ impl Client {
         method: &str,
         params: ParamTypes,
     ) -> Result<JsonRpcResult, Box<dyn std::error::Error>> {
-        println!("geth {}", method);
         self.call(method, params)
     }
 
@@ -84,6 +83,7 @@ impl Client {
             method: method.to_string(),
             params: params,
         };
+        println!("geth {}", method);
         let result = self.http.post(&self.url).json(&jrpc).send();
         match result {
             Ok(res) => {
