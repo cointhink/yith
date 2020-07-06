@@ -186,6 +186,7 @@ fn app(
         }
 
         // final balances
+        wallet.reset();
         scan_wallet(&mut wallet.coins, &exchanges);
         wallet.print_with_price();
 
