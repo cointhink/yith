@@ -394,7 +394,7 @@ fn run_order(
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
     let ask_sheets_good_total = count_good_total(&ask_sheets);
 
-    if ask_sheets_good_total > 0.0 {
+    if order.ask_books.books.len() == 0 || ask_sheets_good_total > 0.0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
         let sim_bid_sheets_good_total = count_good_total(&sim_bid_sheets);
