@@ -367,10 +367,10 @@ fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
     email::send(email, &subject, &out);
 }
 
-fn count_bad_sheets<M, N, O, P, T, S>(sheets: &Vec<(M, N, O, P, Vec<Result<T, S>>)>) -> usize {
-    sheets.into_iter().fold(0, |memo, (_m, _n, _o, _p, s)| {
-        memo + s.iter().filter(|sh| sh.is_err()).collect::<Vec<_>>().len()
-    })
+fn count_good_total<M, N, O, T, S>(sheets: &Vec<(M, N, O, f64, Vec<Result<T, S>>)>) -> f64 {
+    sheets
+        .into_iter()
+        .fold(0.0, |memo, (_m, _n, _o, total, s)| memo + total)
 }
 
 fn run_order(
@@ -386,14 +386,14 @@ fn run_order(
     ));
 
     let ask_sheets = build_books(config, wallet, &order.ask_books, exchanges, Mode::Real);
-    let ask_sheets_badlen = count_bad_sheets(&ask_sheets);
+    let ask_sheets_good_total = count_good_total(&ask_sheets);
 
-    if ask_sheets_badlen == 0 {
+    if ask_sheets_good_total > 0.0 {
         let sim_bid_sheets =
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
-        let sim_bid_sheets_badlen = count_bad_sheets(&sim_bid_sheets);
+        let sim_bid_sheets_good_total = count_good_total(&sim_bid_sheets);
 
-        if sim_bid_sheets_badlen == 0 {
+        if sim_bid_sheets_good_total > 0.0 {
             let _ask_runs = run_sheets(config, ask_sheets);
 
             // wallet refresh
@@ -401,21 +401,27 @@ fn run_order(
             scan_wallet(&mut wallet.coins, &exchanges);
 
             let bid_sheets = build_books(config, wallet, &order.bid_books, exchanges, Mode::Real);
-            let bid_sheets_badlen = count_bad_sheets(&bid_sheets);
+            let bid_sheets_good_total = count_good_total(&bid_sheets);
 
-            if bid_sheets_badlen == 0 {
+            if bid_sheets_good_total > 0.0 {
                 let _bid_runs = run_sheets(config, bid_sheets);
             } else {
-                run_out.add(format!("sumbit aborted! {} bad bids", bid_sheets_badlen));
+                run_out.add(format!(
+                    "sumbit aborted! {} good total bids",
+                    bid_sheets_good_total
+                ));
             }
         } else {
             run_out.add(format!(
-                "submit aborted! {} bad sim_bids",
-                sim_bid_sheets_badlen
+                "submit aborted! {} good total sim_bids",
+                sim_bid_sheets_good_total
             ));
         }
     } else {
-        run_out.add(format!("submit aborted! {} bad asks", ask_sheets_badlen));
+        run_out.add(format!(
+            "submit aborted! {} good total asks",
+            ask_sheets_good_total
+        ));
     }
     run_out
 }
