@@ -373,10 +373,10 @@ fn mail_log(email: &str, order: &types::Order, run_log: &log::RunLog) {
     email::send(email, &subject, &out);
 }
 
-fn count_good_total<M, N, O, T, S>(sheets: &Vec<(M, N, O, f64, Vec<Result<T, S>>)>) -> f64 {
-    sheets
+fn count_good_total<M, N, O, T, S>(booksheets: &Vec<(M, N, O, f64, Vec<Result<T, S>>)>) -> f64 {
+    booksheets
         .into_iter()
-        .fold(0.0, |memo, (_m, _n, _o, total, s)| memo + total)
+        .fold(0.0, |memo, (_m, _n, _o, total, _sheets)| memo + total)
 }
 
 fn run_order(
@@ -720,7 +720,7 @@ fn build_offer(
 
     // limit
     match wallet.find_coin_by_source_symbol("limit", &sell_token.symbol) {
-        Ok(coin) => {
+        Ok(_coin) => {
             let wallet_coin_limit = wallet.coin_limit(&sell_token.symbol);
             amount_limits.push(wallet_coin_limit);
             println!(

@@ -617,6 +617,24 @@ impl Switcheo {
         let json = resp.text().unwrap();
         serde_json::from_str::<BalanceResponse>(&json).unwrap()
     }
+
+    fn wait_confirming_balances(&self, public_addr: &str, exchange: &config::ExchangeSettings) {
+        let mut repeat = true;
+        while repeat {
+            let balances = self.balances(public_addr, exchange);
+            let balances_confirming = balances.confirming.len();
+            repeat = if balances_confirming > 0 {
+                println!(
+                    "{} switcheo confirming balances. waiting...",
+                    balances_confirming
+                );
+                time::sleep(5000);
+                true
+            } else {
+                false
+            }
+        }
+    }
 }
 
 impl exchange::Api for Switcheo {
@@ -929,7 +947,7 @@ impl exchange::Api for Switcheo {
     fn order_status(
         &self,
         order_id: &str,
-        _exchange: &config::ExchangeSettings,
+        exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
         let url = format!("{}/orders/{}", self.settings.api_url.as_str(), order_id);
         println!("{}", url);
@@ -937,7 +955,17 @@ impl exchange::Api for Switcheo {
         let status = resp.status();
         if status.is_success() {
             let order = resp.json::<Order>().unwrap();
-            order.order_status.finto()
+            match order.order_status.finto() {
+                exchange::OrderState::Filled => {
+                    // wait for confirming balances
+                    println!("switcheo order_status shows Filled, waiting on confirming balances");
+                    let config = config::CONFIG.get().unwrap();
+                    let my_addr = eth::privkey_to_addr(&config.wallet_private_key);
+                    self.wait_confirming_balances(&my_addr, exchange);
+                    exchange::OrderState::Filled
+                }
+                e => e,
+            }
         } else {
             exchange::OrderState::Cancelled
         }
