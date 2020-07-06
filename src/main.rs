@@ -184,6 +184,11 @@ fn app(
         if let Some(email) = &config.email {
             mail_log(&email, &order, &run_log)
         }
+
+        // final balances
+        scan_wallet(&mut wallet.coins, &exchanges);
+        wallet.print_with_price();
+
         None
     } else {
         Some(errors::MainError::build_box(format!(
