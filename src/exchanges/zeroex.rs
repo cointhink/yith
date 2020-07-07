@@ -1,6 +1,8 @@
 use crate::config;
 use crate::eth;
 use crate::exchange;
+use crate::geth;
+use crate::http;
 use crate::time;
 use crate::types;
 use chrono;
@@ -14,6 +16,12 @@ pub struct OrderSheet {
     quantity: String,
     price: String,
     expiration: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketOrders {
+    orders: Vec<OrderForm>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -146,7 +154,21 @@ pub enum SignatureType {
     EIP1271Wallet = 0x07,
 }
 
-pub struct Zeroex {}
+pub struct Zeroex {
+    pub settings: config::ExchangeSettings,
+    client: http::LoggingClient,
+}
+
+impl Zeroex {
+    pub fn new(settings: config::ExchangeSettings, geth: geth::Client) -> Zeroex {
+        let client = reqwest::blocking::Client::new();
+        let logging_client = http::LoggingClient::new(client);
+        Zeroex {
+            settings: settings,
+            client: logging_client,
+        }
+    }
+}
 
 impl exchange::Api for Zeroex {
     fn setup(&mut self) {}
@@ -178,23 +200,36 @@ impl exchange::Api for Zeroex {
             expiration: format!("{}", expire_time),
         };
         let url = format!(
-            "{}/markets/{}/order/limit",
+            "{}/markets/{}/order/market",
             exchange.api_url.as_str(),
             market.id("-")
         );
-        let client = reqwest::blocking::Client::new();
         println!("{}", url);
         println!("{}", serde_json::to_string(&sheet).unwrap());
-        let resp = client.post(url.as_str()).json(&sheet).send()?;
+        let resp = self.client.post(url.as_str()).json(&sheet).send()?;
         println!("{:#?} {}", resp.status(), resp.url());
         if resp.status().is_success() {
-            let mut form = resp.json::<OrderForm>().unwrap();
-            form.maker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
-            println!("{:#?}", form);
-            let privkey_bytes = &hex::decode(privkey).unwrap();
-            let order_hash = order_hash(&form);
-            form.signature = order_sign(privkey_bytes, order_hash);
-            Ok(exchange::OrderSheet::Zeroex(form))
+            let mkt_orders = resp.json::<MarketOrders>().unwrap();
+            let mut forms = mkt_orders
+                .orders
+                .into_iter()
+                .fold(vec![], |mut memo, mut form| {
+                    form.taker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
+                    println!("{:#?}", form);
+                    let privkey_bytes = &hex::decode(privkey).unwrap();
+                    let order_hash = order_hash(&form);
+                    form.signature = order_sign(privkey_bytes, order_hash);
+                    memo.push(form);
+                    memo
+                });
+            if forms.len() > 0 {
+                Ok(exchange::OrderSheet::Zeroex(forms.remove(0)))
+            } else {
+                Err(Box::new(exchange::OrderError {
+                    msg: "no matching offers".to_string(),
+                    code: -1,
+                }))
+            }
         } else {
             let bodyerr = resp.json::<ErrorResponse>().unwrap();
             let order_error = exchange::OrderError {
@@ -213,11 +248,10 @@ impl exchange::Api for Zeroex {
         sheet: exchange::OrderSheet,
     ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Zeroex(order) = sheet {
-            let client = reqwest::blocking::Client::new();
             let url = format!("{}/orders", exchange.api_url.as_str());
             println!("{}", url);
             println!("{}", serde_json::to_string(&order).unwrap());
-            let resp = client.post(url.as_str()).json(&order).send()?;
+            let resp = self.client.post(url.as_str()).json(&order).send()?;
             println!("{:#?} {}", resp.status(), resp.url());
             println!("{:#?}", resp.text());
             let order_hash = eth::hex(&order_hash(&order));
@@ -234,7 +268,6 @@ impl exchange::Api for Zeroex {
         private_key: &str,
         exchange: &config::ExchangeSettings,
     ) -> Vec<exchange::Order> {
-        let client = reqwest::blocking::Client::new();
         let account = eth::privkey_to_addr(private_key);
         let url = format!(
             "{}/accounts/0x{}/orders",
@@ -242,7 +275,7 @@ impl exchange::Api for Zeroex {
             account
         );
         println!("{}", url);
-        let resp = client.get(url.as_str()).send().unwrap();
+        let resp = self.client.get(url.as_str()).send().unwrap();
         //println!("{:#?} {}", resp.status(), resp.url());
         let orders = resp.json::<Vec<Order>>().unwrap();
         //println!("{:#?}", orders);
@@ -259,10 +292,13 @@ impl exchange::Api for Zeroex {
         exchange: &config::ExchangeSettings,
     ) -> exchange::OrderState {
         let url = format!("{}/orders/{}", exchange.api_url.as_str(), order_id);
-        let client = reqwest::blocking::Client::new();
-        let resp = client.get(url.as_str()).send().unwrap();
-        let order = resp.json::<Order>().unwrap();
-        order.state.into()
+        let resp = self.client.get(url.as_str()).send().unwrap();
+        if resp.status().is_success() {
+            let order = resp.json::<Order>().unwrap();
+            order.state.into()
+        } else {
+            exchange::OrderState::Cancelled
+        }
     }
 }
 
