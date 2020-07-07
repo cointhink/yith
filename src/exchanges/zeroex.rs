@@ -285,6 +285,9 @@ impl exchange::Api for Zeroex {
                     if good_qty > 0.0 && better {
                         form.taker_address =
                             format!("0x{}", eth::privkey_to_addr(privkey).to_string());
+                        // TODO calculate amounts
+                        form.maker_asset_amount = format!("{}", 0.0);
+                        form.taker_asset_amount = format!("{}", 0.0);
                         println!("{:#?}", form);
                         let privkey_bytes = &hex::decode(privkey).unwrap();
                         let order_hash = order_hash(&form);
