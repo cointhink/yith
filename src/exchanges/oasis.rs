@@ -131,7 +131,7 @@ impl Oasis {
         match result {
             Ok(units_str) => {
                 let units = u128::from_str_radix(&units_str[2..], 16).unwrap();
-                let qty = exchange::units_to_quantity(units as u64, token.decimals);
+                let qty = exchange::units_to_quantity(units, token.decimals);
                 println!("{} oasis balance {}{}", time::now_string(), qty, token.name,);
                 Some(qty)
             }
@@ -235,7 +235,7 @@ impl exchange::Api for Oasis {
         };
         let min_sell = match self.min_sell(&sell_token.address, exchange) {
             Ok(units) => {
-                let qty = exchange::units_to_quantity(units, pair.quote_precision);
+                let qty = exchange::units_to_quantity(units as u128, pair.quote_precision);
                 println!(
                     "Min-Sell {} ^{} {} = {}",
                     &sell_token.name, pair.quote_precision, units, qty

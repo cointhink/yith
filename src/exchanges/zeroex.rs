@@ -8,6 +8,7 @@ use crate::types;
 use chrono;
 use secp256k1::SecretKey;
 use serde::{Deserialize, Serialize};
+use std::fs;
 use std::str::FromStr;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -44,6 +45,17 @@ pub struct OrderForm {
     salt: String,
     fee_recipient_address: String,
     expiration_time_seconds: String,
+}
+
+impl OrderForm {
+    pub fn taker_qty(&self, decimals: u32) -> f64 {
+        let units = u128::from_str_radix(&self.taker_asset_amount, 10).unwrap();
+        exchange::units_to_quantity(units, decimals as i32)
+    }
+    pub fn maker_qty(&self, decimals: u32) -> f64 {
+        let units = u128::from_str_radix(&self.maker_asset_amount, 10).unwrap();
+        exchange::units_to_quantity(units, decimals as i32)
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -134,7 +146,7 @@ pub struct ErrorResponse {
     error: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum BuySell {
     #[serde(rename = "BUY")]
     Buy,
@@ -154,18 +166,51 @@ pub enum SignatureType {
     EIP1271Wallet = 0x07,
 }
 
+pub fn read_tokens(filename: &str) -> TokenList {
+    let file_ok = fs::read_to_string(filename);
+    let yaml = file_ok.unwrap();
+    let tokens = serde_yaml::from_str(&yaml).unwrap();
+    TokenList { tokens: tokens }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenList {
+    tokens: Vec<Token>,
+}
+
+impl TokenList {
+    pub fn by_addr(&self, addr: &str) -> &Token {
+        self.tokens
+            .iter()
+            .find(|detail| detail.address == addr)
+            .unwrap()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Token {
+    pub address: String,
+    pub symbol: String,
+    pub name: String,
+    pub decimals: u32,
+    pub active: u32,
+}
+
 pub struct Zeroex {
     pub settings: config::ExchangeSettings,
     client: http::LoggingClient,
+    tokens: TokenList,
 }
 
 impl Zeroex {
     pub fn new(settings: config::ExchangeSettings, geth: geth::Client) -> Zeroex {
+        let tokens = read_tokens("notes/radarrelay-tokens.json");
         let client = reqwest::blocking::Client::new();
         let logging_client = http::LoggingClient::new(client);
         Zeroex {
             settings: settings,
             client: logging_client,
+            tokens: tokens,
         }
     }
 }
@@ -194,8 +239,10 @@ impl exchange::Api for Zeroex {
         let expire_time = (time::since_epoch() + std::time::Duration::new(120 + 15, 0)).as_secs(); // 2min minimum + transittime
 
         let sheet = OrderSheet {
+            // market order
             r#type: side,
             quantity: format!("{}", qty),
+            // limit order only
             price: format!("{}", price),
             expiration: format!("{}", expire_time),
         };
@@ -214,6 +261,15 @@ impl exchange::Api for Zeroex {
                 .orders
                 .into_iter()
                 .fold(vec![], |mut memo, mut form| {
+                    let taker_asset_addr = format!("0x{}", &form.taker_asset_data[34..74]);
+                    let taker_token = self.tokens.by_addr(&taker_asset_addr);
+                    let maker_asset_addr = format!("0x{}", &form.maker_asset_data[34..74]);
+                    let maker_token = self.tokens.by_addr(&maker_asset_addr);
+                    let qty = form.taker_qty(taker_token.decimals);
+                    let price = form.maker_qty(maker_token.decimals) / qty;
+                    println!("offer {:?} {}@{} {}", side, qty, price, taker_token.symbol);
+                    let good_qty = eth::minimum(&vec![qty, offer.base_qty]);
+                    println!("good qty {}", good_qty);
                     form.taker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
                     println!("{:#?}", form);
                     let privkey_bytes = &hex::decode(privkey).unwrap();

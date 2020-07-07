@@ -274,7 +274,7 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
     qty_int
 }
 
-pub fn units_to_quantity(units: u64, scale: i32) -> f64 {
+pub fn units_to_quantity(units: u128, scale: i32) -> f64 {
     let power = 10_u128.pow(scale as u32);
     units as f64 / power as f64
 }
