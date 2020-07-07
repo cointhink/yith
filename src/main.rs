@@ -403,6 +403,7 @@ fn run_order(
             let _ask_runs = run_sheets(config, ask_sheets);
 
             // wallet refresh
+            println!("=wallet refresh");
             wallet.reset();
             scan_wallet(&mut wallet.coins, &exchanges);
 

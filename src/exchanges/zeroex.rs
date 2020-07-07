@@ -227,7 +227,7 @@ impl exchange::Api for Zeroex {
         offer: &types::Offer,
     ) -> Result<exchange::OrderSheet, Box<dyn std::error::Error>> {
         println!(
-            "0x build {:#?} {} {}@{}",
+            "=0x build {:#?} {} {}@{}",
             askbid, market, offer.base_qty, offer.quote
         );
         let qty = offer.base_qty;
@@ -265,17 +265,32 @@ impl exchange::Api for Zeroex {
                     let taker_token = self.tokens.by_addr(&taker_asset_addr);
                     let maker_asset_addr = format!("0x{}", &form.maker_asset_data[34..74]);
                     let maker_token = self.tokens.by_addr(&maker_asset_addr);
-                    let qty = form.taker_qty(taker_token.decimals);
-                    let price = form.maker_qty(maker_token.decimals) / qty;
-                    println!("offer {:?} {}@{} {}", side, qty, price, taker_token.symbol);
+                    let taker_qty = form.taker_qty(taker_token.decimals);
+                    let maker_qty = form.maker_qty(maker_token.decimals);
+                    let (qty, price) = match side {
+                        BuySell::Buy => (maker_qty, taker_qty / maker_qty),
+                        BuySell::Sell => (taker_qty, maker_qty / taker_qty),
+                    };
+                    println!("offer {:?} {}@{}", side, qty, price);
                     let good_qty = eth::minimum(&vec![qty, offer.base_qty]);
                     println!("good qty {}", good_qty);
-                    form.taker_address = format!("0x{}", eth::privkey_to_addr(privkey).to_string());
-                    println!("{:#?}", form);
-                    let privkey_bytes = &hex::decode(privkey).unwrap();
-                    let order_hash = order_hash(&form);
-                    form.signature = order_sign(privkey_bytes, order_hash);
-                    memo.push(form);
+                    let better = match side {
+                        BuySell::Buy => price < offer.quote,
+                        BuySell::Sell => price > offer.quote,
+                    };
+                    println!(
+                        "offer price better {} for price {}, offer quote {}",
+                        better, price, offer.quote
+                    );
+                    if good_qty > 0.0 && better {
+                        form.taker_address =
+                            format!("0x{}", eth::privkey_to_addr(privkey).to_string());
+                        println!("{:#?}", form);
+                        let privkey_bytes = &hex::decode(privkey).unwrap();
+                        let order_hash = order_hash(&form);
+                        form.signature = order_sign(privkey_bytes, order_hash);
+                        memo.push(form);
+                    }
                     memo
                 });
             if forms.len() > 0 {
