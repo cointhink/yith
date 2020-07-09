@@ -1,7 +1,7 @@
 use crate::geth;
 use crate::{http_error, http_info};
 use reqwest::blocking::RequestBuilder;
-use reqwest::StatusCode;
+use reqwest::{StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use serde_json;
@@ -16,13 +16,24 @@ impl LoggingClient {
     }
 
     pub fn get(&self, url: &str) -> LoggingBuilder {
+        self.method("GET", url)
+    }
+
+    pub fn method(&self, verb: &str, url_str: &str) -> LoggingBuilder {
         let id = geth::gen_id();
-        let verb = "GET";
+        let url = Url::parse(url_str).unwrap();
+        println!(
+            "[{}] {} {} {}",
+            id,
+            verb,
+            url.host_str().unwrap(),
+            url.path()
+        );
         let builder = self.client.get(url);
         LoggingBuilder {
             id: id,
             verb: verb.to_string(),
-            url: url.to_string(),
+            url: url_str.to_string(),
             json: None,
             builder: builder,
         }
