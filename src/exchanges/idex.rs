@@ -520,17 +520,17 @@ impl exchange::Api for Idex {
         private_key: &str,
         exchange: &config::ExchangeSettings,
         amount: f64,
-        token: &types::Ticker,
+        ticker: &types::Ticker,
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         let url = format!("{}/withdraw", exchange.api_url.as_str());
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.nonce(private_key);
-        let base_token = &self.tokens.get(&token.symbol);
-        let bigint = exchange::quantity_in_base_units(amount, 18, 18);
+        let token = &self.tokens.get(&ticker.symbol);
+        let bigint = exchange::quantity_in_base_units(amount, token.decimals - 1, 18);
         let withdraw = WithdrawRequest {
             address: pub_addr,
             amount: bigint.to_str_radix(10),
-            token: base_token.address.clone(),
+            token: token.address.clone(),
             nonce: nonce.to_string(),
         };
         let params_hash_bytes = withdraw_params_hash(&withdraw, &exchange.contract_address);
@@ -550,7 +550,7 @@ impl exchange::Api for Idex {
         if status.is_success() {
             let json = resp.text().unwrap();
             //{"amount":"0","timestamp":null} no useful info
-            Ok(Some(format!("{}.{}", token.symbol, last_blk)))
+            Ok(Some(format!("{}.{}", ticker.symbol, last_blk)))
         } else {
             let json = resp.text().unwrap();
             let response = serde_json::from_str::<ErrorResponse>(&json).unwrap();
@@ -566,15 +566,16 @@ impl exchange::Api for Idex {
         ticker: &types::Ticker,
     ) -> Result<Option<String>, Box<dyn std::error::Error>> {
         println!("idex deposit {} {}", amount, ticker.symbol);
+        let token = &self.tokens.get(&ticker.symbol);
         let (data, value) = if ticker.symbol == "ETH" {
-            let bigint = exchange::quantity_in_base_units(amount, 18, 18);
+            let bigint = exchange::quantity_in_base_units(amount, token.decimals - 1, 18);
             (
                 deposit_data(),
                 ethereum_types::U256::from_dec_str(&bigint.to_str_radix(10)).unwrap(),
             )
         } else {
-            let token = &self.tokens.get(&ticker.symbol);
-            let bigint = exchange::quantity_in_base_units(amount, token.decimals, token.decimals);
+            let bigint =
+                exchange::quantity_in_base_units(amount, token.decimals - 1, token.decimals);
             (
                 deposit_token_data(&token.address, &bigint.to_str_radix(10)),
                 ethereum_types::U256::zero(),

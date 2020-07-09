@@ -549,7 +549,7 @@ impl Switcheo {
         let token_detail = self.tokens.get(&token).unwrap();
         let units = amount_to_units(
             amount,
-            token_detail.transfer_decimals,
+            token_detail.transfer_decimals - 1,
             token_detail.decimals,
         );
         let withdrawl_request = TransferRequest {
