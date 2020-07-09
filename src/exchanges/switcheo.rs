@@ -622,12 +622,20 @@ impl Switcheo {
         let mut repeat = true;
         while repeat {
             let balances = self.balances(public_addr, exchange);
+            let report = balances
+                .confirming
+                .iter()
+                .map(|(key, arr)| {
+                    arr.iter()
+                        .map(|c| format!("{} {}", c.asset_id, c.amount))
+                        .collect::<Vec<String>>()
+                        .join(",")
+                })
+                .collect::<Vec<String>>()
+                .join(", ");
             let balances_confirming = balances.confirming.len();
             repeat = if balances_confirming > 0 {
-                println!(
-                    "{} switcheo confirming balances. waiting...",
-                    balances_confirming
-                );
+                println!("switcheo confirming balances: {}", report);
                 time::sleep(5000);
                 true
             } else {
