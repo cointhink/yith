@@ -526,7 +526,7 @@ impl exchange::Api for Idex {
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.nonce(private_key);
         let token = &self.tokens.get(&ticker.symbol);
-        let bigint = exchange::quantity_in_base_units(amount, token.decimals - 1, 18);
+        let bigint = exchange::quantity_in_base_units(amount, token.decimals, 18);
         let withdraw = WithdrawRequest {
             address: pub_addr,
             amount: bigint.to_str_radix(10),
@@ -568,7 +568,7 @@ impl exchange::Api for Idex {
         println!("idex deposit {} {}", amount, ticker.symbol);
         let token = &self.tokens.get(&ticker.symbol);
         let (data, value) = if ticker.symbol == "ETH" {
-            let bigint = exchange::quantity_in_base_units(amount, token.decimals - 1, 18);
+            let bigint = exchange::quantity_in_base_units(amount, token.decimals, 18);
             (
                 deposit_data(),
                 ethereum_types::U256::from_dec_str(&bigint.to_str_radix(10)).unwrap(),

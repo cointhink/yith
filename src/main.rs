@@ -140,20 +140,24 @@ fn app(
             }
         };
         //let direction = matches.value_of("direction").unwrap().into();
-        let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
+        let amount = matches.value_of("amount").unwrap();
         let symbol = matches.value_of("token").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let exchange = exchanges.find_by_name(exchange_name).unwrap();
 
-        match run_transfer(
-            &config.wallet_private_key,
-            direction,
-            &exchange,
-            amount,
-            &symbol.into(),
-        ) {
-            Ok(_tx) => None,
-            Err(e) => Some(e),
+        if amount == "sweep" {
+            sweep(&config.wallet_private_key, &exchange, &symbol.into())
+        } else {
+            match run_transfer(
+                &config.wallet_private_key,
+                direction,
+                &exchange,
+                amount.parse::<f64>().unwrap(),
+                &symbol.into(),
+            ) {
+                Ok(_tx) => None,
+                Err(e) => Some(e),
+            }
         }
     } else if let Some(matches) = opts.subcommand_matches("trade") {
         scan_wallet(&mut wallet.coins, &exchanges);
