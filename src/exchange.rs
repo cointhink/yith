@@ -266,9 +266,12 @@ pub trait Api {
 }
 
 pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
+    let f64_int_part = qty.log10() as i32;
+    let f64_max_dec = 15 - f64_int_part;
+    let prec_max = std::cmp::min(f64_max_dec, prec);
     let big_dec = BigDecimal::from_f64(qty)
         .unwrap()
-        .with_scale(prec as i64) // truncates
+        .with_scale(prec_max as i64) // truncates
         .with_scale(scale as i64);
     let (qty_int, _exp) = big_dec.into_bigint_and_exponent();
     qty_int
@@ -305,8 +308,12 @@ mod tests {
         assert_eq!(unit_q, 23400000.into());
         let unit_q = quantity_in_base_units(2.3, 1, 2);
         assert_eq!(unit_q, 230.into());
-        let unit_q = quantity_in_base_units(2.3, 1, 2);
+        let unit_q = quantity_in_base_units(2.38, 1, 2);
         assert_eq!(unit_q, 230.into());
+        let unit_q = quantity_in_base_units(0.224177038020941482, 18, 18);
+        assert_eq!(unit_q.to_string(), "224177038020941000");
+        let unit_q = quantity_in_base_units(10.224177038020941482, 18, 18);
+        assert_eq!(unit_q.to_string(), "10224177038020940000");
     }
 
     #[test]
