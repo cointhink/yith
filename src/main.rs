@@ -557,11 +557,10 @@ fn build_book(
                 match mode {
                     Mode::Simulate => (),
                     Mode::Real => {
-                        println!(
-                            "{}: {} balance unknown for {}",
+                        panic!(
+                            "{}: no balance available for {} (in {}). panicing.",
                             modeword, sell_token, &pub_addr
                         );
-                        panic!()
                     }
                 };
                 0.0
