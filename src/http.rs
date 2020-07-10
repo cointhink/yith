@@ -10,43 +10,43 @@ pub struct LoggingClient {
     client: reqwest::blocking::Client,
 }
 
+#[derive(Debug)]
+pub enum Verb {
+    Get,
+    Post,
+}
+
 impl LoggingClient {
     pub fn new(client: reqwest::blocking::Client) -> LoggingClient {
         LoggingClient { client: client }
     }
 
     pub fn get(&self, url: &str) -> LoggingBuilder {
-        self.method("GET", url)
+        self.method(Verb::Get, url)
     }
 
-    pub fn method(&self, verb: &str, url_str: &str) -> LoggingBuilder {
+    pub fn post(&self, url: &str) -> LoggingBuilder {
+        self.method(Verb::Post, url)
+    }
+
+    pub fn method(&self, verb: Verb, url_str: &str) -> LoggingBuilder {
         let id = geth::gen_id();
         let url = Url::parse(url_str).unwrap();
         println!(
-            "[{}] {} {} {}",
+            "[{}] {:?} {} {}",
             id,
             verb,
             url.host_str().unwrap(),
             url.path()
         );
-        let builder = self.client.get(url);
+        let builder = match verb {
+            Verb::Get => self.client.get(url),
+            Verb::Post => self.client.post(url),
+        };
         LoggingBuilder {
             id: id,
-            verb: verb.to_string(),
+            verb: verb,
             url: url_str.to_string(),
-            json: None,
-            builder: builder,
-        }
-    }
-
-    pub fn post(&self, url: &str) -> LoggingBuilder {
-        let id = geth::gen_id();
-        let verb = "POST";
-        let builder = self.client.post(url);
-        LoggingBuilder {
-            id: id,
-            verb: verb.to_string(),
-            url: url.to_string(),
             json: None,
             builder: builder,
         }
@@ -55,7 +55,7 @@ impl LoggingClient {
 
 pub struct LoggingBuilder {
     id: String,
-    verb: String,
+    verb: Verb,
     url: String,
     json: Option<String>,
     builder: RequestBuilder,
@@ -84,7 +84,7 @@ impl LoggingBuilder {
         }
     }
     pub fn send(self) -> reqwest::Result<LoggingResponse> {
-        http_info!("[{}] {} {}", self.id, self.verb, self.url);
+        http_info!("[{}] {:?} {}", self.id, self.verb, self.url);
         if self.json.is_some() {
             http_info!("[{}] {} ", self.id, self.json.unwrap());
         }
