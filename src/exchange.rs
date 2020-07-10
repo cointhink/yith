@@ -266,7 +266,7 @@ pub trait Api {
 }
 
 pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
-    let f64_int_part = qty.log10() as i32;
+    let f64_int_part = (qty.log10() as i32) + 1;
     let f64_max_dec = 15 - f64_int_part;
     let prec_max = std::cmp::min(f64_max_dec, prec);
     let big_dec = BigDecimal::from_f64(qty)
@@ -311,9 +311,11 @@ mod tests {
         let unit_q = quantity_in_base_units(2.38, 1, 2);
         assert_eq!(unit_q, 230.into());
         let unit_q = quantity_in_base_units(0.224177038020941482, 18, 18);
-        assert_eq!(unit_q.to_string(), "224177038020941000");
+        assert_eq!(unit_q.to_string(), "224177038020940000");
         let unit_q = quantity_in_base_units(10.224177038020941482, 18, 18);
-        assert_eq!(unit_q.to_string(), "10224177038020940000");
+        assert_eq!(unit_q.to_string(), "10224177038020900000");
+        let unit_q = quantity_in_base_units(3.764604555995115, 18, 18);
+        assert_eq!(unit_q.to_string(), "3764604555995110000");
     }
 
     #[test]

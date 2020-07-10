@@ -574,8 +574,7 @@ impl exchange::Api for Idex {
                 ethereum_types::U256::from_dec_str(&bigint.to_str_radix(10)).unwrap(),
             )
         } else {
-            let bigint =
-                exchange::quantity_in_base_units(amount, token.decimals - 1, token.decimals);
+            let bigint = exchange::quantity_in_base_units(amount, token.decimals, token.decimals);
             (
                 deposit_token_data(&token.address, &bigint.to_str_radix(10)),
                 ethereum_types::U256::zero(),
