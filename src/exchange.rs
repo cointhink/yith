@@ -266,15 +266,19 @@ pub trait Api {
 }
 
 pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
-    let f64_int_part = (qty.log10() as i32) + 1;
-    let f64_max_dec = 15 - f64_int_part;
-    let prec_max = std::cmp::min(f64_max_dec, prec);
-    let big_dec = BigDecimal::from_f64(qty)
-        .unwrap()
-        .with_scale(prec_max as i64) // truncates
-        .with_scale(scale as i64);
-    let (qty_int, _exp) = big_dec.into_bigint_and_exponent();
-    qty_int
+    let f64_str = qty.to_string();
+    let parts = f64_str.split(".").collect::<Vec<_>>();
+    let f64_int = parts[0].to_string();
+    let mut f64_frac = parts[1].to_string();
+    let f64_frac_max = 15 - 1; // remove extra digit = floor()
+    let chop_size = std::cmp::min(f64_frac_max, prec as usize);
+    f64_frac.truncate(chop_size);
+    let padding = (scale as usize) - f64_frac.len();
+    for n in 0..padding {
+        f64_frac.push('0')
+    }
+    let int_str = format!("{}{}", f64_int, f64_frac);
+    int_str.parse::<BigInt>().unwrap()
 }
 
 pub fn units_to_quantity(units: u128, scale: i32) -> f64 {
@@ -313,7 +317,7 @@ mod tests {
         let unit_q = quantity_in_base_units(0.224177038020941482, 18, 18);
         assert_eq!(unit_q.to_string(), "224177038020940000");
         let unit_q = quantity_in_base_units(10.224177038020941482, 18, 18);
-        assert_eq!(unit_q.to_string(), "10224177038020900000");
+        assert_eq!(unit_q.to_string(), "10224177038020940000");
         let unit_q = quantity_in_base_units(3.764604555995115, 18, 18);
         assert_eq!(unit_q.to_string(), "3764604555995110000");
     }
