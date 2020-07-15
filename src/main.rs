@@ -591,8 +591,20 @@ fn build_book(
         wallet_token_balance += exchange_token_balance;
     }
 
+    let rollup_offer = book.offers.iter().fold(
+        types::Offer {
+            base_qty: 0.0,
+            quote: 0.0,
+        },
+        |mut rolled, offer| {
+            rolled.base_qty += offer.base_qty;
+            rolled.quote = offer.quote;
+            println!("rollup {} added {}", rolled, offer);
+            rolled
+        },
+    );
     let (total, processed_offers) =
-        book.offers
+        vec![rollup_offer]
             .iter()
             .fold((0.0, Vec::new()), |(mut total, mut offers), offer| {
                 let (askbid, market, offer) = unswap(askbid, &book.market, offer);
