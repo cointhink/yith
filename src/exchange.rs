@@ -269,7 +269,7 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
     let f64_str = qty.to_string();
     let parts = f64_str.split(".").collect::<Vec<_>>();
     let f64_int = parts[0].to_string();
-    let mut f64_frac = parts[1].to_string();
+    let mut f64_frac = if parts.len() > 1 { parts[1] } else { "" }.to_string();
     let f64_frac_max = 15 - f64_int.len(); // remaining digits define frac length
     let chop_size = std::cmp::min(f64_frac_max, prec as usize);
     f64_frac.truncate(chop_size);
@@ -322,6 +322,8 @@ mod tests {
         assert_eq!(unit_q.to_string(), "123456789012345000000000000000000");
         let unit_q = quantity_in_base_units(3.764604555995115, 18, 18);
         assert_eq!(unit_q.to_string(), "3764604555995110000");
+        let unit_q = quantity_in_base_units(50.0, 2, 2);
+        assert_eq!(unit_q.to_string(), "5000");
     }
 
     #[test]
