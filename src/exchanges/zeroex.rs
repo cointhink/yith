@@ -236,7 +236,8 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        let expire_time = (time::since_epoch() + std::time::Duration::new(120 + 15, 0)).as_secs(); // 2min minimum + transittime
+        // 2min minimum + transittime
+        let expire_time = (time::since_epoch() + std::time::Duration::new(120 + 20, 0)).as_secs();
 
         let sheet = OrderSheet {
             // market order
@@ -272,22 +273,39 @@ impl exchange::Api for Zeroex {
                         BuySell::Sell => (taker_qty, maker_qty / taker_qty),
                     };
                     println!("offer {:?} {}@{}", side, qty, price);
-                    let good_qty = eth::minimum(&vec![qty, offer.base_qty]);
-                    println!("good qty {}", good_qty);
                     let better = match side {
-                        BuySell::Buy => price < offer.quote,
-                        BuySell::Sell => price > offer.quote,
+                        BuySell::Buy => price <= offer.quote,
+                        BuySell::Sell => price >= offer.quote,
                     };
                     println!(
-                        "offer price better {} for price {}, offer quote {}",
+                        "better {} for price {} (offer quote {})",
                         better, price, offer.quote
                     );
+                    let good_qty = eth::minimum(&vec![qty, offer.base_qty]);
+                    println!("good qty {}", good_qty);
                     if good_qty > 0.0 && better {
                         form.taker_address =
                             format!("0x{}", eth::privkey_to_addr(privkey).to_string());
-                        // TODO calculate amounts
-                        form.maker_asset_amount = format!("{}", 0.0);
-                        form.taker_asset_amount = format!("{}", 0.0);
+                        let (maker_qty, taker_qty) = match side {
+                            BuySell::Buy => (good_qty, (good_qty / maker_qty) * taker_qty),
+                            BuySell::Sell => (good_qty, (good_qty / taker_qty) * maker_qty),
+                        };
+                        form.maker_asset_amount = format!(
+                            "{}",
+                            exchange::quantity_in_base_units(
+                                maker_qty,
+                                maker_token.decimals as i32,
+                                maker_token.decimals as i32
+                            )
+                        );
+                        form.taker_asset_amount = format!(
+                            "{}",
+                            exchange::quantity_in_base_units(
+                                taker_qty,
+                                taker_token.decimals as i32,
+                                taker_token.decimals as i32
+                            )
+                        );
                         println!("{:#?}", form);
                         let privkey_bytes = &hex::decode(privkey).unwrap();
                         let order_hash = order_hash(&form);
