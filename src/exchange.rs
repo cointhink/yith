@@ -1,9 +1,7 @@
 use crate::config;
 use crate::exchanges;
 use crate::types;
-use bigdecimal::BigDecimal;
 use num_bigint::BigInt;
-use num_traits::cast::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::collections;
 use std::error;
@@ -274,7 +272,7 @@ pub fn quantity_in_base_units(qty: f64, prec: i32, scale: i32) -> BigInt {
     let chop_size = std::cmp::min(f64_frac_max, prec as usize);
     f64_frac.truncate(chop_size);
     let padding = (scale as usize) - f64_frac.len();
-    for n in 0..padding {
+    for _ in 0..padding {
         f64_frac.push('0')
     }
     let int_str = format!("{}{}", f64_int, f64_frac);

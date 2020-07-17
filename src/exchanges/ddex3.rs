@@ -378,7 +378,7 @@ impl exchange::Api for Ddex3 {
     fn market_minimums(
         &self,
         market: &exchange::Market,
-        exchange: &config::ExchangeSettings,
+        _exchange: &config::ExchangeSettings,
     ) -> Option<(Option<f64>, Option<f64>)> {
         let market_id = self.make_market_id(market);
         match self.pairs.get(&market_id) {

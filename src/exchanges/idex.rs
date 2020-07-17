@@ -549,8 +549,6 @@ impl exchange::Api for Idex {
         let resp = self.client.post(url.as_str()).json(&signed).send().unwrap();
         let status = resp.status();
         if status.is_success() {
-            let json = resp.text().unwrap();
-            //{"amount":"0","timestamp":null} no useful info
             Ok(Some(format!("{}.{}", ticker.symbol, last_blk)))
         } else {
             let json = resp.text().unwrap();
@@ -630,7 +628,6 @@ impl exchange::Api for Idex {
             .json(&order_status)
             .send()
             .unwrap();
-        let status = resp.status();
         let json = resp.text().unwrap();
         let response = serde_json::from_str::<TradeHistoryResponse>(&json).unwrap();
         let mut orders = vec![];

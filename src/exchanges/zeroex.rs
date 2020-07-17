@@ -200,6 +200,7 @@ pub struct Zeroex {
     pub settings: config::ExchangeSettings,
     client: http::LoggingClient,
     tokens: TokenList,
+    geth: geth::Client,
 }
 
 impl Zeroex {
@@ -211,6 +212,7 @@ impl Zeroex {
             settings: settings,
             client: logging_client,
             tokens: tokens,
+            geth: geth,
         }
     }
 }
@@ -236,8 +238,8 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        // 3min maximum order lifetime
-        let expire_time = (time::since_epoch() + std::time::Duration::new(3 * 60, 0)).as_secs();
+        // 2min maximum order lifetime
+        let expire_time = (time::since_epoch() + std::time::Duration::new(2 * 60, 0)).as_secs();
 
         let sheet = OrderSheet {
             // market order
@@ -262,6 +264,7 @@ impl exchange::Api for Zeroex {
                 .orders
                 .into_iter()
                 .fold(vec![], |mut memo, mut form| {
+                    println!("before {:#?}", form);
                     let taker_asset_addr = format!("0x{}", &form.taker_asset_data[34..74]);
                     let taker_token = self.tokens.by_addr(&taker_asset_addr);
                     let maker_asset_addr = format!("0x{}", &form.maker_asset_data[34..74]);
@@ -306,10 +309,12 @@ impl exchange::Api for Zeroex {
                         );
                         form.fee_recipient_address =
                             exchange.fee_recipient_address.as_ref().unwrap().clone();
-                        println!("{:#?}", form);
+                        form.expiration_time_seconds = expire_time.to_string();
+                        form.salt = expire_time.to_string();
                         let privkey_bytes = &hex::decode(privkey).unwrap();
                         let order_hash = order_hash(&form);
                         form.signature = order_sign(privkey_bytes, order_hash);
+                        println!("after {:#?}", form);
                         memo.push(form);
                     }
                     memo

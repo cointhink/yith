@@ -597,7 +597,7 @@ impl Switcheo {
     pub fn nonce(&self) -> u128 {
         let url = format!("{}/timestamp", self.settings.api_url.as_str());
         let resp = self.client.get(url.as_str()).send().unwrap();
-        let status = resp.status();
+        let _status = resp.status(); // check response
         let timestamp = resp.json::<TimestampResponse>().unwrap().timestamp;
         timestamp
     }
@@ -625,7 +625,7 @@ impl Switcheo {
             let report = balances
                 .confirming
                 .iter()
-                .map(|(key, arr)| {
+                .map(|(_key, arr)| {
                     arr.iter()
                         .map(|c| format!("{} {}", c.asset_id, c.amount))
                         .collect::<Vec<String>>()

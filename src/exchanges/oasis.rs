@@ -121,7 +121,7 @@ impl Oasis {
         &self,
         token_addr: &str,
         addr: &str,
-        exchange: &config::ExchangeSettings,
+        _exchange: &config::ExchangeSettings,
     ) -> Option<f64> {
         let (_symbol, token) = &self.tokens.by_addr(token_addr);
         let mut tx = geth::JsonRpcParam::new();
