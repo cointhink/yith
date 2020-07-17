@@ -557,7 +557,7 @@ impl Switcheo {
             asset_id: token_detail.hash.clone(),
             amount: units,
             timestamp: self.nonce(),
-            contract_hash: exchange.contract_address.clone(),
+            contract_hash: exchange.contract_address.as_ref().unwrap().clone(),
         };
         let sign_json = serde_json::to_string(&withdrawl_request).unwrap();
         let signature = eth::ethsign(&sign_json, &secret_key);
@@ -611,7 +611,7 @@ impl Switcheo {
             "{}/balances?addresses=0x{}&contract_hashes={}",
             exchange.api_url.as_str(),
             public_addr,
-            exchange.contract_address
+            exchange.contract_address.as_ref().unwrap()
         );
         let resp = self.client.get(url.as_str()).send().unwrap();
         let json = resp.text().unwrap();
@@ -671,7 +671,7 @@ impl exchange::Api for Switcheo {
 
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
-            contract_hash: exchange.contract_address.to_string(),
+            contract_hash: exchange.contract_address.as_ref().unwrap().clone(),
             order_type: "limit".to_string(),
             pair: market_pair,
             quantity: amount_to_units(
@@ -989,7 +989,7 @@ impl exchange::Api for Switcheo {
             "{}/orders?address=0x{}&contract_hashes={}",
             exchange.api_url.as_str(),
             my_addr,
-            exchange.contract_address
+            exchange.contract_address.as_ref().unwrap()
         );
         println!("{}", url);
         let resp = self.client.get(url.as_str()).send().unwrap();

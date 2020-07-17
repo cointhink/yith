@@ -533,7 +533,8 @@ impl exchange::Api for Idex {
             token: token.address.clone(),
             nonce: nonce.to_string(),
         };
-        let params_hash_bytes = withdraw_params_hash(&withdraw, &exchange.contract_address);
+        let params_hash_bytes =
+            withdraw_params_hash(&withdraw, exchange.contract_address.as_ref().unwrap());
         let params_hash = eth::ethsign_hash_msg(&params_hash_bytes[..].to_vec());
         let private_key_bytes = &hex::decode(private_key).unwrap();
         let secret_key = SecretKey::from_slice(private_key_bytes).unwrap();
@@ -592,7 +593,7 @@ impl exchange::Api for Idex {
         );
 
         let mut contract_addra = [0u8; 20];
-        let contract_addr = exchange.contract_address.clone();
+        let contract_addr = exchange.contract_address.as_ref().unwrap().clone();
         contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
         let tx = ethereum_tx_sign::RawTransaction {
             nonce: ethereum_types::U256::from(nonce),

@@ -25,6 +25,7 @@
     enabled: true
     protocol: 0x
     contract_address: 0x080bf510FCbF18b91105470639e9561022937712
+    fee_recipient_address: 0xa258b39954cef5cb142fd567a46cddb31a670124
     #api_url: https://api.radarrelay.com/0x/v3
     api_url: https://api.radarrelay.com/v3
     taker_fee: 0.0
@@ -52,7 +53,6 @@
     has_balances: false
     enabled: true
     protocol: ddex3
-    contract_address: 1234
     api_url: https://api.ddex.io/v3
     taker_fee: 0.3
     maker_fee: 0.1
@@ -61,7 +61,6 @@
     has_balances: false
     enabled: true
     protocol: ddex4
-    contract_address: 1234
     api_url: https://api.ddex.io/v4
     taker_fee: 0.3
     maker_fee: 0.1

@@ -111,7 +111,7 @@ fn app(
                     geth,
                     &config.wallet_private_key,
                     &token,
-                    &exchange.settings.contract_address,
+                    exchange.settings.contract_address.as_ref().unwrap(),
                 )
                 .unwrap();
                 println!("erc20 {} {} {}", token, exchange_name, allowance);
@@ -121,7 +121,7 @@ fn app(
                     geth,
                     &config.wallet_private_key,
                     &token,
-                    &exchange.settings.contract_address,
+                    exchange.settings.contract_address.as_ref().unwrap(),
                 )
                 .unwrap();
                 println!("erc20 {} {} {}", token, exchange_name, approve);

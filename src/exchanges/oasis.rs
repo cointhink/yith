@@ -71,7 +71,10 @@ impl Oasis {
         exchange: &config::ExchangeSettings,
     ) -> Result<u64, Box<dyn std::error::Error>> {
         let mut tx = geth::JsonRpcParam::new();
-        tx.insert("to".to_string(), exchange.contract_address.clone());
+        tx.insert(
+            "to".to_string(),
+            exchange.contract_address.as_ref().unwrap().clone(),
+        );
         tx.insert("data".to_string(), get_min_sell_data(token));
         let params = (tx.clone(), Some("latest".to_string()));
         match self.geth.rpc("eth_call", geth::ParamTypes::Infura(params)) {
@@ -298,7 +301,7 @@ impl exchange::Api for Oasis {
             println!("TX Count/next nonce {} gas {}gwei", nonce, gas_price_gwei);
 
             let mut contract_addra = [0u8; 20];
-            let contract_addr = exchange.contract_address.clone();
+            let contract_addr = exchange.contract_address.as_ref().unwrap().clone();
             contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
             let tx = ethereum_tx_sign::RawTransaction {
                 nonce: ethereum_types::U256::from(nonce),

@@ -306,6 +306,8 @@ impl exchange::Api for Zeroex {
                                 taker_token.decimals as i32
                             )
                         );
+                        form.fee_recipient_address =
+                            exchange.fee_recipient_address.as_ref().unwrap().clone();
                         println!("{:#?}", form);
                         let privkey_bytes = &hex::decode(privkey).unwrap();
                         let order_hash = order_hash(&form);
