@@ -167,6 +167,9 @@ fn pad(bytes: &Vec<u8>, block_width: usize) -> Vec<u8> {
         for _ in 0..padding {
             padded.push(padding_char)
         }
+        // rustic?
+        // padded.extend_from_slice(&iter::repeat(padding_char).take(padding).collect::<Vec<_>>());
+
     }
     padded
 }
