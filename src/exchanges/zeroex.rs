@@ -409,45 +409,25 @@ impl exchange::Api for Zeroex {
 
 pub fn order_fill_data(order: &OrderForm, amount: &str, signature: Vec<u8>) -> Vec<u8> {
     let mut call = Vec::<u8>::new();
-    let mut func = eth::hash_abi_sig(
+    let func = eth::hash_abi_sig(
         format!("{}{}{}", 
             "fillOrder(",
             "(address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,bytes,bytes,bytes,bytes)",
             ",uint256,bytes)").as_str()
-    ).to_vec();
-    call.append(&mut func);
-
-    let order_params = vec![
-        eth::encode_addr2(&order.maker_address),
-        eth::encode_addr2(&order.taker_address),
-        eth::encode_addr2(&order.fee_recipient_address),
-        eth::encode_addr2(&order.sender_address),
-        eth::encode_uint256(&order.maker_asset_amount),
-        eth::encode_uint256(&order.taker_asset_amount),
-        eth::encode_uint256(&order.maker_fee),
-        eth::encode_uint256(&order.taker_fee),
-        eth::encode_uint256(&order.expiration_time_seconds),
-        eth::encode_uint256(&order.salt),
-        order.maker_asset_data[2..].as_bytes().to_vec(),
-        order.maker_asset_data[2..].as_bytes().to_vec(),
-        order.maker_asset_data[2..].as_bytes().to_vec(),
-        order.maker_asset_data[2..].as_bytes().to_vec(),
+    ).to_vec(); // 0x9b44d556
+    call.extend_from_slice(&func);
+    let params = vec![
+        order_tokens(order),
+        ethabi::Token::Uint(ethereum_types::U256::from(amount.parse::<u128>().unwrap())),
+        ethabi::Token::Bytes(signature),
     ];
-    order_params
-        .iter()
-        .map(|p| hex::decode(p).unwrap())
-        .for_each(|mut p| call.append(&mut p));
-
-    let mut p2 = hex::decode(eth::encode_uint256(amount)).unwrap();
-    call.append(&mut p2);
-    let mut p3 = hex::decode(eth::encode_bytes(&signature)).unwrap();
-    call.append(&mut p3);
+    call.extend_from_slice(&ethabi::encode(&params));
     call
 }
 
 pub fn order_hash(form: &OrderForm) -> [u8; 32] {
     let form_tokens = order_tokens(&form);
-    let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
+    let form_tokens_bytes: Vec<u8> = ethabi::encode(&vec![form_tokens]);
     let form_hash = eth::hash_msg(&form_tokens_bytes);
     let exg_tokens = exchange_order_tokens(form_hash, &form.exchange_address);
     let exg_tokens_bytes: Vec<u8> = ethabi::encode(&exg_tokens);
@@ -467,10 +447,10 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, exg_hash: [u8; 32]) -> String {
     )
 }
 
-pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
+pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
     let eip712_order_schema_hash =
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
-    vec![
+    ethabi::Token::Tuple(vec![
         ethabi::Token::FixedBytes(eip712_order_schema_hash),
         ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
@@ -498,7 +478,7 @@ pub fn order_tokens(form: &OrderForm) -> Vec<ethabi::Token> {
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
-    ]
+    ])
 }
 
 pub fn str_to_h160(addr_str: &str) -> ethereum_types::H160 {
@@ -602,7 +582,7 @@ mod tests {
     #[test]
     fn test_order_tokens() {
         let form_tokens = order_tokens(&blank_order_form());
-        let form_tokens_bytes: Vec<u8> = ethabi::encode(&form_tokens);
+        let form_tokens_bytes: Vec<u8> = ethabi::encode(&vec![form_tokens]);
         let good_form_tokens_bytes = "f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a753400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a5380c7b7ae81a58eb98d9c78de4a1fd7fd9535fc953ed2be602daaa41767312a";
         assert_eq!(
             form_tokens_bytes,
@@ -670,5 +650,14 @@ mod tests {
         let signature = order_sign(privkey_bytes, order_hash);
         let good_sig = "0x1b4ccbff4cb18802ccaf7aaa852595170fc0443d65b1d01a10f5f01d5d65ebe42c58287ecb9cf7f62a98bdfc8931f41a157dd79e9ac5d19880f62089d9c082c79a02";
         assert_eq!(signature, good_sig)
+    }
+    #[test]
+    fn test_order_fill_data() {
+        let data = order_fill_data(
+            &docs0x_order_form(),
+            1.to_string().as_ref(),
+            "sig".to_string().as_bytes().to_vec(),
+        );
+        //assert_eq!(hex::encode(data), "")
     }
 }
