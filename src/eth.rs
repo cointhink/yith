@@ -138,12 +138,27 @@ pub fn encode_uint256(numstr: &str) -> Vec<u8> {
 pub fn encode_bytes(bytes: &Vec<u8>) -> Vec<u8> {
     let mut buf = Vec::new();
     let bytes_len_str = bytes.len().to_string();
+    buf.extend_from_slice(&encode_uint256(0x20.to_string().as_ref()));
     buf.extend_from_slice(&encode_uint256(&bytes_len_str));
-    buf.extend_from_slice(&left_pad_zero(hex::encode(bytes).as_bytes().to_vec(), 64));
+    buf.extend_from_slice(&right_pad_zero(hex::encode(bytes).as_bytes().to_vec(), 64));
     buf
 }
 
 pub fn left_pad_zero(bytes: Vec<u8>, block_width: usize) -> Vec<u8> {
+    let mut padded = Vec::<u8>::new();
+    padded.append(&mut pad(&bytes, block_width));
+    padded.append(&mut bytes.clone());
+    padded
+}
+
+pub fn right_pad_zero(bytes: Vec<u8>, block_width: usize) -> Vec<u8> {
+    let mut padded = Vec::<u8>::new();
+    padded.append(&mut bytes.clone());
+    padded.append(&mut pad(&bytes, block_width));
+    padded
+}
+
+fn pad(bytes: &Vec<u8>, block_width: usize) -> Vec<u8> {
     let padding_char = '0' as u8;
     let mut padded = Vec::<u8>::new();
     let tail_length = bytes.len() % block_width;
@@ -153,7 +168,6 @@ pub fn left_pad_zero(bytes: Vec<u8>, block_width: usize) -> Vec<u8> {
             padded.push(padding_char)
         }
     }
-    padded.append(&mut bytes.clone());
     padded
 }
 
@@ -299,11 +313,12 @@ mod tests {
         let out = encode_bytes(&mut bytes);
         assert_eq!(
             std::str::from_utf8(&out).unwrap(),
-            "0000000000000000000000000000000000000000000000000000000000000000"
+            "00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000"
         );
 
         let mut bytes: Vec<u8> = vec![1, 2, 3];
         let out = encode_bytes(&mut bytes);
-        assert_eq!(std::str::from_utf8(&out).unwrap(), "00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000010203");
+        assert_eq!(std::str::from_utf8(&out).unwrap(), 
+"000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000030102030000000000000000000000000000000000000000000000000000000000")
     }
 }
