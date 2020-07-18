@@ -24,7 +24,8 @@
     has_balances: false
     enabled: true
     protocol: 0x
-    contract_address: 0x080bf510FCbF18b91105470639e9561022937712
+    #contract_address: 0x080bf510FCbF18b91105470639e9561022937712 #v2
+    contract_address: 0x61935cbdd02287b511119ddb11aeb42f1593b7ef #v3
     fee_recipient_address: 0xa258b39954cef5cb142fd567a46cddb31a670124
     #api_url: https://api.radarrelay.com/0x/v3
     api_url: https://api.radarrelay.com/v3

@@ -238,8 +238,9 @@ impl exchange::Api for Zeroex {
             types::AskBid::Ask => BuySell::Buy,
             types::AskBid::Bid => BuySell::Sell,
         };
-        // 2min maximum order lifetime
-        let expire_time = (time::since_epoch() + std::time::Duration::new(2 * 60, 0)).as_secs();
+        // 119sec maximum order lifetime, plus buffer
+        let expire_time =
+            (time::since_epoch() + std::time::Duration::new(2 * 60 + 15, 0)).as_secs();
 
         let sheet = OrderSheet {
             // market order
@@ -291,14 +292,6 @@ impl exchange::Api for Zeroex {
                             BuySell::Buy => (good_qty, (good_qty / maker_qty) * taker_qty),
                             BuySell::Sell => (good_qty, (good_qty / taker_qty) * maker_qty),
                         };
-                        form.maker_asset_amount = format!(
-                            "{}",
-                            exchange::quantity_in_base_units(
-                                maker_qty,
-                                maker_token.decimals as i32,
-                                maker_token.decimals as i32
-                            )
-                        );
                         form.taker_asset_amount = format!(
                             "{}",
                             exchange::quantity_in_base_units(
@@ -307,13 +300,6 @@ impl exchange::Api for Zeroex {
                                 taker_token.decimals as i32
                             )
                         );
-                        form.fee_recipient_address =
-                            exchange.fee_recipient_address.as_ref().unwrap().clone();
-                        form.expiration_time_seconds = expire_time.to_string();
-                        form.salt = expire_time.to_string();
-                        let privkey_bytes = &hex::decode(privkey).unwrap();
-                        let order_hash = order_hash(&form);
-                        form.signature = order_sign(privkey_bytes, order_hash);
                         println!("after {:#?}", form);
                         memo.push(form);
                     }
@@ -340,19 +326,41 @@ impl exchange::Api for Zeroex {
 
     fn submit(
         &self,
-        _privkey: &str,
+        private_key: &str,
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<String, Box<dyn std::error::Error>> {
         if let exchange::OrderSheet::Zeroex(order) = sheet {
-            let url = format!("{}/orders", exchange.api_url.as_str());
-            println!("{}", url);
-            println!("{}", serde_json::to_string(&order).unwrap());
-            let resp = self.client.post(url.as_str()).json(&order).send()?;
-            println!("{:#?} {}", resp.status(), resp.url());
-            println!("{:#?}", resp.text());
-            let order_hash = eth::hex(&order_hash(&order));
-            Ok(order_hash)
+            let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
+            let nonce = self.geth.nonce(&pub_addr).unwrap();
+            let gas_tx = 50000;
+            let gas_price_fast = geth::ethgasstation_fast();
+            let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
+            println!(
+                "deposit tx {} gas @{}gwei (ethgasstation_fast)",
+                gas_tx, gas_price_gwei
+            );
+
+            let mut contract_addra = [0u8; 20];
+            let contract_addr = exchange.contract_address.as_ref().unwrap().clone();
+            contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
+            let data = order_fill_data(&order, "0", "signature".to_string().as_bytes().to_vec());
+            let tx = ethereum_tx_sign::RawTransaction {
+                nonce: ethereum_types::U256::from(nonce),
+                to: Some(ethereum_types::H160::from(contract_addra)),
+                value: ethereum_types::U256::zero(),
+                gas_price: ethereum_types::U256::from(gas_price_fast),
+                gas: ethereum_types::U256::from(310240),
+                data: data,
+            };
+            let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
+            let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
+            let params = (eth::hex(&rlp_bytes),);
+            let tx = self
+                .geth
+                .rpc_str("eth_sendRawTransaction", geth::ParamTypes::Single(params))?;
+            println!("GOOD TX {}", tx);
+            Ok(tx)
         } else {
             Err(exchange::ExchangeError::build_box(format!(
                 "wrong ordersheet type!"
@@ -397,6 +405,44 @@ impl exchange::Api for Zeroex {
             exchange::OrderState::Cancelled
         }
     }
+}
+
+pub fn order_fill_data(order: &OrderForm, amount: &str, signature: Vec<u8>) -> Vec<u8> {
+    let mut call = Vec::<u8>::new();
+    let mut func = eth::hash_abi_sig(
+        format!("{}{}{}", 
+            "fillOrder(",
+            "(address,address,address,address,uint256,uint256,uint256,uint256,uint256,uint256,bytes,bytes,bytes,bytes)",
+            ",uint256,bytes)").as_str()
+    ).to_vec();
+    call.append(&mut func);
+
+    let order_params = vec![
+        eth::encode_addr2(&order.maker_address),
+        eth::encode_addr2(&order.taker_address),
+        eth::encode_addr2(&order.fee_recipient_address),
+        eth::encode_addr2(&order.sender_address),
+        eth::encode_uint256(&order.maker_asset_amount),
+        eth::encode_uint256(&order.taker_asset_amount),
+        eth::encode_uint256(&order.maker_fee),
+        eth::encode_uint256(&order.taker_fee),
+        eth::encode_uint256(&order.expiration_time_seconds),
+        eth::encode_uint256(&order.salt),
+        order.maker_asset_data[2..].as_bytes().to_vec(),
+        order.maker_asset_data[2..].as_bytes().to_vec(),
+        order.maker_asset_data[2..].as_bytes().to_vec(),
+        order.maker_asset_data[2..].as_bytes().to_vec(),
+    ];
+    order_params
+        .iter()
+        .map(|p| hex::decode(p).unwrap())
+        .for_each(|mut p| call.append(&mut p));
+
+    let mut p2 = hex::decode(eth::encode_uint256(amount)).unwrap();
+    call.append(&mut p2);
+    let mut p3 = hex::decode(eth::encode_bytes(&signature)).unwrap();
+    call.append(&mut p3);
+    call
 }
 
 pub fn order_hash(form: &OrderForm) -> [u8; 32] {

@@ -135,12 +135,23 @@ pub fn encode_uint256(numstr: &str) -> Vec<u8> {
     left_pad_zero(number.as_bytes().to_vec(), 64)
 }
 
-pub fn left_pad_zero(bytes: Vec<u8>, width: u8) -> Vec<u8> {
+pub fn encode_bytes(bytes: &Vec<u8>) -> Vec<u8> {
+    let mut buf = Vec::new();
+    let bytes_len_str = bytes.len().to_string();
+    buf.extend_from_slice(&encode_uint256(&bytes_len_str));
+    buf.extend_from_slice(&left_pad_zero(hex::encode(bytes).as_bytes().to_vec(), 64));
+    buf
+}
+
+pub fn left_pad_zero(bytes: Vec<u8>, block_width: usize) -> Vec<u8> {
     let padding_char = '0' as u8;
     let mut padded = Vec::<u8>::new();
-    let left = (width as usize) - bytes.len();
-    for _ in 0..left {
-        padded.push(padding_char)
+    let tail_length = bytes.len() % block_width;
+    if tail_length > 0 {
+        let padding = block_width - tail_length;
+        for _ in 0..padding {
+            padded.push(padding_char)
+        }
     }
     padded.append(&mut bytes.clone());
     padded
@@ -236,9 +247,15 @@ mod tests {
 
     #[test]
     fn test_left_pad_zero() {
+        let zero_char = '0' as u8;
         let bytes = vec![1, 2, 3];
         let padded = left_pad_zero(bytes, 4);
-        let good = vec!['0' as u8, 1, 2, 3];
+        let good = vec![zero_char, 1, 2, 3];
+        assert_eq!(good, padded);
+
+        let bytes = vec![1, 2, 3, 4, 5];
+        let padded = left_pad_zero(bytes, 4);
+        let good = vec![zero_char, zero_char, zero_char, 1, 2, 3, 4, 5];
         assert_eq!(good, padded);
 
         let bytes = vec![1, 2, 3, 4];
@@ -274,5 +291,19 @@ mod tests {
         let addr_str: String = std::str::from_utf8(&addr_encoded).unwrap().to_string();
         let good_hash = "0x0000000000000000000000001122334455667788990011223344556677889900";
         assert_eq!(addr_str, good_hash[2..]);
+    }
+
+    #[test]
+    fn test_encode_bytes() {
+        let mut bytes: Vec<u8> = vec![];
+        let out = encode_bytes(&mut bytes);
+        assert_eq!(
+            std::str::from_utf8(&out).unwrap(),
+            "0000000000000000000000000000000000000000000000000000000000000000"
+        );
+
+        let mut bytes: Vec<u8> = vec![1, 2, 3];
+        let out = encode_bytes(&mut bytes);
+        assert_eq!(std::str::from_utf8(&out).unwrap(), "00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000010203");
     }
 }
