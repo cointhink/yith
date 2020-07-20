@@ -264,7 +264,7 @@ impl exchange::Api for Zeroex {
             let mut forms = mkt_orders
                 .orders
                 .into_iter()
-                .fold(vec![], |mut memo, mut form| {
+                .fold(vec![], |mut memo, form| {
                     println!("before {:#?}", form);
                     let taker_asset_addr = format!("0x{}", &form.taker_asset_data[34..74]);
                     let taker_token = self.tokens.by_addr(&taker_asset_addr);
@@ -292,7 +292,7 @@ impl exchange::Api for Zeroex {
                             BuySell::Buy => (good_qty, (good_qty / maker_qty) * taker_qty),
                             BuySell::Sell => (good_qty, (good_qty / taker_qty) * maker_qty),
                         };
-                        form.taker_asset_amount = format!(
+                        let taker_asset_amount = format!(
                             "{}",
                             exchange::quantity_in_base_units(
                                 taker_qty,
@@ -301,7 +301,7 @@ impl exchange::Api for Zeroex {
                             )
                         );
                         println!("after {:#?}", form);
-                        memo.push(form);
+                        memo.push((form, taker_asset_amount));
                     }
                     memo
                 });
@@ -330,21 +330,25 @@ impl exchange::Api for Zeroex {
         exchange: &config::ExchangeSettings,
         sheet: exchange::OrderSheet,
     ) -> Result<String, Box<dyn std::error::Error>> {
-        if let exchange::OrderSheet::Zeroex(order) = sheet {
+        if let exchange::OrderSheet::Zeroex((order, amount)) = sheet {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let nonce = self.geth.nonce(&pub_addr).unwrap();
             let gas_tx = 50000;
             let gas_price_fast = geth::ethgasstation_fast();
             let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
+            let gas_cost = gas_tx * gas_price_fast;
             println!(
-                "deposit tx {} gas @{}gwei (ethgasstation_fast)",
-                gas_tx, gas_price_gwei
+                "deposit tx {} gas limit @{}gwei (ethgasstation_fast) = {} eth",
+                gas_tx,
+                gas_price_gwei,
+                gas_cost as f64 / 1e18_f64
             );
 
             let mut contract_addra = [0u8; 20];
             let contract_addr = exchange.contract_address.as_ref().unwrap().clone();
             contract_addra.copy_from_slice(&eth::dehex(&contract_addr)[..]);
-            let data = order_fill_data(&order, "0", "signature".to_string().as_bytes().to_vec());
+            let data = order_fill_data(&order, &amount, eth::dehex(&order.signature));
+            println!("filling order with amount {}", amount);
             let tx = ethereum_tx_sign::RawTransaction {
                 nonce: ethereum_types::U256::from(nonce),
                 to: Some(ethereum_types::H160::from(contract_addra)),

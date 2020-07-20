@@ -47,7 +47,7 @@ impl std::fmt::Display for TransferDirection {
 pub enum OrderSheet {
     Ddex3(exchanges::ddex3::OrderSheet),
     Ddex4(exchanges::ddex4::OrderSheet),
-    Zeroex(exchanges::zeroex::OrderForm),
+    Zeroex((exchanges::zeroex::OrderForm, String)),
     Switcheo(exchanges::switcheo::Order),
     Idex(exchanges::idex::OrderSheet),
     Oasis(exchanges::oasis::OrderSheet),
