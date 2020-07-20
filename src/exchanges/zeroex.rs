@@ -455,7 +455,7 @@ pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
     let eip712_order_schema_hash =
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
     ethabi::Token::Tuple(vec![
-        ethabi::Token::FixedBytes(eip712_order_schema_hash),
+        //ethabi::Token::FixedBytes(eip712_order_schema_hash),
         ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.fee_recipient_address[2..])),
@@ -478,10 +478,10 @@ pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
         ethabi::Token::Uint(ethereum_types::U256::from(
             form.salt.parse::<u128>().unwrap(),
         )),
-        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
-        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
-        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
-        ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
     ])
 }
 
