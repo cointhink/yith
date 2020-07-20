@@ -333,13 +333,13 @@ impl exchange::Api for Zeroex {
         if let exchange::OrderSheet::Zeroex((order, amount)) = sheet {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let nonce = self.geth.nonce(&pub_addr).unwrap();
-            let gas_tx = 50000;
+            let gas_limit = 50000;
             let gas_price_fast = geth::ethgasstation_fast();
             let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
-            let gas_cost = gas_tx * gas_price_fast;
+            let gas_cost = gas_limit * gas_price_fast;
             println!(
                 "deposit tx {} gas limit @{}gwei (ethgasstation_fast) = {} eth",
-                gas_tx,
+                gas_limit,
                 gas_price_gwei,
                 gas_cost as f64 / 1e18_f64
             );
@@ -354,7 +354,7 @@ impl exchange::Api for Zeroex {
                 to: Some(ethereum_types::H160::from(contract_addra)),
                 value: ethereum_types::U256::zero(),
                 gas_price: ethereum_types::U256::from(gas_price_fast),
-                gas: ethereum_types::U256::from(310240),
+                gas: ethereum_types::U256::from(gas_limit),
                 data: data,
             };
             let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
