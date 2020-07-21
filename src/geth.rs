@@ -19,12 +19,11 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn build_infura(project_id: &str) -> Client {
-        let infura_api = "https://mainnet.infura.io/v3";
+    pub fn build(geth_url: &str) -> Client {
         let client = reqwest::blocking::Client::new();
         let logging_client = http::LoggingClient::new(client);
         Client {
-            url: format!("{}/{}", infura_api, project_id),
+            url: geth_url.to_string(),
             http: logging_client,
         }
     }

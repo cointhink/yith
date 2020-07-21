@@ -72,7 +72,7 @@ fn app(
     } else if let Some(matches) = opts.subcommand_matches("weth") {
         let action = matches.value_of("action").unwrap();
         let amount = matches.value_of("amount").unwrap().parse::<f64>().unwrap();
-        let geth = geth::Client::build_infura(&config.infura_project_id);
+        let geth = geth::Client::build(&config.geth_url);
         let amount_str = exchange::quantity_in_base_units(amount, 18, 18).to_string();
         match action {
             "wrap" => {
@@ -104,7 +104,7 @@ fn app(
         let token = matches.value_of("token").unwrap();
         let exchange_name = matches.value_of("exchange").unwrap();
         let exchange = exchanges.find_by_name(exchange_name).unwrap();
-        let geth = geth::Client::build_infura(&config.infura_project_id);
+        let geth = geth::Client::build(&config.geth_url);
         match action {
             "allowance" => {
                 let allowance = erc20::Erc20::allowance(

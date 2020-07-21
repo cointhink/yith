@@ -21,7 +21,6 @@ pub struct Config {
     pub proxy: Option<String>,
     pub etherscan_key: String,
     pub idex_key: String,
-    pub infura_project_id: String,
     pub email: Option<String>,
     pub spread_premium: Option<f64>,
     pub eth_dust: f64,
@@ -109,21 +108,21 @@ pub fn hydrate_exchanges(
             let api: Box<dyn exchange::Api> = match settings.protocol {
                 ExchangeProtocol::ZeroexOpen => Box::new(exchanges::zeroex::Zeroex::new(
                     settings.clone(),
-                    geth::Client::build_infura(&config.infura_project_id),
+                    geth::Client::build(&config.geth_url),
                 )),
                 ExchangeProtocol::Ddex3 => Box::new(exchanges::ddex3::Ddex3::new(settings.clone())),
                 ExchangeProtocol::Ddex4 => Box::new(exchanges::ddex4::Ddex4 {}),
                 ExchangeProtocol::Switcheo => Box::new(exchanges::switcheo::Switcheo::new(
                     settings.clone(),
-                    geth::Client::build_infura(&config.infura_project_id),
+                    geth::Client::build(&config.geth_url),
                 )),
                 ExchangeProtocol::Idex => Box::new(exchanges::idex::Idex::new(
                     settings.clone(),
                     &config.idex_key,
-                    geth::Client::build_infura(&config.infura_project_id),
+                    geth::Client::build(&config.geth_url),
                 )),
                 ExchangeProtocol::Oasis => Box::new(exchanges::oasis::Oasis::new(
-                    geth::Client::build_infura(&config.infura_project_id),
+                    geth::Client::build(&config.geth_url),
                 )),
             };
             Exchange {
