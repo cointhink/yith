@@ -421,7 +421,7 @@ pub fn order_fill_data(order: &OrderForm, amount: &str, signature: Vec<u8>) -> V
     ).to_vec(); // 0x9b44d556
     call.extend_from_slice(&func);
     let params = vec![
-        ethabi::Token::Array(order_encode(&order)),
+        ethabi::Token::Tuple(order_encode(&order)),
         ethabi::Token::Uint(ethereum_types::U256::from(amount.parse::<u128>().unwrap())),
         ethabi::Token::Bytes(signature),
     ];
@@ -483,10 +483,10 @@ pub fn order_encode(form: &OrderForm) -> Vec<ethabi::Token> {
         ethabi::Token::Uint(ethereum_types::U256::from(
             form.salt.parse::<u128>().unwrap(),
         )),
-        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
-        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
-        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
-        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
+        ethabi::Token::Bytes(eth::dehex(&form.maker_asset_data[2..])),
+        ethabi::Token::Bytes(eth::dehex(&form.taker_asset_data[2..])),
+        ethabi::Token::Bytes(eth::dehex(&form.maker_fee_asset_data[2..])),
+        ethabi::Token::Bytes(eth::dehex(&form.taker_fee_asset_data[2..])),
     ]
 }
 
