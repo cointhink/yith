@@ -630,8 +630,15 @@ fn build_book(
                     wallet,
                 ) {
                     Ok(capped_offer) => {
-                        total += capped_offer.cost(askbid);
-                        Ok((capped_offer, market))
+                        let value = capped_offer.cost(askbid);
+                        if value > 0_f64 {
+                            total += value;
+                            Ok((capped_offer, market))
+                        } else {
+                            Err(errors::MainError::build_box(format!(
+                                "skipping zero value transaction"
+                            )))
+                        }
                     }
                     Err(e) => Err(e),
                 };
