@@ -420,12 +420,11 @@ pub fn order_fill_data(order: &OrderForm, amount: &str, signature: Vec<u8>) -> V
             ",uint256,bytes)").as_str()
     ).to_vec(); // 0x9b44d556
     call.extend_from_slice(&func);
-    let mut params = vec![];
-    params.extend_from_slice(&order_encode(&order));
-    params.extend_from_slice(&vec![
+    let params = vec![
+        ethabi::Token::Array(order_encode(&order)),
         ethabi::Token::Uint(ethereum_types::U256::from(amount.parse::<u128>().unwrap())),
         ethabi::Token::Bytes(signature),
-    ]);
+    ];
     call.extend_from_slice(&ethabi::encode(&params));
     call
 }
@@ -456,11 +455,42 @@ pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
     let eip712_order_schema_hash =
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
     let mut parts = vec![ethabi::Token::FixedBytes(eip712_order_schema_hash)];
-    parts.extend_from_slice(&order_encode(form));
+    parts.extend_from_slice(&order_encode_old(form));
     ethabi::Token::Tuple(parts)
 }
 
 pub fn order_encode(form: &OrderForm) -> Vec<ethabi::Token> {
+    vec![
+        ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.fee_recipient_address[2..])),
+        ethabi::Token::Address(str_to_h160(&form.sender_address[2..])),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.maker_asset_amount.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.taker_asset_amount.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.maker_fee.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.taker_fee.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.expiration_time_seconds.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Uint(ethereum_types::U256::from(
+            form.salt.parse::<u128>().unwrap(),
+        )),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
+        ethabi::Token::Bytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
+    ]
+}
+
+pub fn order_encode_old(form: &OrderForm) -> Vec<ethabi::Token> {
     vec![
         ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
@@ -540,6 +570,7 @@ mod tests {
     fn blank_order_form() -> OrderForm {
         OrderForm {
             chain_id: 1,
+            exchange_address: CONTRACT_ADDR_V2.to_string(),
             maker_address: "0x0000000000000000000000000000000000000000".to_string(),
             taker_address: "0x0000000000000000000000000000000000000000".to_string(),
             fee_recipient_address: "0x0000000000000000000000000000000000000000".to_string(),
@@ -550,7 +581,6 @@ mod tests {
             taker_fee: "0".to_string(),
             expiration_time_seconds: "0".to_string(),
             salt: "0".to_string(),
-            exchange_address: CONTRACT_ADDR_V2.to_string(),
             maker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             taker_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
             maker_fee_asset_data: "0x0000000000000000000000000000000000000000".to_string(),
@@ -562,6 +592,7 @@ mod tests {
     fn docs0x_order_form() -> OrderForm {
         OrderForm {
             chain_id: 1,
+            exchange_address: "0x61935cbdd02287b511119ddb11aeb42f1593b7ef".to_string(),
             maker_address: "0x320c38912b1611a0706c0a74427f64fa5dc3598e".to_string(),
             taker_address: "0x0000000000000000000000000000000000000000".to_string(),
             fee_recipient_address: "0xc898fbee1cc94c0ff077faa5449915a506eff384".to_string(),
@@ -572,7 +603,6 @@ mod tests {
             taker_fee: "0".to_string(),
             expiration_time_seconds: "1576876106".to_string(),
             salt: "1576832996".to_string(),
-            exchange_address: "0x61935cbdd02287b511119ddb11aeb42f1593b7ef".to_string(),
             maker_asset_data: "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string(),
             taker_asset_data: "0xf47261b00000000000000000000000004fbb350052bca5417566f188eb2ebce5b19bc964".to_string(),
             maker_fee_asset_data: "0xf47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2".to_string(),
@@ -664,10 +694,11 @@ mod tests {
     #[test]
     fn test_order_fill_data() {
         let data = order_fill_data(
-            &blank_order_form(),
+            &docs0x_order_form(),
             1.to_string().as_ref(),
-            "sig".to_string().as_bytes().to_vec(),
+            vec![05, 06, 07],
         );
-        assert_eq!(hex::encode(data), "")
+        //ethabi encode function ../github/notes/zero_ex_exchange_abi_v3.json fillOrder -p '(320c38912b1611a0706c0a74427f64fa5dc3598e,0000000000000000000000000000000000000000,c898fbee1cc94c0ff077faa5449915a506eff384,0000000000000000000000000000000000000000,00000000000000000000000000000000000000000000000000a8ae8433a37280,000000000000000000000000000000000000000000000002605790281d610000,0000000000000000000000000000000000000000000000000000000000000000,0000000000000000000000000000000000000000000000000000000000000000,000000000000000000000000000000000000000000000000000000005dfd384a,000000000000000000000000000000000000000000000000000000005dfc8fe4,f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,f47261b00000000000000000000000004fbb350052bca5417566f188eb2ebce5b19bc964,f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2)' -p 0000000000000000000000000000000000000000000000000000000000000001 -p 050607
+        assert_eq!(hex::encode(data), "9b44d5560000000000000000000000000000000000000000000000000000000000000060000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000003a0000000000000000000000000320c38912b1611a0706c0a74427f64fa5dc3598e0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c898fbee1cc94c0ff077faa5449915a506eff384000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a8ae8433a37280000000000000000000000000000000000000000000000002605790281d61000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005dfd384a000000000000000000000000000000000000000000000000000000005dfc8fe400000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000220000000000000000000000000000000000000000000000000000000000000028000000000000000000000000000000000000000000000000000000000000002e00000000000000000000000000000000000000000000000000000000000000024f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f47261b00000000000000000000000004fbb350052bca5417566f188eb2ebce5b19bc964000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000024f47261b0000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030506070000000000000000000000000000000000000000000000000000000000")
     }
 }
