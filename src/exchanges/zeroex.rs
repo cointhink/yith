@@ -420,11 +420,12 @@ pub fn order_fill_data(order: &OrderForm, amount: &str, signature: Vec<u8>) -> V
             ",uint256,bytes)").as_str()
     ).to_vec(); // 0x9b44d556
     call.extend_from_slice(&func);
-    let params = vec![
-        order_tokens(order),
+    let mut params = vec![];
+    params.extend_from_slice(&order_encode(&order));
+    params.extend_from_slice(&vec![
         ethabi::Token::Uint(ethereum_types::U256::from(amount.parse::<u128>().unwrap())),
         ethabi::Token::Bytes(signature),
-    ];
+    ]);
     call.extend_from_slice(&ethabi::encode(&params));
     call
 }
@@ -454,8 +455,13 @@ pub fn order_sign(privkey_bytes: &Vec<u8>, exg_hash: [u8; 32]) -> String {
 pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
     let eip712_order_schema_hash =
         hex::decode("f80322eb8376aafb64eadf8f0d7623f22130fd9491a221e902b713cb984a7534").unwrap();
-    ethabi::Token::Tuple(vec![
-        ethabi::Token::FixedBytes(eip712_order_schema_hash),
+    let mut parts = vec![ethabi::Token::FixedBytes(eip712_order_schema_hash)];
+    parts.extend_from_slice(&order_encode(form));
+    ethabi::Token::Tuple(parts)
+}
+
+pub fn order_encode(form: &OrderForm) -> Vec<ethabi::Token> {
+    vec![
         ethabi::Token::Address(str_to_h160(&form.maker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.taker_address[2..])),
         ethabi::Token::Address(str_to_h160(&form.fee_recipient_address[2..])),
@@ -482,7 +488,7 @@ pub fn order_tokens(form: &OrderForm) -> ethabi::Token {
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_asset_data[2..])),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.maker_fee_asset_data[2..])),
         ethabi::Token::FixedBytes(hexstr_to_hashbytes(&form.taker_fee_asset_data[2..])),
-    ])
+    ]
 }
 
 pub fn str_to_h160(addr_str: &str) -> ethereum_types::H160 {
@@ -658,10 +664,10 @@ mod tests {
     #[test]
     fn test_order_fill_data() {
         let data = order_fill_data(
-            &docs0x_order_form(),
+            &blank_order_form(),
             1.to_string().as_ref(),
             "sig".to_string().as_bytes().to_vec(),
         );
-        //assert_eq!(hex::encode(data), "")
+        assert_eq!(hex::encode(data), "")
     }
 }
