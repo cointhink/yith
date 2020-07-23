@@ -333,7 +333,7 @@ impl exchange::Api for Zeroex {
         if let exchange::OrderSheet::Zeroex((order, amount)) = sheet {
             let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
             let nonce = self.geth.nonce(&pub_addr).unwrap();
-            let gas_limit = 150000;
+            let gas_limit = 250000;
             let gas_price_fast = geth::ethgasstation_fast();
             let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
             let gas_cost = gas_limit * gas_price_fast;
