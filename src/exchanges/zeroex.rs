@@ -272,20 +272,20 @@ impl exchange::Api for Zeroex {
                     let maker_token = self.tokens.by_addr(&maker_asset_addr);
                     let taker_qty = form.taker_qty(taker_token.decimals);
                     let maker_qty = form.maker_qty(maker_token.decimals);
-                    let (qty, price) = match side {
+                    let (mkt_qty, mkt_price) = match side {
                         BuySell::Buy => (maker_qty, taker_qty / maker_qty),
                         BuySell::Sell => (taker_qty, maker_qty / taker_qty),
                     };
-                    println!("offer {:?} {}@{}", side, qty, price);
+                    println!("offer {:?} {}@{}", side, mkt_qty, mkt_price);
                     let better = match side {
-                        BuySell::Buy => price <= offer.quote,
-                        BuySell::Sell => price >= offer.quote,
+                        BuySell::Buy => mkt_price <= offer.quote,
+                        BuySell::Sell => mkt_price >= offer.quote,
                     };
                     println!(
                         "better {} for price {} (offer quote {})",
-                        better, price, offer.quote
+                        better, mkt_price, offer.quote
                     );
-                    let good_qty = eth::minimum(&vec![qty, offer.base_qty]);
+                    let good_qty = eth::minimum(&vec![qty, mkt_qty]);
                     println!("good qty {}", good_qty);
                     if good_qty > 0.0 && better {
                         let (maker_qty, taker_qty) = match side {
