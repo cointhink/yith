@@ -265,7 +265,7 @@ impl exchange::Api for Zeroex {
                 .orders
                 .into_iter()
                 .fold(vec![], |mut memo, form| {
-                    println!("before {:#?}", form);
+                    println!("considering {:#?}", form);
                     let taker_asset_addr = format!("0x{}", &form.taker_asset_data[34..74]);
                     let taker_token = self.tokens.by_addr(&taker_asset_addr);
                     let maker_asset_addr = format!("0x{}", &form.maker_asset_data[34..74]);
@@ -290,8 +290,9 @@ impl exchange::Api for Zeroex {
                     if good_qty > 0.0 && better {
                         let (maker_qty, taker_qty) = match side {
                             BuySell::Buy => (good_qty, (good_qty / maker_qty) * taker_qty),
-                            BuySell::Sell => (good_qty, (good_qty / taker_qty) * maker_qty),
+                            BuySell::Sell => ((good_qty / taker_qty) * maker_qty, good_qty),
                         };
+                        println!("maker_qty {} taker_qty {}", maker_qty, taker_qty);
                         let taker_asset_amount = format!(
                             "{}",
                             exchange::quantity_in_base_units(
@@ -300,7 +301,7 @@ impl exchange::Api for Zeroex {
                                 taker_token.decimals as i32
                             )
                         );
-                        println!("after {:#?}", form);
+                        println!("taking units {:#?}", taker_asset_amount);
                         memo.push((form, taker_asset_amount));
                     }
                     memo
