@@ -601,6 +601,7 @@ impl exchange::Api for Idex {
             gas: ethereum_types::U256::from(310240),
             data: data,
         };
+        println!("{:#?}", tx);
         let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
         let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
         let params = (eth::hex(&rlp_bytes),);
