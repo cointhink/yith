@@ -403,7 +403,7 @@ fn run_order(
             build_books(config, wallet, &order.bid_books, exchanges, Mode::Simulate);
         let sim_bid_sheets_good_total = count_good_total(&sim_bid_sheets);
 
-        if sim_bid_sheets_good_total > 0.0 {
+        if order.bid_books.cost_total() == 0.0 || sim_bid_sheets_good_total > 0.0 {
             let _ask_runs = run_sheets(config, ask_sheets);
 
             // wallet refresh
