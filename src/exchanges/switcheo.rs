@@ -1154,7 +1154,7 @@ mod tests {
             is_stablecoin: false,
             stablecoin_type: None,
         };
-        let amt = units_to_amount("123456789", &token);
+        let amt = units_to_amount("123456789", token.decimals);
         assert_eq!(amt, 1.23456789)
     }
 
