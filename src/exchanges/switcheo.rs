@@ -341,7 +341,7 @@ impl Order {
             side: self.side.into(),
             state: self.order_status.finto(),
             market: self.pair,
-            base_qty: units_to_amount(&self.quantity, base_token),
+            base_qty: units_to_amount(&self.quantity, base_token.decimals),
             quote: self.price.parse::<f64>().unwrap(),
             create_date: date.to_string(),
         }
@@ -451,7 +451,7 @@ impl Into<ethereum_tx_sign::RawTransaction> for DepositTransaction {
         ethereum_tx_sign::RawTransaction {
             nonce: u64::from_str_radix(&self.nonce[2..], 16).unwrap().into(),
             to: Some(sized_to.into()),
-            value: u64::from_str_radix(&self.value[2..], 16).unwrap().into(),
+            value: u128::from_str_radix(&self.value[2..], 16).unwrap().into(),
             gas_price: u64::from_str_radix(&self.gas_price[2..], 16)
                 .unwrap()
                 .into(),
@@ -674,12 +674,17 @@ impl exchange::Api for Switcheo {
             contract_hash: exchange.contract_address.as_ref().unwrap().clone(),
             order_type: "limit".to_string(),
             pair: market_pair,
+            price: amount_to_units(
+                offer.quote,
+                pair.precision,
+                quote_token_detail.decimals - base_token_detail.decimals,
+            ),
+            //float_to_string_precision(offer.quote, pair.precision),
             quantity: amount_to_units(
                 offer.base_qty * 0.99999, // f64 hack
                 base_token_detail.precision,
                 base_token_detail.decimals,
             ),
-            price: float_to_string_precision(offer.quote, pair.precision),
             side: askbid.into(),
             timestamp: now_millis,
             use_native_tokens: false,
@@ -791,8 +796,10 @@ impl exchange::Api for Switcheo {
     ) -> Option<(Option<f64>, Option<f64>)> {
         match self.tokens.get(&market.quote) {
             Some(base_token_detail) => {
-                let min_cost =
-                    units_to_amount(&base_token_detail.minimum_quantity, base_token_detail);
+                let min_cost = units_to_amount(
+                    &base_token_detail.minimum_quantity,
+                    base_token_detail.decimals,
+                );
                 Some((None, Some(min_cost)))
             }
             None => None,
@@ -819,7 +826,7 @@ impl exchange::Api for Switcheo {
                     symbol: symbol.to_string(),
                 }) {
                     Some(token) => {
-                        let f_bal = units_to_amount(units, token);
+                        let f_bal = units_to_amount(units, token.decimals);
                         (symbol.clone(), f_bal)
                     }
                     None => (format!("conversion-err {} {}", symbol, units), 0.0),
@@ -1071,10 +1078,10 @@ pub fn amount_to_units(amount: f64, precision: i32, decimals: i32) -> String {
     qty_str
 }
 
-pub fn units_to_amount(units: &str, token: &TokenDetail) -> f64 {
+pub fn units_to_amount(units: &str, decimals: i32) -> f64 {
     //thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }', src/exchanges/switcheo.rs:775:16
     let unts = units.parse::<u128>().unwrap();
-    let power = 10_u128.pow(token.decimals as u32);
+    let power = 10_u128.pow(decimals as u32);
     unts as f64 / power as f64
 }
 
@@ -1090,9 +1097,11 @@ pub fn float_to_string_precision(num: f64, precision: i32) -> String {
 }
 
 pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {
-    let qty = units_to_amount(&fill.fill_amount, base_token);
-    let cost = units_to_amount(&fill.want_amount, quote_token);
-    format!("fill: {}@{} cost:{}", qty, fill.price, cost)
+    let available = units_to_amount(&fill.fill_amount, base_token.decimals);
+    let qty = units_to_amount(&fill.want_amount, base_token.decimals);
+    let price = units_to_amount(&fill.price, quote_token.decimals - base_token.decimals);
+    let cost = qty * price;
+    format!("fill: {}(of {})@{} cost:{}", qty, available, price, cost)
 }
 
 pub fn makegroup_display(
@@ -1100,9 +1109,10 @@ pub fn makegroup_display(
     base_token: &TokenDetail,
     quote_token: &TokenDetail,
 ) -> String {
-    let qty = units_to_amount(&mg.offer_amount, base_token);
-    let cost = units_to_amount(&mg.want_amount, quote_token);
-    format!("makegroup: {}@{} cost:{}", qty, mg.price, cost)
+    let qty = units_to_amount(&mg.want_amount, base_token.decimals);
+    let price = units_to_amount(&mg.price, quote_token.decimals - base_token.decimals);
+    let cost = qty * price;
+    format!("makegroup: {}@{} cost:{}", qty, price, cost)
 }
 
 #[cfg(test)]
