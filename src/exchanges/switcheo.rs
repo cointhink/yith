@@ -669,17 +669,20 @@ impl exchange::Api for Switcheo {
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
         let pair = self.pairs.get(&market_pair).unwrap();
 
+        let price = match askbid {
+            types::AskBid::Ask => amount_to_units(
+                offer.quote,
+                pair.precision,
+                quote_token_detail.decimals - base_token_detail.decimals,
+            ),
+            types::AskBid::Bid => float_to_string_precision(offer.quote, pair.precision),
+        };
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
             contract_hash: exchange.contract_address.as_ref().unwrap().clone(),
             order_type: "limit".to_string(),
             pair: market_pair,
-            price: amount_to_units(
-                offer.quote,
-                pair.precision,
-                quote_token_detail.decimals - base_token_detail.decimals,
-            ),
-            //float_to_string_precision(offer.quote, pair.precision),
+            price: price,
             quantity: amount_to_units(
                 offer.base_qty * 0.99999, // f64 hack
                 base_token_detail.precision,
@@ -1080,7 +1083,9 @@ pub fn amount_to_units(amount: f64, precision: i32, decimals: i32) -> String {
 
 pub fn units_to_amount(units: &str, decimals: i32) -> f64 {
     //thread 'main' panicked at 'called `Result::unwrap()` on an `Err` value: ParseIntError { kind: InvalidDigit }', src/exchanges/switcheo.rs:775:16
-    let unts = units.parse::<u128>().unwrap();
+    let unts = units
+        .parse::<u128>()
+        .expect(format!("units_to_amount units: {} decimals: {}", units, decimals).as_str());
     let power = 10_u128.pow(decimals as u32);
     unts as f64 / power as f64
 }
@@ -1099,8 +1104,8 @@ pub fn float_to_string_precision(num: f64, precision: i32) -> String {
 pub fn fill_display(fill: &Fill, base_token: &TokenDetail, quote_token: &TokenDetail) -> String {
     let available = units_to_amount(&fill.fill_amount, base_token.decimals);
     let qty = units_to_amount(&fill.want_amount, base_token.decimals);
-    let price = units_to_amount(&fill.price, quote_token.decimals - base_token.decimals);
-    let cost = qty * price;
+    let price = &fill.price; //units_to_amount(&fill.price, quote_token.decimals - base_token.decimals);
+    let cost = "XX"; //qty * price;
     format!("fill: {}(of {})@{} cost:{}", qty, available, price, cost)
 }
 
@@ -1110,8 +1115,8 @@ pub fn makegroup_display(
     quote_token: &TokenDetail,
 ) -> String {
     let qty = units_to_amount(&mg.want_amount, base_token.decimals);
-    let price = units_to_amount(&mg.price, quote_token.decimals - base_token.decimals);
-    let cost = qty * price;
+    let price = &mg.price; //units_to_amount(&mg.price, quote_token.decimals - base_token.decimals);
+    let cost = "XX"; //qty * price;
     format!("makegroup: {}@{} cost:{}", qty, price, cost)
 }
 
