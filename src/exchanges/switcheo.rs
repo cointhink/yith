@@ -669,13 +669,14 @@ impl exchange::Api for Switcheo {
         let quote_token_detail = self.tokens.get(&market.quote).unwrap();
         let pair = self.pairs.get(&market_pair).unwrap();
 
-        let price = match askbid {
-            types::AskBid::Ask => amount_to_units(
+        let price = if quote_token_detail.decimals == base_token_detail.decimals {
+            float_to_string_precision(offer.quote, pair.precision)
+        } else {
+            amount_to_units(
                 offer.quote,
                 pair.precision,
                 quote_token_detail.decimals - base_token_detail.decimals,
-            ),
-            types::AskBid::Bid => float_to_string_precision(offer.quote, pair.precision),
+            )
         };
         let sheet = OrderSheet {
             blockchain: "eth".to_string(),
