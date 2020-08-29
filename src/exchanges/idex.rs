@@ -582,7 +582,7 @@ impl exchange::Api for Idex {
 
         let pub_addr = format!("0x{}", eth::privkey_to_addr(private_key));
         let nonce = self.geth.nonce(&pub_addr).unwrap();
-        let gas_tx = 50000;
+        let gas_tx = 70000; // eth dep 35,717. token dep 60,920
         let gas_price_fast = geth::ethgasstation_fast();
         let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
         println!(
@@ -598,10 +598,9 @@ impl exchange::Api for Idex {
             to: Some(ethereum_types::H160::from(contract_addra)),
             value: value,
             gas_price: ethereum_types::U256::from(gas_price_fast),
-            gas: ethereum_types::U256::from(310240),
+            gas: ethereum_types::U256::from(gas_tx),
             data: data,
         };
-        println!("{:#?}", tx);
         let private_key = ethereum_types::H256::from_slice(&eth::dehex(private_key));
         let rlp_bytes = tx.sign(&private_key, &eth::ETH_CHAIN_MAINNET);
         let params = (eth::hex(&rlp_bytes),);
