@@ -586,8 +586,10 @@ impl exchange::Api for Idex {
         let gas_price_fast = geth::ethgasstation_fast();
         let gas_price_gwei = gas_price_fast / 1_000_000_000u64;
         println!(
-            "deposit tx {} gas @{}gwei (ethgasstation_fast)",
-            gas_tx, gas_price_gwei
+            "deposit tx {} gas @{}gwei (ethgasstation_fast) = {}eth",
+            gas_tx,
+            gas_price_gwei,
+            gas_tx * gas_price_fast
         );
 
         let mut contract_addra = [0u8; 20];
