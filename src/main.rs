@@ -1150,7 +1150,7 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         pair: pair,
         cost: quantity * price,
         profit: 0.0,
-        avg_price: price,
+        fee: 0.0,
         ask_books: asks,
         bid_books: bids,
     }

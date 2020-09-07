@@ -8,7 +8,7 @@ pub struct Order {
     pub pair: Pair,
     pub cost: f64,
     pub profit: f64,
-    pub avg_price: f64,
+    pub fee: f64,
     pub ask_books: Books,
     pub bid_books: Books,
 }
