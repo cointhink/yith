@@ -1149,8 +1149,11 @@ fn build_manual_order(matches: &clap::ArgMatches) -> types::Order {
         date: time::now_string(),
         pair: pair,
         cost: quantity * price,
+        trade_profit: 0.0,
         profit: 0.0,
-        fee: 0.0,
+        fee_network: 0.0,
+        quote_usd: 0.0,
+        network_usd: 0.0,
         ask_books: asks,
         bid_books: bids,
     }

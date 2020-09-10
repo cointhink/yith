@@ -6,11 +6,14 @@ pub struct Order {
     pub id: String,
     pub date: String,
     pub pair: Pair,
-    pub cost: f64,
-    pub profit: f64,
-    pub fee: f64,
     pub ask_books: Books,
     pub bid_books: Books,
+    pub cost: f64,
+    pub trade_profit: f64,
+    pub profit: f64,
+    pub fee_network: f64,
+    pub quote_usd: f64,
+    pub network_usd: f64,
 }
 
 impl Order {
