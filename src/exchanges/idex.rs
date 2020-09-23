@@ -389,7 +389,7 @@ impl exchange::Api for Idex {
             if better {
                 let min_buy = eth::minimum(&vec![remaining_buy, cost]);
                 let amount = exchange::quantity_in_base_units(
-                    remaining_buy,
+                    min_buy,
                     buy_token.decimals,
                     buy_token.decimals,
                 );
