@@ -1,5 +1,5 @@
-/.build
-/target
+/.target
+/logs/
 **/*.rs.bk
 /config.yaml
 /wallet.yaml
