@@ -4,7 +4,7 @@ all:
 	cargo build --target-dir .build
 
 run: all
-	./target/debug/yith $*
+	./.build/debug/yith $*
 
 format:
 	find src -name '*\.rs' -exec rustfmt {} \;

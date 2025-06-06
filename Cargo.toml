@@ -2,16 +2,16 @@
 name = "yith"
 version = "0.3.0"
 authors = ["Don Park <donp@donp.org>"]
-edition = "2018"
+edition = "2024"
 
 [dependencies]
 bigdecimal = "0.1"
 bs58 = "0.3"
 chrono = "0.4"
 clap = {version = "2.33", features = ["yaml", "color"]}
-ethabi = "11.0"
-ethereum-tx-sign = "3.0.2"
-ethereum-types = "0.8.0"
+ethabi = "14.1.0"
+ethereum-tx-sign = "3.0.5"
+ethereum-types = "0.11.0"
 hex = "0.4"
 lettre = { version = "0.9" }
 lettre_email = { version = "0.9" }
@@ -21,7 +21,7 @@ rand = "0.7"
 redis = "0.15"
 reqwest = { version = "0.10", features = ["blocking", "json", "socks"] }
 rlp = "0.4"
-secp256k1 = { version = "0.17", features = ["recovery"] }
+secp256k1 = { version = "0.20.3", features = ["recovery"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml = "0.8"
