@@ -1,4 +1,5 @@
 /.target
+/target
 /logs/
 **/*.rs.bk
 /config.yaml

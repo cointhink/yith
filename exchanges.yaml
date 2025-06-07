@@ -1,7 +1,7 @@
 ---
   -
     name: idex
-    enabled: true
+    enabled: false
     has_balances: true
     protocol: idex
     contract_address: 0x2a0c0dbecc7e4d658f48e01e3fa353f44050c208
@@ -10,8 +10,8 @@
     maker_fee: 0.1
   -
     name: switcheo
-    has_balances: true
     enabled: true
+    has_balances: false
     protocol: switcheo
     #contract_address: 0x4d19fd42e780d56ff6464fe9e7d5158aee3d125d #test
     #api_url: https://test-api.switcheo.network/v2
@@ -21,8 +21,8 @@
     maker_fee: 0.002
   -
     name: radarrelay # https://developers.radarrelay.com/api/feed-api
-    has_balances: false
     enabled: true
+    has_balances: false
     protocol: 0x
     #contract_address: 0x080bf510FCbF18b91105470639e9561022937712 #v2
     contract_address: 0x61935cbdd02287b511119ddb11aeb42f1593b7ef #v3
@@ -33,8 +33,8 @@
     maker_fee: 0.0
   - 
     name: 0x2.1
-    has_balances: false
     enabled: false
+    has_balances: false
     protocol: 0x
     contract_address: 080bf510FCbF18b91105470639e9561022937712
     api_url: https://api.0x.org/sra
@@ -42,8 +42,8 @@
     maker_fee: 0.0
   - 
     name: 0x3
-    has_balances: false
     enabled: false
+    has_balances: false
     protocol: 0x
     contract_address: B27F1DB0a7e473304A5a06E54bdf035F671400C0
     api_url: https://api.0x.org/sra
@@ -51,24 +51,24 @@
     maker_fee: 0.0
   -
     name: ddex-v3 # https://legacy-docs.ddex.io/
+    enabled: false
     has_balances: false
-    enabled: true
     protocol: ddex3
     api_url: https://api.ddex.io/v3
     taker_fee: 0.3
     maker_fee: 0.1
   -
     name: ddex-v4  # https://docs.ddex.io/
+    enabled: false
     has_balances: false
-    enabled: true
     protocol: ddex4
     api_url: https://api.ddex.io/v4
     taker_fee: 0.3
     maker_fee: 0.1
   -
     name: oasis
+    enabled: false
     has_balances: false
-    enabled: true
     protocol: oasis
     contract_address: 0x794e6e91555438aFc3ccF1c5076A74F42133d08D
     api_url: https://mainnet.infura.io/v3
