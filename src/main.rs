@@ -1,22 +1,19 @@
 use clap;
 
-mod config;
-mod email;
-mod erc20;
-mod errors;
-mod eth;
-mod etherscan;
-mod exchange;
-mod exchanges;
-mod geth;
-mod http;
-mod log;
-mod price;
-mod redis;
-mod time;
-mod types;
-mod wallet;
-mod weth;
+use yith::config;
+use yith::email;
+use yith::erc20;
+use yith::errors;
+use yith::eth;
+use yith::etherscan;
+use yith::exchange;
+use yith::geth;
+use yith::log;
+use yith::redis;
+use yith::time;
+use yith::types;
+use yith::wallet;
+use yith::weth;
 
 fn main() {
     let options_yaml = clap::load_yaml!("cli.yaml"); // load/parse at compile time
@@ -136,7 +133,7 @@ fn app(
             None => {
                 return Some(errors::MainError::build_box(format!(
                     "bad transfer direction"
-                )))
+                )));
             }
         };
         //let direction = matches.value_of("direction").unwrap().into();
